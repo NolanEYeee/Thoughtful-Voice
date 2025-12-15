@@ -1,0 +1,42 @@
+{
+    "manifest_version": 3,
+    "name": "AI Voice Uploader",
+    "version": "1.0",
+    "description": "Record and upload audio directly to Gemini and ChatGPT.",
+    "permissions": [
+        "activeTab",
+        "scripting",
+        "storage"
+    ],
+    "host_permissions": [
+        "https://chat.openai.com/*",
+        "https://gemini.google.com/*"
+    ],
+    "content_scripts": [
+        {
+            "matches": [
+                "https://chat.openai.com/*",
+                "https://gemini.google.com/*"
+            ],
+            "js": [
+                "dist/content.bundle.js"
+            ],
+            "css": [
+                "src/styles/main.css"
+            ]
+        }
+    ],
+    "action": {
+        "default_popup": "src/popup/popup.html",
+        "default_icon": {
+            "16": "icons/icon16.png",
+            "48": "icons/icon48.png",
+            "128": "icons/icon128.png"
+        }
+    },
+    "icons": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    }
+}

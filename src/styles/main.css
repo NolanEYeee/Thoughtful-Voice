@@ -1,0 +1,80 @@
+/* Base button style */
+.ai-voice-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    /* Material Design standard size match */
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+
+    font-size: 24px;
+    line-height: 1;
+    color: #444746;
+    /* Gemini Grey */
+    margin: 0 4px;
+    transition: background-color 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.ai-voice-btn:hover {
+    background-color: rgba(68, 71, 70, 0.08);
+    /* Material Hover */
+}
+
+.ai-voice-btn.recording {
+    background-color: #ffebee;
+    color: #d93025;
+    width: auto;
+    padding: 0 16px;
+    border-radius: 20px;
+    font-size: 16px;
+    font-weight: 500;
+    gap: 8px;
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+    .ai-voice-btn {
+        color: #e3e3e3;
+    }
+
+    .ai-voice-btn:hover {
+        background-color: rgba(227, 227, 227, 0.08);
+    }
+
+    .ai-voice-btn.recording {
+        background-color: #5c1e1e;
+        color: #f2b8b5;
+    }
+}
+
+/* Fallback Fixed Position (if injection fails) */
+body>.ai-voice-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    background: #fff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    width: 56px;
+    height: 56px;
+}
+
+body>.ai-voice-btn:hover {
+    background: #f5f5f5;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+    body>.ai-voice-btn {
+        background: #1e1e1e;
+    }
+
+    body>.ai-voice-btn:hover {
+        background: #2d2d2d;
+    }
+}
