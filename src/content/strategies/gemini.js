@@ -44,7 +44,8 @@ export class GeminiStrategy {
     async handleUpload(blob, durationString) {
         console.log("GeminiStrategy: Handling upload via Clipboard Paste (Alternative Method)");
 
-        const file = new File([blob], `audio_recording_${Date.now()}.webm`, { type: 'audio/webm' });
+        // 1. Create File object (Now TRUE WAV)
+        const file = new File([blob], `audio_recording_${Date.now()}.wav`, { type: 'audio/wav' });
 
         // Strategy: Simulate "Paste" event
         // This is distinct from DnD and File Input.

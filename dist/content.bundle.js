@@ -13,8 +13,10 @@
     "src/content/recorder.js"() {
       Recorder = class {
         constructor() {
-          this.mediaRecorder = null;
-          this.audioChunks = [];
+          this.audioContext = null;
+          this.mediaStreamSource = null;
+          this.recorder = null;
+          this.audioBuffers = [];
           this.stream = null;
           this.startTime = 0;
           this.timerInterval = null;
@@ -22,19 +24,21 @@
         }
         async start(onTimerUpdate) {
           this.onTimerUpdate = onTimerUpdate;
-          this.audioChunks = [];
+          this.audioBuffers = [];
           try {
             this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            this.mediaRecorder = new MediaRecorder(this.stream);
-            this.mediaRecorder.ondataavailable = (event) => {
-              if (event.data.size > 0) {
-                this.audioChunks.push(event.data);
-              }
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            this.mediaStreamSource = this.audioContext.createMediaStreamSource(this.stream);
+            this.recorder = this.audioContext.createScriptProcessor(4096, 1, 1);
+            this.recorder.onaudioprocess = (e) => {
+              const input = e.inputBuffer.getChannelData(0);
+              this.audioBuffers.push(new Float32Array(input));
             };
-            this.mediaRecorder.start();
+            this.mediaStreamSource.connect(this.recorder);
+            this.recorder.connect(this.audioContext.destination);
             this.startTime = Date.now();
             this.startTimer();
-            console.log("Recording started");
+            console.log("WAV Recording started");
             return true;
           } catch (error) {
             console.error("Error starting recording:", error);
@@ -43,24 +47,27 @@
           }
         }
         stop() {
-          return new Promise((resolve) => {
-            if (!this.mediaRecorder) {
+          return new Promise(async (resolve) => {
+            if (!this.recorder || !this.audioContext) {
               resolve(null);
               return;
             }
-            this.mediaRecorder.onstop = () => {
-              const audioBlob = new Blob(this.audioChunks, { type: "audio/webm" });
-              this.stopTimer();
-              this.stream.getTracks().forEach((track) => track.stop());
-              this.stream = null;
-              this.mediaRecorder = null;
-              console.log("Recording stopped, blob size:", audioBlob.size);
-              resolve({
-                blob: audioBlob,
-                duration: Date.now() - this.startTime
-              });
-            };
-            this.mediaRecorder.stop();
+            this.recorder.disconnect();
+            this.mediaStreamSource.disconnect();
+            this.stopTimer();
+            this.stream.getTracks().forEach((track) => track.stop());
+            this.stream = null;
+            const blob = this.exportWAV(this.audioBuffers, this.audioContext.sampleRate);
+            if (this.audioContext.state !== "closed") {
+              await this.audioContext.close();
+            }
+            this.recorder = null;
+            this.audioContext = null;
+            console.log("Recording stopped, WAV blob size:", blob.size);
+            resolve({
+              blob,
+              duration: Date.now() - this.startTime
+            });
           });
         }
         startTimer() {
@@ -77,6 +84,49 @@
           if (this.timerInterval) {
             clearInterval(this.timerInterval);
             this.timerInterval = null;
+          }
+        }
+        // --- WAV Encoding Helpers ---
+        mergeBuffers(buffers, length) {
+          const result = new Float32Array(length);
+          let offset = 0;
+          for (const buffer of buffers) {
+            result.set(buffer, offset);
+            offset += buffer.length;
+          }
+          return result;
+        }
+        exportWAV(buffers, sampleRate) {
+          const totalLength = buffers.reduce((acc, b) => acc + b.length, 0);
+          const mergedBuffers = this.mergeBuffers(buffers, totalLength);
+          const buffer = new ArrayBuffer(44 + mergedBuffers.length * 2);
+          const view = new DataView(buffer);
+          this.writeString(view, 0, "RIFF");
+          view.setUint32(4, 36 + mergedBuffers.length * 2, true);
+          this.writeString(view, 8, "WAVE");
+          this.writeString(view, 12, "fmt ");
+          view.setUint32(16, 16, true);
+          view.setUint16(20, 1, true);
+          view.setUint16(22, 1, true);
+          view.setUint32(24, sampleRate, true);
+          view.setUint32(28, sampleRate * 2, true);
+          view.setUint16(32, 2, true);
+          view.setUint16(34, 16, true);
+          this.writeString(view, 36, "data");
+          view.setUint32(40, mergedBuffers.length * 2, true);
+          this.floatTo16BitPCM(view, 44, mergedBuffers);
+          return new Blob([view], { type: "audio/wav" });
+        }
+        writeString(view, offset, string) {
+          for (let i = 0; i < string.length; i++) {
+            view.setUint8(offset + i, string.charCodeAt(i));
+          }
+        }
+        floatTo16BitPCM(output, offset, input) {
+          for (let i = 0; i < input.length; i++, offset += 2) {
+            let s = Math.max(-1, Math.min(1, input[i]));
+            s = s < 0 ? s * 32768 : s * 32767;
+            output.setInt16(offset, s, true);
           }
         }
       };
@@ -282,7 +332,7 @@
         }
         async handleUpload(blob, durationString) {
           console.log("GeminiStrategy: Handling upload via Clipboard Paste (Alternative Method)");
-          const file = new File([blob], `audio_recording_${Date.now()}.webm`, { type: "audio/webm" });
+          const file = new File([blob], `audio_recording_${Date.now()}.wav`, { type: "audio/wav" });
           const textBox = document.querySelector('[role="textbox"]');
           if (!textBox) {
             console.warn("Gemini Input (textbox) not found for paste. Falling back to Drag and Drop.");
@@ -396,7 +446,7 @@
             timestamp: Date.now(),
             site: "Gemini",
             durationString: `${m}:${s}`,
-            filename: `audio_recording_${Date.now()}.webm`
+            filename: `audio_recording_${Date.now()}.wav`
           }, blob);
         });
         const target = strategy.getInjectionTarget();

@@ -47,7 +47,7 @@ async function init() {
             timestamp: Date.now(),
             site: 'Gemini',
             durationString: `${m}:${s}`,
-            filename: `audio_recording_${Date.now()}.webm`
+            filename: `audio_recording_${Date.now()}.wav`
         }, blob);
     });
 
