@@ -183,11 +183,28 @@
             await this.handleUpload(result.blob, result.duration);
           }
         }
-        inject(targetContainer) {
+        inject(targetSpec) {
           if (!this.button) this.createButton();
           if (document.getElementById("ai-voice-uploader-btn")) return;
-          if (targetContainer) {
-            targetContainer.appendChild(this.button);
+          let container = null;
+          let insertBefore = null;
+          if (targetSpec instanceof Element) {
+            container = targetSpec;
+          } else if (targetSpec && targetSpec.container) {
+            container = targetSpec.container;
+            insertBefore = targetSpec.insertBefore || null;
+          }
+          if (container) {
+            if (insertBefore) {
+              try {
+                container.insertBefore(this.button, insertBefore);
+              } catch (e) {
+                console.warn("Injection failed with insertBefore, falling back to append", e);
+                container.appendChild(this.button);
+              }
+            } else {
+              container.appendChild(this.button);
+            }
           } else {
             document.body.appendChild(this.button);
             this.button.style.position = "fixed";
@@ -316,17 +333,36 @@
           });
         }
         getInjectionTarget() {
+          const toolsContainer = document.querySelector(".toolbox-drawer-button-container");
+          if (toolsContainer && toolsContainer.parentElement) {
+            return {
+              container: toolsContainer.parentElement,
+              insertBefore: toolsContainer.nextSibling
+              // Insert AFTER the tools container
+            };
+          }
           const uploadButton = document.querySelector(".upload-card-button");
           if (uploadButton && uploadButton.parentElement) {
-            return uploadButton.parentElement;
+            return {
+              container: uploadButton.parentElement,
+              insertBefore: null
+              // Append to end
+            };
           }
           const micButton = document.querySelector(".speech_dictation_mic_button");
           if (micButton && micButton.parentElement) {
-            return micButton.parentElement;
+            return {
+              container: micButton.parentElement,
+              insertBefore: micButton.nextSibling
+            };
           }
           const inputArea = document.querySelector('[role="textbox"]');
           if (inputArea && inputArea.parentElement) {
-            return inputArea.parentElement.parentElement || document.body;
+            const target = inputArea.parentElement.parentElement || document.body;
+            return {
+              container: target,
+              insertBefore: null
+            };
           }
           return null;
         }

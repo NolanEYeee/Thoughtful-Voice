@@ -16,7 +16,7 @@
     line-height: 1;
     color: #444746;
     /* Gemini Grey */
-    margin: 0 4px;
+    /* margin: 0 4px;  <-- Removed to rely on parent gap */
     transition: background-color 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
 

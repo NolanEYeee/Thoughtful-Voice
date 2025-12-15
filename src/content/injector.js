@@ -55,14 +55,34 @@ export class Injector {
         }
     }
 
-    inject(targetContainer) {
+    inject(targetSpec) {
         if (!this.button) this.createButton();
 
         // Avoid double injection
         if (document.getElementById('ai-voice-uploader-btn')) return;
 
-        if (targetContainer) {
-            targetContainer.appendChild(this.button);
+        let container = null;
+        let insertBefore = null;
+
+        if (targetSpec instanceof Element) {
+            container = targetSpec;
+        } else if (targetSpec && targetSpec.container) {
+            container = targetSpec.container;
+            insertBefore = targetSpec.insertBefore || null;
+        }
+
+        if (container) {
+            if (insertBefore) {
+                // If insertBefore is valid and is a child of container (or we trust the caller)
+                try {
+                    container.insertBefore(this.button, insertBefore);
+                } catch (e) {
+                    console.warn("Injection failed with insertBefore, falling back to append", e);
+                    container.appendChild(this.button);
+                }
+            } else {
+                container.appendChild(this.button);
+            }
         } else {
             // Fallback: Fixed position
             document.body.appendChild(this.button);

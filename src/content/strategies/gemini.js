@@ -18,24 +18,43 @@ export class GeminiStrategy {
     }
 
     getInjectionTarget() {
-        // Priority 1: Next to the Upload (+) button
-        // This button is usually on the left of the input bar.
+        // Priority 1: Next to the Tools button (toolbox-drawer-button-container)
+        // This container holds the Tools button. We want to be a sibling of this container.
+        const toolsContainer = document.querySelector('.toolbox-drawer-button-container');
+        if (toolsContainer && toolsContainer.parentElement) {
+            return {
+                container: toolsContainer.parentElement,
+                insertBefore: toolsContainer.nextSibling // Insert AFTER the tools container
+            };
+        }
+
+        // Priority 2: Next to the Upload (+) button (Fallback if tools not found)
         const uploadButton = document.querySelector('.upload-card-button');
         if (uploadButton && uploadButton.parentElement) {
-            return uploadButton.parentElement;
+            return {
+                container: uploadButton.parentElement,
+                insertBefore: null // Append to end
+            };
         }
 
-        // Priority 2: Next to the native mic button (fallback)
+        // Priority 3: Next to the native mic button (fallback)
         const micButton = document.querySelector('.speech_dictation_mic_button');
         if (micButton && micButton.parentElement) {
-            return micButton.parentElement;
+            return {
+                container: micButton.parentElement,
+                insertBefore: micButton.nextSibling
+            };
         }
 
-        // Priority 3: Input area wrapper (Textbox parent)
+        // Priority 4: Input area wrapper (Textbox parent)
         const inputArea = document.querySelector('[role="textbox"]');
         if (inputArea && inputArea.parentElement) {
             // Usually the input row is the parent or grandparent
-            return inputArea.parentElement.parentElement || document.body;
+            const target = inputArea.parentElement.parentElement || document.body;
+            return {
+                container: target,
+                insertBefore: null
+            };
         }
 
         return null;
