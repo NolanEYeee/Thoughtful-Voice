@@ -3,7 +3,7 @@ import { Injector } from './injector.js';
 import { BubbleRenderer } from './bubble.js';
 import { StorageHelper } from './storage.js';
 import { GeminiStrategy } from './strategies/gemini.js';
-// import { ChatGPTStrategy } from './strategies/chatgpt.js';
+import { ChatGPTStrategy } from './strategies/chatgpt.js';
 
 console.log("AI Voice Uploader: Content script loaded");
 
@@ -13,9 +13,8 @@ async function init() {
 
     if (host.includes('gemini.google.com')) {
         strategy = new GeminiStrategy();
-    } else if (host.includes('openai.com')) {
-        console.log("ChatGPT support postponed");
-        return;
+    } else if (host.includes('chatgpt.com') || host.includes('openai.com')) {
+        strategy = new ChatGPTStrategy();
     }
 
     if (!strategy) {

@@ -446,6 +446,84 @@
     }
   });
 
+  // src/content/strategies/chatgpt.js
+  var ChatGPTStrategy;
+  var init_chatgpt = __esm({
+    "src/content/strategies/chatgpt.js"() {
+      ChatGPTStrategy = class {
+        constructor() {
+          this.name = "ChatGPT";
+        }
+        async waitForDOM() {
+          return new Promise((resolve) => {
+            const check = () => {
+              if (document.getElementById("prompt-textarea")) {
+                resolve();
+              } else {
+                setTimeout(check, 500);
+              }
+            };
+            check();
+          });
+        }
+        getInjectionTarget() {
+          const attachButton = document.querySelector('button[aria-label="Attach files"]');
+          if (attachButton && attachButton.parentElement) {
+            return {
+              container: attachButton.parentElement,
+              insertBefore: attachButton
+              // Insert before the + button
+            };
+          }
+          const textarea = document.getElementById("prompt-textarea");
+          if (textarea) {
+            const inputWrapper = textarea.closest(".flex.items-end");
+            if (inputWrapper) {
+              const firstButton = inputWrapper.querySelector("button");
+              if (firstButton) {
+                return {
+                  container: inputWrapper,
+                  insertBefore: firstButton.nextSibling
+                };
+              }
+            }
+          }
+          return null;
+        }
+        async handleUpload(blob, durationString) {
+          console.log("ChatGPTStrategy: Handling upload via Clipboard Paste");
+          const file = new File([blob], `audio_recording_${Date.now()}.wav`, { type: "audio/wav" });
+          const textBox = document.getElementById("prompt-textarea");
+          if (!textBox) {
+            console.error("ChatGPT input not found");
+            return;
+          }
+          try {
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            const pasteEvent = new ClipboardEvent("paste", {
+              bubbles: true,
+              cancelable: true,
+              clipboardData: dataTransfer
+            });
+            textBox.focus();
+            textBox.dispatchEvent(pasteEvent);
+            console.log("ChatGPTStrategy: Paste event dispatched");
+          } catch (e) {
+            console.error("ChatGPT Paste failed", e);
+          }
+        }
+        insertText(textBox) {
+          if (textBox) {
+            const textToInsert = "Please analyze this audio";
+            textBox.focus();
+            document.execCommand("insertText", false, textToInsert);
+          }
+        }
+      };
+    }
+  });
+
   // src/content/main.js
   var require_main = __commonJS({
     "src/content/main.js"() {
@@ -454,15 +532,15 @@
       init_bubble();
       init_storage();
       init_gemini();
+      init_chatgpt();
       console.log("AI Voice Uploader: Content script loaded");
       async function init() {
         const host = window.location.hostname;
         let strategy = null;
         if (host.includes("gemini.google.com")) {
           strategy = new GeminiStrategy();
-        } else if (host.includes("openai.com")) {
-          console.log("ChatGPT support postponed");
-          return;
+        } else if (host.includes("chatgpt.com") || host.includes("openai.com")) {
+          strategy = new ChatGPTStrategy();
         }
         if (!strategy) {
           console.log("AI Voice Uploader: Unknown platform");
