@@ -41,7 +41,7 @@ async function loadRecordings() {
 
         item.innerHTML = `
             <div class="meta">
-                <span>${rec.site || 'Unknown Site'}</span>
+                <span class="site-name">${rec.site || 'Unknown Site'}</span>
                 <span>${date}</span>
                 <span>${rec.durationString || ''}</span>
             </div>

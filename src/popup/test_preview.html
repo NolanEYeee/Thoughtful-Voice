@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>AI Voice Uploader History</title>
+    <title>Vintage Kraft Preview</title>
     <style>
         /* 
            VINTAGE KRAFT DESIGN SYSTEM 
@@ -16,6 +16,7 @@
 
         body {
             width: 350px;
+            /* Slightly wider for comfortable reading */
             min-height: 400px;
             margin: 0;
             padding: 20px;
@@ -41,7 +42,6 @@
             border: 3px double #5d4037;
             border-radius: 4px;
             background: rgba(255, 255, 255, 0.1);
-            color: #3e2723;
         }
 
         .header span {
@@ -49,23 +49,15 @@
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 2px;
+            color: #3e2723;
             text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.4);
         }
 
+        /* List container */
         .content {
             display: flex;
             flex-direction: column;
             gap: 15px;
-        }
-
-        .empty-state {
-            text-align: center;
-            color: #5d4037;
-            padding: 20px;
-            font-size: 14px;
-            font-style: italic;
-            border: 1px dashed #a1887f;
-            border-radius: 4px;
         }
 
         /* Vintage Card Styles */
@@ -74,21 +66,26 @@
             background-image: linear-gradient(to bottom, #fcf5e5 0%, #f4e4bc 100%);
             border: 1px solid #d7ccc8;
             border-radius: 2px;
+            /* Sharp corners like cards */
             padding: 15px;
             position: relative;
             box-shadow:
                 0 1px 1px rgba(0, 0, 0, 0.1),
                 0 3px 6px rgba(0, 0, 0, 0.1),
                 inset 0 0 20px rgba(139, 69, 19, 0.05);
+            /* Inner aging */
+
             transition: transform 0.2s ease;
         }
 
         .recording-item:hover {
-            transform: translateY(-2px);
+            transform: translateY(-2px) rotate(0.5deg);
             box-shadow:
                 0 4px 8px rgba(0, 0, 0, 0.15),
                 inset 0 0 20px rgba(139, 69, 19, 0.05);
         }
+
+        /* "Hole Punch" effect? Maybe too much. Let's stick to typographic hierarchy */
 
         .meta {
             display: flex;
@@ -96,6 +93,7 @@
             align-items: baseline;
             margin-bottom: 12px;
             font-family: 'Courier New', Courier, monospace;
+            /* Typewriter font */
             font-size: 12px;
             color: #5d4037;
             border-bottom: 1px dashed #a1887f;
@@ -113,13 +111,17 @@
             gap: 12px;
         }
 
+        /* Audio Player Styling */
         audio {
             width: 100%;
             height: 30px;
             filter: sepia(0.8) contrast(1.2) grayscale(0.2);
+            /* Blend into vintage theme */
             opacity: 0.9;
+            border-radius: 2px;
         }
 
+        /* "Delete" Stamp Button */
         button.delete-btn {
             background: transparent;
             border: 2px solid #bf360c;
@@ -139,7 +141,6 @@
         button.delete-btn:hover {
             background: #bf360c;
             color: #fcf5e5;
-            text-decoration: none;
             transform: rotate(0deg) scale(1.05);
         }
 
@@ -164,14 +165,54 @@
 </head>
 
 <body>
+
     <div class="header">
-        <span>Recording History</span>
+        <span>Recorded Log</span>
     </div>
-    <div class="content" id="list">
-        <!-- Items will be injected here -->
-        <div class="empty-state">No recordings yet.</div>
+
+    <div class="content">
+
+        <!-- Item 1: Gemini -->
+        <div class="recording-item">
+            <div class="meta">
+                <span class="site-name">Gemini</span>
+                <span>2025-12-15 14:30</span>
+                <span>00:45</span>
+            </div>
+            <div class="controls">
+                <audio controls src=""></audio>
+                <button class="delete-btn">Delete</button>
+            </div>
+        </div>
+
+        <!-- Item 2: ChatGPT (Older) -->
+        <div class="recording-item" style="transform: rotate(-0.5deg);">
+            <div class="meta">
+                <span class="site-name">ChatGPT</span>
+                <span>2025-12-14 09:15</span>
+                <span>02:10</span>
+            </div>
+            <div class="controls">
+                <audio controls src=""></audio>
+                <button class="delete-btn">REMOVED</button>
+            </div>
+        </div>
+
+        <!-- Item 3: Very short clip -->
+        <div class="recording-item">
+            <div class="meta">
+                <span class="site-name">Gemini</span>
+                <span>2025-12-12 18:22</span>
+                <span>00:05</span>
+            </div>
+            <div class="controls">
+                <audio controls src=""></audio>
+                <button class="delete-btn">Delete</button>
+            </div>
+        </div>
+
     </div>
-    <script src="../../dist/popup.bundle.js"></script>
+
 </body>
 
 </html>
