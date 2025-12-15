@@ -53,7 +53,36 @@
           };
         });
       }
-      document.addEventListener("DOMContentLoaded", loadRecordings);
+      document.addEventListener("DOMContentLoaded", async () => {
+        await loadRecordings();
+        setupSettings();
+      });
+      async function setupSettings() {
+        const settingsBtn = document.getElementById("settings-btn");
+        const modal = document.getElementById("settings-modal");
+        const cancelBtn = document.getElementById("cancel-settings");
+        const saveBtn = document.getElementById("save-settings");
+        const promptInput = document.getElementById("prompt-text");
+        const DEFAULT_PROMPT = "Please answer based on this audio";
+        settingsBtn.onclick = async () => {
+          const result = await chrome.storage.local.get(["promptText"]);
+          promptInput.value = result.promptText || DEFAULT_PROMPT;
+          modal.style.display = "block";
+        };
+        cancelBtn.onclick = () => {
+          modal.style.display = "none";
+        };
+        saveBtn.onclick = async () => {
+          const text = promptInput.value;
+          await chrome.storage.local.set({ promptText: text });
+          modal.style.display = "none";
+        };
+        window.onclick = (event) => {
+          if (event.target == modal) {
+            modal.style.display = "none";
+          }
+        };
+      }
     }
   });
   require_popup();

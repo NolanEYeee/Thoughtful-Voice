@@ -1,3 +1,5 @@
+import { DEFAULT_PROMPT_TEXT, generateAudioFilename } from '../../utils/config.js';
+
 export class ChatGPTStrategy {
     constructor() {
         this.name = 'ChatGPT';
@@ -71,7 +73,8 @@ export class ChatGPTStrategy {
     async handleUpload(blob, durationString) {
         console.log("ChatGPTStrategy: Handling upload via Clipboard Paste");
 
-        const file = new File([blob], `audio_recording_${Date.now()}.wav`, { type: 'audio/wav' });
+        const filename = generateAudioFilename();
+        const file = new File([blob], filename, { type: 'audio/wav' });
         const textBox = document.getElementById('prompt-textarea');
 
         if (!textBox) {
@@ -94,18 +97,22 @@ export class ChatGPTStrategy {
 
             console.log("ChatGPTStrategy: Paste event dispatched");
 
-            // Optional: Insert text
-            // this.insertText(textBox);
+            // Insert text (User requested inconsistency fix, so we add it here too)
+            await this.insertText(textBox);
 
         } catch (e) {
             console.error("ChatGPT Paste failed", e);
         }
     }
 
-    insertText(textBox) {
+    async insertText(textBox) {
         if (textBox) {
-            const textToInsert = "Please analyze this audio";
             textBox.focus();
+
+            // Get custom prompt from storage
+            const result = await chrome.storage.local.get(['promptText']);
+            const textToInsert = result.promptText || DEFAULT_PROMPT_TEXT;
+
             document.execCommand('insertText', false, textToInsert);
         }
     }

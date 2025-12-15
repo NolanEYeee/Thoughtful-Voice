@@ -1,3 +1,5 @@
+import { DEFAULT_PROMPT_TEXT, generateAudioFilename } from '../../utils/config.js';
+
 export class GeminiStrategy {
     constructor() {
         this.name = 'Gemini';
@@ -63,8 +65,9 @@ export class GeminiStrategy {
     async handleUpload(blob, durationString) {
         console.log("GeminiStrategy: Handling upload via Clipboard Paste (Alternative Method)");
 
-        // 1. Create File object (Now TRUE WAV)
-        const file = new File([blob], `audio_recording_${Date.now()}.wav`, { type: 'audio/wav' });
+        // 1. Create File object (Now TRUE WAV with Date Format)
+        const filename = generateAudioFilename();
+        const file = new File([blob], filename, { type: 'audio/wav' });
 
         // Strategy: Simulate "Paste" event
         // This is distinct from DnD and File Input.
@@ -98,7 +101,7 @@ export class GeminiStrategy {
             // But let's assume it works or fall back.
 
             // ALSO perform text insertion immediately
-            this.insertText();
+            await this.insertText();
 
         } catch (e) {
             console.error("Paste failed, falling back to Drag and Drop.", e);
@@ -106,11 +109,15 @@ export class GeminiStrategy {
         }
     }
 
-    insertText() {
+    async insertText() {
         const textBox = document.querySelector('[role="textbox"]');
         if (textBox) {
             textBox.focus();
-            const textToInsert = "Please answer based on this audio";
+
+            // Get custom prompt from storage
+            const result = await chrome.storage.local.get(['promptText']);
+            const textToInsert = result.promptText || DEFAULT_PROMPT_TEXT;
+
             document.execCommand('insertText', false, textToInsert) || (textBox.innerText += textToInsert);
         }
     }

@@ -4,6 +4,7 @@ import { BubbleRenderer } from './bubble.js';
 import { StorageHelper } from './storage.js';
 import { GeminiStrategy } from './strategies/gemini.js';
 import { ChatGPTStrategy } from './strategies/chatgpt.js';
+import { generateAudioFilename } from '../utils/config.js';
 
 console.log("AI Voice Uploader: Content script loaded");
 
@@ -44,9 +45,9 @@ async function init() {
 
         await StorageHelper.saveRecording({
             timestamp: Date.now(),
-            site: 'Gemini',
+            site: strategy.name, // Use strategy name instead of hardcoded 'Gemini'
             durationString: `${m}:${s}`,
-            filename: `audio_recording_${Date.now()}.wav`
+            filename: generateAudioFilename()
         }, blob);
     });
 

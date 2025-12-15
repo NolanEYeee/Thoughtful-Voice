@@ -312,10 +312,29 @@
     }
   });
 
+  // src/utils/config.js
+  function generateAudioFilename() {
+    const now = /* @__PURE__ */ new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    const seconds = String(now.getSeconds()).padStart(2, "0");
+    return `audio_${year}-${month}-${day}_${hours}-${minutes}-${seconds}.wav`;
+  }
+  var DEFAULT_PROMPT_TEXT;
+  var init_config = __esm({
+    "src/utils/config.js"() {
+      DEFAULT_PROMPT_TEXT = "Please answer based on this audio";
+    }
+  });
+
   // src/content/strategies/gemini.js
   var GeminiStrategy;
   var init_gemini = __esm({
     "src/content/strategies/gemini.js"() {
+      init_config();
       GeminiStrategy = class {
         constructor() {
           this.name = "Gemini";
@@ -368,7 +387,8 @@
         }
         async handleUpload(blob, durationString) {
           console.log("GeminiStrategy: Handling upload via Clipboard Paste (Alternative Method)");
-          const file = new File([blob], `audio_recording_${Date.now()}.wav`, { type: "audio/wav" });
+          const filename = generateAudioFilename();
+          const file = new File([blob], filename, { type: "audio/wav" });
           const textBox = document.querySelector('[role="textbox"]');
           if (!textBox) {
             console.warn("Gemini Input (textbox) not found for paste. Falling back to Drag and Drop.");
@@ -388,17 +408,18 @@
             textBox.focus();
             textBox.dispatchEvent(pasteEvent);
             console.log("GeminiStrategy: Paste event dispatched");
-            this.insertText();
+            await this.insertText();
           } catch (e) {
             console.error("Paste failed, falling back to Drag and Drop.", e);
             await this.performDragAndDrop(file);
           }
         }
-        insertText() {
+        async insertText() {
           const textBox = document.querySelector('[role="textbox"]');
           if (textBox) {
             textBox.focus();
-            const textToInsert = "Please answer based on this audio";
+            const result = await chrome.storage.local.get(["promptText"]);
+            const textToInsert = result.promptText || DEFAULT_PROMPT_TEXT;
             document.execCommand("insertText", false, textToInsert) || (textBox.innerText += textToInsert);
           }
         }
@@ -450,6 +471,7 @@
   var ChatGPTStrategy;
   var init_chatgpt = __esm({
     "src/content/strategies/chatgpt.js"() {
+      init_config();
       ChatGPTStrategy = class {
         constructor() {
           this.name = "ChatGPT";
@@ -492,7 +514,8 @@
         }
         async handleUpload(blob, durationString) {
           console.log("ChatGPTStrategy: Handling upload via Clipboard Paste");
-          const file = new File([blob], `audio_recording_${Date.now()}.wav`, { type: "audio/wav" });
+          const filename = generateAudioFilename();
+          const file = new File([blob], filename, { type: "audio/wav" });
           const textBox = document.getElementById("prompt-textarea");
           if (!textBox) {
             console.error("ChatGPT input not found");
@@ -509,14 +532,16 @@
             textBox.focus();
             textBox.dispatchEvent(pasteEvent);
             console.log("ChatGPTStrategy: Paste event dispatched");
+            await this.insertText(textBox);
           } catch (e) {
             console.error("ChatGPT Paste failed", e);
           }
         }
-        insertText(textBox) {
+        async insertText(textBox) {
           if (textBox) {
-            const textToInsert = "Please analyze this audio";
             textBox.focus();
+            const result = await chrome.storage.local.get(["promptText"]);
+            const textToInsert = result.promptText || DEFAULT_PROMPT_TEXT;
             document.execCommand("insertText", false, textToInsert);
           }
         }
@@ -533,6 +558,7 @@
       init_storage();
       init_gemini();
       init_chatgpt();
+      init_config();
       console.log("AI Voice Uploader: Content script loaded");
       async function init() {
         const host = window.location.hostname;
@@ -558,9 +584,10 @@
           const s = (seconds % 60).toString().padStart(2, "0");
           await StorageHelper.saveRecording({
             timestamp: Date.now(),
-            site: "Gemini",
+            site: strategy.name,
+            // Use strategy name instead of hardcoded 'Gemini'
             durationString: `${m}:${s}`,
-            filename: `audio_recording_${Date.now()}.wav`
+            filename: generateAudioFilename()
           }, blob);
         });
         const target = strategy.getInjectionTarget();
