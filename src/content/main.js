@@ -7,7 +7,7 @@ import { GeminiStrategy } from './strategies/gemini.js';
 import { ChatGPTStrategy } from './strategies/chatgpt.js';
 import { generateAudioFilename } from '../utils/config.js';
 
-console.log("AI Voice Uploader: Content script loaded");
+console.log("AI Voice Droper: Content script loaded");
 
 async function init() {
     const host = window.location.hostname;
@@ -20,11 +20,11 @@ async function init() {
     }
 
     if (!strategy) {
-        console.log("AI Voice Uploader: Unknown platform");
+        console.log("AI Voice Droper: Unknown platform");
         return;
     }
 
-    console.log(`AI Voice Uploader: Using ${strategy.name}`);
+    console.log(`AI Voice Droper: Using ${strategy.name}`);
 
     // Wait for DOM to be ready for injection
     await strategy.waitForDOM();
@@ -36,8 +36,51 @@ async function init() {
     const recorder = new Recorder();
     const screenRecorder = new ScreenRecorder(strategy.name.toLowerCase()); // Pass 'gemini' or 'chatgpt'
 
+    // Track URL changes and update storage
+    let lastRecordingTimestamp = null;
+    let urlUpdateWatcher = null;
+
+    const startUrlWatcher = (timestamp, type) => {
+        const initialUrl = window.location.href;
+        lastRecordingTimestamp = timestamp;
+
+        // Clear any existing watcher
+        if (urlUpdateWatcher) {
+            clearInterval(urlUpdateWatcher);
+        }
+
+        // Watch for URL changes for up to 30 seconds after upload
+        let watchDuration = 0;
+        const maxWatchTime = 30000; // 30 seconds
+
+        urlUpdateWatcher = setInterval(async () => {
+            watchDuration += 500;
+            const currentUrl = window.location.href;
+
+            // If URL changed, update the recording
+            if (currentUrl !== initialUrl) {
+                console.log(`AI Voice Droper: URL changed from ${initialUrl} to ${currentUrl}`);
+                await StorageHelper.updateRecordingUrl(timestamp, currentUrl);
+                clearInterval(urlUpdateWatcher);
+                urlUpdateWatcher = null;
+            }
+
+            // Stop watching after max time
+            if (watchDuration >= maxWatchTime) {
+                clearInterval(urlUpdateWatcher);
+                urlUpdateWatcher = null;
+            }
+        }, 500); // Check every 500ms
+    };
+
+    // Declare injector placeholder (will be created after handlers)
+    let injector = null;
+
     // Audio upload handler
     const handleAudioUpload = async (blob, duration) => {
+        // Get URL from when recording started (stored in injector)
+        const recordingUrl = injector.audioRecordingStartUrl || window.location.href;
+
         // 1. Upload to Platform
         await strategy.handleUpload(blob, duration);
 
@@ -46,18 +89,28 @@ async function init() {
         const m = Math.floor(seconds / 60).toString().padStart(2, '0');
         const s = (seconds % 60).toString().padStart(2, '0');
 
+        const timestamp = Date.now();
         await StorageHelper.saveRecording({
             type: 'audio',
-            timestamp: Date.now(),
+            timestamp: timestamp,
             site: strategy.name,
-            url: window.location.href, // Save chatroom URL
+            url: recordingUrl, // Use URL from when recording started
             durationString: `${m}:${s}`,
             filename: generateAudioFilename()
         }, blob);
+
+        // Start watching for URL changes after upload
+        startUrlWatcher(timestamp, 'audio');
+
+        // Reset the start URL in injector
+        injector.audioRecordingStartUrl = null;
     };
 
     // Video upload handler
     const handleVideoUpload = async (result) => {
+        // Get URL from when recording started (stored in injector)
+        const recordingUrl = injector.videoRecordingStartUrl || window.location.href;
+
         // 1. Upload video to Platform (pass the whole result object with blob, duration, and format)
         await strategy.handleVideoUpload(result);
 
@@ -66,20 +119,27 @@ async function init() {
         const m = Math.floor(seconds / 60).toString().padStart(2, '0');
         const s = (seconds % 60).toString().padStart(2, '0');
 
+        const timestamp = Date.now();
         await StorageHelper.saveRecording({
             type: 'video',
-            timestamp: Date.now(),
+            timestamp: timestamp,
             site: strategy.name,
-            url: window.location.href, // Save chatroom URL
+            url: recordingUrl, // Use URL from when recording started
             durationString: `${m}:${s}`,
             filename: `video_recording_${Date.now()}.webm`,
             format: result.format
         }, result.blob);
 
         console.log(`Screen recording uploaded: ${m}:${s} (${result.format.toUpperCase()})`);
+
+        // Start watching for URL changes after upload
+        startUrlWatcher(timestamp, 'video');
+
+        // Reset the start URL in injector
+        injector.videoRecordingStartUrl = null;
     };
 
-    const injector = new Injector(recorder, screenRecorder, handleAudioUpload, handleVideoUpload);
+    injector = new Injector(recorder, screenRecorder, handleAudioUpload, handleVideoUpload);
 
     // Initial check
     const target = strategy.getInjectionTarget();
@@ -88,7 +148,7 @@ async function init() {
     // Watch for page changes (SPA navigation) and re-position if needed
     const observer = new MutationObserver(() => {
         const newTarget = strategy.getInjectionTarget();
-        const existingButton = document.getElementById('ai-voice-uploader-btn');
+        const existingButton = document.getElementById('ai-voice-droper-btn');
         const existingScreenButton = document.getElementById('ai-screen-recorder-btn');
 
         if (!existingButton && newTarget) {
@@ -106,7 +166,7 @@ async function init() {
 
                 // If button is not in the expected parent, re-inject it
                 if (currentParent !== expectedParent) {
-                    console.log("AI Voice Uploader: Button in wrong location, re-positioning...");
+                    console.log("AI Voice Droper: Button in wrong location, re-positioning...");
                     existingButton.remove();
                     if (existingScreenButton) existingScreenButton.remove();
                     injector.inject(newTarget);

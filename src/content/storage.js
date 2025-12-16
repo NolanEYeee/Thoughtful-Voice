@@ -41,6 +41,24 @@ export class StorageHelper {
         }
     }
 
+    static async updateRecordingUrl(timestamp, newUrl) {
+        // Update the URL of a recording by its timestamp
+        try {
+            const result = await chrome.storage.local.get(['recordings']);
+            const recordings = result.recordings || [];
+
+            // Find the recording by timestamp
+            const recording = recordings.find(rec => rec.timestamp === timestamp);
+            if (recording) {
+                recording.url = newUrl;
+                await chrome.storage.local.set({ recordings });
+                console.log(`Updated recording URL to: ${newUrl}`);
+            }
+        } catch (e) {
+            console.error("Failed to update recording URL", e);
+        }
+    }
+
     static async isExtensionRecording(filename) {
         // Heuristic check
         return filename.startsWith('audio_recording_');

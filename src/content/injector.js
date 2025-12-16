@@ -8,11 +8,13 @@ export class Injector {
         this.screenButton = null;
         this.isRecording = false;
         this.isScreenRecording = false;
+        this.audioRecordingStartUrl = null;
+        this.videoRecordingStartUrl = null;
     }
 
     createButton() {
         const btn = document.createElement('button');
-        btn.id = 'ai-voice-uploader-btn';
+        btn.id = 'ai-voice-droper-btn';
         btn.innerHTML = '🎙️'; // Default icon
         btn.className = 'ai-voice-btn';
         btn.title = 'Click to record audio';
@@ -22,7 +24,8 @@ export class Injector {
             if (this.isRecording) {
                 await this.stopRecording();
             } else {
-                await this.startRecording();
+                const startUrl = await this.startRecording();
+                this.audioRecordingStartUrl = startUrl;
             }
         };
 
@@ -42,7 +45,8 @@ export class Injector {
             if (this.isScreenRecording) {
                 await this.stopScreenRecording();
             } else {
-                await this.startScreenRecording();
+                const startUrl = await this.startScreenRecording();
+                this.videoRecordingStartUrl = startUrl;
             }
         };
 
@@ -51,6 +55,9 @@ export class Injector {
     }
 
     async startRecording() {
+        // Capture URL when recording starts
+        const startUrl = window.location.href;
+
         const started = await this.recorder.start((time) => {
             if (this.button) {
                 this.button.innerHTML = `🔴 ${time}`;
@@ -62,6 +69,8 @@ export class Injector {
             this.button.classList.add('recording');
             this.button.innerHTML = '🔴 00:00';
         }
+
+        return startUrl; // Return the URL when recording started
     }
 
     async stopRecording() {
@@ -80,6 +89,9 @@ export class Injector {
     }
 
     async startScreenRecording() {
+        // Capture URL when screen recording starts
+        const startUrl = window.location.href;
+
         const started = await this.screenRecorder.start((time) => {
             if (this.screenButton) {
                 this.screenButton.innerHTML = `🔴 ${time}`;
@@ -91,6 +103,8 @@ export class Injector {
             this.screenButton.classList.add('screen-recording');
             this.screenButton.innerHTML = '🔴 00:00';
         }
+
+        return startUrl; // Return the URL when recording started
     }
 
     async stopScreenRecording() {
@@ -113,7 +127,7 @@ export class Injector {
         if (!this.screenButton) this.createScreenRecordButton();
 
         // Avoid double injection
-        if (document.getElementById('ai-voice-uploader-btn')) return;
+        if (document.getElementById('ai-voice-droper-btn')) return;
 
         let container = null;
         let insertBefore = null;

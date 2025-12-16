@@ -1,13 +1,12 @@
 {
     "manifest_version": 3,
-    "name": "AI Voice Uploader",
+    "name": "AI Voice Droper",
     "version": "1.0",
-    "description": "Record and upload audio directly to Gemini and ChatGPT.",
+    "description": "Record and drop audio/video directly to Gemini and ChatGPT.",
     "permissions": [
         "activeTab",
         "scripting",
-        "storage",
-        "clipboardWrite"
+        "storage"
     ],
     "host_permissions": [
         "https://chatgpt.com/*",

@@ -83,11 +83,6 @@
                             <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/>
                         </svg>
                     </a>
-                    <button class="retro-btn copy" data-url="${rec.audioData}" data-type="video" title="Copy to Clipboard">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
-                        </svg>
-                    </button>
                     <button class="retro-btn delete" data-index="${index}" title="Delete">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
@@ -129,11 +124,6 @@
                             <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/>
                         </svg>
                     </a>
-                    <button class="retro-btn copy" data-url="${rec.audioData}" data-type="audio" title="Copy to Clipboard">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
-                        </svg>
-                    </button>
                     <button class="retro-btn delete" data-index="${index}" title="Delete">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
@@ -186,35 +176,6 @@
             };
           };
         });
-        document.querySelectorAll(".retro-btn.copy").forEach((btn) => {
-          btn.onclick = async (e) => {
-            const dataUrl = btn.dataset.url;
-            const type = btn.dataset.type;
-            const originalHTML = btn.innerHTML;
-            try {
-              const response = await fetch(dataUrl);
-              const blob = await response.blob();
-              console.log("Copying blob:", blob.type, blob.size, "bytes");
-              await navigator.clipboard.write([
-                new ClipboardItem({
-                  [blob.type]: blob
-                })
-              ]);
-              btn.classList.add("copied");
-              btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
-              setTimeout(() => {
-                btn.classList.remove("copied");
-                btn.innerHTML = originalHTML;
-              }, 1500);
-            } catch (err) {
-              console.error("Failed to copy:", err);
-              btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
-              setTimeout(() => {
-                btn.innerHTML = originalHTML;
-              }, 1500);
-            }
-          };
-        });
       }
       document.addEventListener("DOMContentLoaded", async () => {
         await loadRecordings();
@@ -239,7 +200,7 @@
           const settings = result.settings || {};
           const defaults = {
             promptText: "Please answer based on this audio",
-            video: { codec: "vp9", resolution: "720p", bitrate: 2e3, fps: 30, timeslice: 1e3 },
+            video: { codec: "vp9", resolution: "1080p", bitrate: 4e3, fps: 60, timeslice: 1e3 },
             audio: { sampleRate: 44100, bufferSize: 4096 }
           };
           const merged = {
@@ -269,16 +230,35 @@
           };
           await chrome.storage.local.set({ settings });
         }
+        function openModal(modal2) {
+          modal2.style.display = "block";
+          modal2.style.opacity = "0";
+          void modal2.offsetHeight;
+          requestAnimationFrame(() => {
+            modal2.classList.remove("modal-closing");
+            modal2.classList.add("modal-opening");
+            modal2.style.opacity = "1";
+          });
+        }
+        function closeModal(modal2) {
+          modal2.classList.remove("modal-opening");
+          modal2.classList.add("modal-closing");
+          modal2.style.opacity = "0";
+          setTimeout(() => {
+            modal2.style.display = "none";
+            modal2.classList.remove("modal-closing");
+          }, 300);
+        }
         if (settingsBtn) settingsBtn.onclick = async () => {
           await loadSettings();
-          modal.style.display = "block";
+          openModal(modal);
         };
         if (cancelBtn) cancelBtn.onclick = () => {
-          modal.style.display = "none";
+          closeModal(modal);
         };
         if (saveBtn) saveBtn.onclick = async () => {
           await saveSettings();
-          modal.style.display = "none";
+          closeModal(modal);
         };
         if (resetBtn) resetBtn.onclick = async () => {
           if (confirm("Reset system?")) {
@@ -287,7 +267,7 @@
           }
         };
         window.onclick = (e) => {
-          if (e.target == modal) modal.style.display = "none";
+          if (e.target == modal) closeModal(modal);
         };
       }
     }

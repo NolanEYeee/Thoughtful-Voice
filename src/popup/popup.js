@@ -92,11 +92,6 @@ function createRecordingElement(rec, index) {
                             <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/>
                         </svg>
                     </a>
-                    <button class="retro-btn copy" data-url="${rec.audioData}" data-type="video" title="Copy to Clipboard">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
-                        </svg>
-                    </button>
                     <button class="retro-btn delete" data-index="${index}" title="Delete">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
@@ -144,11 +139,6 @@ function createRecordingElement(rec, index) {
                             <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/>
                         </svg>
                     </a>
-                    <button class="retro-btn copy" data-url="${rec.audioData}" data-type="audio" title="Copy to Clipboard">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
-                        </svg>
-                    </button>
                     <button class="retro-btn delete" data-index="${index}" title="Delete">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
@@ -209,46 +199,6 @@ function attachListeners(recordings) {
             };
         };
     });
-
-    // Copy to Clipboard Handlers
-    document.querySelectorAll('.retro-btn.copy').forEach(btn => {
-        btn.onclick = async (e) => {
-            const dataUrl = btn.dataset.url;
-            const type = btn.dataset.type;
-            const originalHTML = btn.innerHTML; // Save SVG content
-
-            try {
-                // Convert data URL to blob
-                const response = await fetch(dataUrl);
-                const blob = await response.blob();
-
-                console.log('Copying blob:', blob.type, blob.size, 'bytes');
-
-                // Copy to clipboard
-                await navigator.clipboard.write([
-                    new ClipboardItem({
-                        [blob.type]: blob
-                    })
-                ]);
-
-                // Visual feedback - success
-                btn.classList.add('copied');
-                btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
-
-                setTimeout(() => {
-                    btn.classList.remove('copied');
-                    btn.innerHTML = originalHTML;
-                }, 1500);
-            } catch (err) {
-                console.error('Failed to copy:', err);
-                // Visual feedback - error
-                btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
-                setTimeout(() => {
-                    btn.innerHTML = originalHTML;
-                }, 1500);
-            }
-        };
-    });
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -280,7 +230,7 @@ async function setupSettings() {
         const settings = result.settings || {};
         const defaults = {
             promptText: "Please answer based on this audio",
-            video: { codec: 'vp9', resolution: '720p', bitrate: 2000, fps: 30, timeslice: 1000 },
+            video: { codec: 'vp9', resolution: '1080p', bitrate: 4000, fps: 60, timeslice: 1000 },
             audio: { sampleRate: 44100, bufferSize: 4096 }
         };
         const merged = {
@@ -313,14 +263,38 @@ async function setupSettings() {
         await chrome.storage.local.set({ settings });
     }
 
-    if (settingsBtn) settingsBtn.onclick = async () => { await loadSettings(); modal.style.display = 'block'; };
-    if (cancelBtn) cancelBtn.onclick = () => { modal.style.display = 'none'; };
-    if (saveBtn) saveBtn.onclick = async () => { await saveSettings(); modal.style.display = 'none'; };
+
+    // Helper functions for modal animation
+    function openModal(modal) {
+        modal.style.display = 'block';
+        modal.style.opacity = '0';
+        // Force reflow to ensure transition works
+        void modal.offsetHeight;
+        requestAnimationFrame(() => {
+            modal.classList.remove('modal-closing');
+            modal.classList.add('modal-opening');
+            modal.style.opacity = '1';
+        });
+    }
+
+    function closeModal(modal) {
+        modal.classList.remove('modal-opening');
+        modal.classList.add('modal-closing');
+        modal.style.opacity = '0';
+        setTimeout(() => {
+            modal.style.display = 'none';
+            modal.classList.remove('modal-closing');
+        }, 300); // Match the longest animation duration (modalSlideOut is 0.3s)
+    }
+
+    if (settingsBtn) settingsBtn.onclick = async () => { await loadSettings(); openModal(modal); };
+    if (cancelBtn) cancelBtn.onclick = () => { closeModal(modal); };
+    if (saveBtn) saveBtn.onclick = async () => { await saveSettings(); closeModal(modal); };
     if (resetBtn) resetBtn.onclick = async () => {
         if (confirm('Reset system?')) {
             await chrome.storage.local.remove(['settings']);
             await loadSettings();
         }
     };
-    window.onclick = (e) => { if (e.target == modal) modal.style.display = 'none'; };
+    window.onclick = (e) => { if (e.target == modal) closeModal(modal); };
 }

@@ -885,10 +885,12 @@
           this.screenButton = null;
           this.isRecording = false;
           this.isScreenRecording = false;
+          this.audioRecordingStartUrl = null;
+          this.videoRecordingStartUrl = null;
         }
         createButton() {
           const btn = document.createElement("button");
-          btn.id = "ai-voice-uploader-btn";
+          btn.id = "ai-voice-droper-btn";
           btn.innerHTML = "\u{1F399}\uFE0F";
           btn.className = "ai-voice-btn";
           btn.title = "Click to record audio";
@@ -896,7 +898,8 @@
             if (this.isRecording) {
               await this.stopRecording();
             } else {
-              await this.startRecording();
+              const startUrl = await this.startRecording();
+              this.audioRecordingStartUrl = startUrl;
             }
           };
           this.button = btn;
@@ -912,13 +915,15 @@
             if (this.isScreenRecording) {
               await this.stopScreenRecording();
             } else {
-              await this.startScreenRecording();
+              const startUrl = await this.startScreenRecording();
+              this.videoRecordingStartUrl = startUrl;
             }
           };
           this.screenButton = btn;
           return btn;
         }
         async startRecording() {
+          const startUrl = window.location.href;
           const started = await this.recorder.start((time) => {
             if (this.button) {
               this.button.innerHTML = `\u{1F534} ${time}`;
@@ -929,6 +934,7 @@
             this.button.classList.add("recording");
             this.button.innerHTML = "\u{1F534} 00:00";
           }
+          return startUrl;
         }
         async stopRecording() {
           this.isRecording = false;
@@ -942,6 +948,7 @@
           }
         }
         async startScreenRecording() {
+          const startUrl = window.location.href;
           const started = await this.screenRecorder.start((time) => {
             if (this.screenButton) {
               this.screenButton.innerHTML = `\u{1F534} ${time}`;
@@ -952,6 +959,7 @@
             this.screenButton.classList.add("screen-recording");
             this.screenButton.innerHTML = "\u{1F534} 00:00";
           }
+          return startUrl;
         }
         async stopScreenRecording() {
           this.isScreenRecording = false;
@@ -967,7 +975,7 @@
         inject(targetSpec) {
           if (!this.button) this.createButton();
           if (!this.screenButton) this.createScreenRecordButton();
-          if (document.getElementById("ai-voice-uploader-btn")) return;
+          if (document.getElementById("ai-voice-droper-btn")) return;
           let container = null;
           let insertBefore = null;
           if (targetSpec instanceof Element) {
@@ -1045,6 +1053,20 @@
           } catch (e) {
             console.error("Failed to get recordings", e);
             return [];
+          }
+        }
+        static async updateRecordingUrl(timestamp, newUrl) {
+          try {
+            const result = await chrome.storage.local.get(["recordings"]);
+            const recordings = result.recordings || [];
+            const recording = recordings.find((rec) => rec.timestamp === timestamp);
+            if (recording) {
+              recording.url = newUrl;
+              await chrome.storage.local.set({ recordings });
+              console.log(`Updated recording URL to: ${newUrl}`);
+            }
+          } catch (e) {
+            console.error("Failed to update recording URL", e);
           }
         }
         static async isExtensionRecording(filename) {
@@ -1134,15 +1156,15 @@
             const check = () => {
               const toolsContainer = document.querySelector(".toolbox-drawer-button-container");
               if (toolsContainer) {
-                console.log("AI Voice Uploader: Tools button found, ready to inject");
+                console.log("AI Voice Droper: Tools button found, ready to inject");
                 resolve();
                 return;
               }
               if (document.querySelector(".upload-card-button") || document.querySelector('[role="textbox"]')) {
-                console.log("AI Voice Uploader: Tools button not found, using fallback");
+                console.log("AI Voice Droper: Tools button not found, using fallback");
                 setTimeout(() => {
                   if (document.querySelector(".toolbox-drawer-button-container")) {
-                    console.log("AI Voice Uploader: Tools button appeared during wait");
+                    console.log("AI Voice Droper: Tools button appeared during wait");
                   }
                   resolve();
                 }, 1e3);
@@ -1154,10 +1176,10 @@
           });
         }
         getInjectionTarget() {
-          console.log("AI Voice Uploader: Looking for injection target...");
+          console.log("AI Voice Droper: Looking for injection target...");
           const toolsContainer = document.querySelector(".toolbox-drawer-button-container");
           if (toolsContainer && toolsContainer.parentElement) {
-            console.log("AI Voice Uploader: Found Tools button container");
+            console.log("AI Voice Droper: Found Tools button container");
             return {
               container: toolsContainer.parentElement,
               insertBefore: toolsContainer.nextSibling
@@ -1165,7 +1187,7 @@
           }
           const actionButtonsRow = document.querySelector('[class*="action-button-row"], [class*="input-area-tools"]');
           if (actionButtonsRow) {
-            console.log("AI Voice Uploader: Found action buttons row");
+            console.log("AI Voice Droper: Found action buttons row");
             return {
               container: actionButtonsRow,
               insertBefore: null
@@ -1178,7 +1200,7 @@
             while (parent && parent !== document.body) {
               const buttonChildren = parent.querySelectorAll('button, [role="button"]');
               if (buttonChildren.length > 1) {
-                console.log("AI Voice Uploader: Found common parent with multiple buttons");
+                console.log("AI Voice Droper: Found common parent with multiple buttons");
                 return {
                   container: parent,
                   insertBefore: null
@@ -1187,7 +1209,7 @@
               parent = parent.parentElement;
             }
             if (uploadButton.parentElement) {
-              console.log("AI Voice Uploader: Using upload button parent as fallback");
+              console.log("AI Voice Droper: Using upload button parent as fallback");
               return {
                 container: uploadButton.parentElement,
                 insertBefore: null
@@ -1196,7 +1218,7 @@
           }
           const micButton = document.querySelector('.speech_dictation_mic_button, [class*="mic-button"]');
           if (micButton && micButton.parentElement) {
-            console.log("AI Voice Uploader: Found native mic button");
+            console.log("AI Voice Droper: Found native mic button");
             return {
               container: micButton.parentElement,
               insertBefore: micButton.nextSibling
@@ -1204,14 +1226,14 @@
           }
           const inputArea = document.querySelector('[role="textbox"]');
           if (inputArea && inputArea.parentElement) {
-            console.log("AI Voice Uploader: Using textbox parent as last resort");
+            console.log("AI Voice Droper: Using textbox parent as last resort");
             const target = inputArea.parentElement.parentElement || document.body;
             return {
               container: target,
               insertBefore: null
             };
           }
-          console.warn("AI Voice Uploader: No suitable injection target found");
+          console.warn("AI Voice Droper: No suitable injection target found");
           return null;
         }
         async handleUpload(blob, durationString) {
@@ -1453,7 +1475,7 @@
       init_gemini();
       init_chatgpt();
       init_config();
-      console.log("AI Voice Uploader: Content script loaded");
+      console.log("AI Voice Droper: Content script loaded");
       async function init() {
         const host = window.location.hostname;
         let strategy = null;
@@ -1463,53 +1485,87 @@
           strategy = new ChatGPTStrategy();
         }
         if (!strategy) {
-          console.log("AI Voice Uploader: Unknown platform");
+          console.log("AI Voice Droper: Unknown platform");
           return;
         }
-        console.log(`AI Voice Uploader: Using ${strategy.name}`);
+        console.log(`AI Voice Droper: Using ${strategy.name}`);
         await strategy.waitForDOM();
         const bubbleRenderer = new BubbleRenderer();
         bubbleRenderer.init();
         const recorder = new Recorder();
         const screenRecorder = new ScreenRecorder(strategy.name.toLowerCase());
+        let lastRecordingTimestamp = null;
+        let urlUpdateWatcher = null;
+        const startUrlWatcher = (timestamp, type) => {
+          const initialUrl = window.location.href;
+          lastRecordingTimestamp = timestamp;
+          if (urlUpdateWatcher) {
+            clearInterval(urlUpdateWatcher);
+          }
+          let watchDuration = 0;
+          const maxWatchTime = 3e4;
+          urlUpdateWatcher = setInterval(async () => {
+            watchDuration += 500;
+            const currentUrl = window.location.href;
+            if (currentUrl !== initialUrl) {
+              console.log(`AI Voice Droper: URL changed from ${initialUrl} to ${currentUrl}`);
+              await StorageHelper.updateRecordingUrl(timestamp, currentUrl);
+              clearInterval(urlUpdateWatcher);
+              urlUpdateWatcher = null;
+            }
+            if (watchDuration >= maxWatchTime) {
+              clearInterval(urlUpdateWatcher);
+              urlUpdateWatcher = null;
+            }
+          }, 500);
+        };
+        let injector = null;
         const handleAudioUpload = async (blob, duration) => {
+          const recordingUrl = injector.audioRecordingStartUrl || window.location.href;
           await strategy.handleUpload(blob, duration);
           const seconds = Math.floor(duration / 1e3);
           const m = Math.floor(seconds / 60).toString().padStart(2, "0");
           const s = (seconds % 60).toString().padStart(2, "0");
+          const timestamp = Date.now();
           await StorageHelper.saveRecording({
             type: "audio",
-            timestamp: Date.now(),
+            timestamp,
             site: strategy.name,
-            url: window.location.href,
-            // Save chatroom URL
+            url: recordingUrl,
+            // Use URL from when recording started
             durationString: `${m}:${s}`,
             filename: generateAudioFilename()
           }, blob);
+          startUrlWatcher(timestamp, "audio");
+          injector.audioRecordingStartUrl = null;
         };
         const handleVideoUpload = async (result) => {
+          const recordingUrl = injector.videoRecordingStartUrl || window.location.href;
           await strategy.handleVideoUpload(result);
           const seconds = Math.floor(result.duration / 1e3);
           const m = Math.floor(seconds / 60).toString().padStart(2, "0");
           const s = (seconds % 60).toString().padStart(2, "0");
+          const timestamp = Date.now();
           await StorageHelper.saveRecording({
             type: "video",
-            timestamp: Date.now(),
+            timestamp,
             site: strategy.name,
-            url: window.location.href,
-            // Save chatroom URL
+            url: recordingUrl,
+            // Use URL from when recording started
             durationString: `${m}:${s}`,
             filename: `video_recording_${Date.now()}.webm`,
             format: result.format
           }, result.blob);
           console.log(`Screen recording uploaded: ${m}:${s} (${result.format.toUpperCase()})`);
+          startUrlWatcher(timestamp, "video");
+          injector.videoRecordingStartUrl = null;
         };
-        const injector = new Injector(recorder, screenRecorder, handleAudioUpload, handleVideoUpload);
+        injector = new Injector(recorder, screenRecorder, handleAudioUpload, handleVideoUpload);
         const target = strategy.getInjectionTarget();
         injector.inject(target);
         const observer = new MutationObserver(() => {
           const newTarget = strategy.getInjectionTarget();
-          const existingButton = document.getElementById("ai-voice-uploader-btn");
+          const existingButton = document.getElementById("ai-voice-droper-btn");
           const existingScreenButton = document.getElementById("ai-screen-recorder-btn");
           if (!existingButton && newTarget) {
             injector.inject(newTarget);
@@ -1519,7 +1575,7 @@
               const expectedParent = toolsContainer.parentElement;
               const currentParent = existingButton.parentElement;
               if (currentParent !== expectedParent) {
-                console.log("AI Voice Uploader: Button in wrong location, re-positioning...");
+                console.log("AI Voice Droper: Button in wrong location, re-positioning...");
                 existingButton.remove();
                 if (existingScreenButton) existingScreenButton.remove();
                 injector.inject(newTarget);
