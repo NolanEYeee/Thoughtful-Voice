@@ -1478,6 +1478,7 @@
           const m = Math.floor(seconds / 60).toString().padStart(2, "0");
           const s = (seconds % 60).toString().padStart(2, "0");
           await StorageHelper.saveRecording({
+            type: "audio",
             timestamp: Date.now(),
             site: strategy.name,
             durationString: `${m}:${s}`,
@@ -1489,6 +1490,14 @@
           const seconds = Math.floor(result.duration / 1e3);
           const m = Math.floor(seconds / 60).toString().padStart(2, "0");
           const s = (seconds % 60).toString().padStart(2, "0");
+          await StorageHelper.saveRecording({
+            type: "video",
+            timestamp: Date.now(),
+            site: strategy.name,
+            durationString: `${m}:${s}`,
+            filename: `video_recording_${Date.now()}.webm`,
+            format: result.format
+          }, result.blob);
           console.log(`Screen recording uploaded: ${m}:${s} (${result.format.toUpperCase()})`);
         };
         const injector = new Injector(recorder, screenRecorder, handleAudioUpload, handleVideoUpload);

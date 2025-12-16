@@ -28,17 +28,30 @@
         }
         recordings.forEach((rec, index) => {
           const item = document.createElement("div");
-          item.className = "recording-item";
+          const isVideo = rec.type === "video";
+          item.className = isVideo ? "recording-item video-item" : "recording-item";
           const date = new Date(rec.timestamp).toLocaleString();
+          const typeIcon = isVideo ? "\u{1F4F9}" : "\u{1F399}\uFE0F";
+          const typeLabel = isVideo ? "Video" : "Audio";
+          let mediaPlayer = "";
+          if (rec.audioData) {
+            if (isVideo) {
+              mediaPlayer = `<video controls src="${rec.audioData}"></video>`;
+            } else {
+              mediaPlayer = `<audio controls src="${rec.audioData}"></audio>`;
+            }
+          } else {
+            mediaPlayer = '<span style="color:red; font-size:10px;">Media data missing</span>';
+          }
           item.innerHTML = `
             <div class="meta">
+                <span class="type-badge" title="${typeLabel}">${typeIcon}</span>
                 <span class="site-name">${rec.site || "Unknown Site"}</span>
                 <span>${date}</span>
                 <span>${rec.durationString || ""}</span>
             </div>
             <div class="controls">
-                <!-- Audio player will only work if we have the data -->
-                ${rec.audioData ? `<audio controls src="${rec.audioData}"></audio>` : '<span style="color:red; font-size:10px;">Audio data missing</span>'}
+                ${mediaPlayer}
                 <button class="delete-btn" data-index="${index}">Delete</button>
             </div>
         `;

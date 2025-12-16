@@ -47,6 +47,7 @@ async function init() {
         const s = (seconds % 60).toString().padStart(2, '0');
 
         await StorageHelper.saveRecording({
+            type: 'audio',
             timestamp: Date.now(),
             site: strategy.name,
             durationString: `${m}:${s}`,
@@ -59,10 +60,19 @@ async function init() {
         // 1. Upload video to Platform (pass the whole result object with blob, duration, and format)
         await strategy.handleVideoUpload(result);
 
-        // 2. Save to History (optional - can extend StorageHelper later for video)
+        // 2. Save to History
         const seconds = Math.floor(result.duration / 1000);
         const m = Math.floor(seconds / 60).toString().padStart(2, '0');
         const s = (seconds % 60).toString().padStart(2, '0');
+
+        await StorageHelper.saveRecording({
+            type: 'video',
+            timestamp: Date.now(),
+            site: strategy.name,
+            durationString: `${m}:${s}`,
+            filename: `video_recording_${Date.now()}.webm`,
+            format: result.format
+        }, result.blob);
 
         console.log(`Screen recording uploaded: ${m}:${s} (${result.format.toUpperCase()})`);
     };
