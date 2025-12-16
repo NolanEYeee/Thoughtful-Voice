@@ -47,10 +47,26 @@
           this.onTimerUpdate = onTimerUpdate;
           this.audioBuffers = [];
           try {
+            const result = await chrome.storage.local.get(["settings"]);
+            const settings = result.settings || {};
+            const audioSettings = {
+              sampleRate: 44100,
+              bufferSize: 4096,
+              ...settings.audio || {}
+            };
+            console.log("Audio settings:", audioSettings);
             this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+              sampleRate: audioSettings.sampleRate
+            });
             this.mediaStreamSource = this.audioContext.createMediaStreamSource(this.stream);
-            this.recorder = this.audioContext.createScriptProcessor(4096, 1, 1);
+            this.recorder = this.audioContext.createScriptProcessor(
+              audioSettings.bufferSize,
+              1,
+              // inputChannels
+              1
+              // outputChannels
+            );
             this.recorder.onaudioprocess = (e) => {
               const input = e.inputBuffer.getChannelData(0);
               this.audioBuffers.push(new Float32Array(input));
@@ -59,7 +75,7 @@
             this.recorder.connect(this.audioContext.destination);
             this.startTime = Date.now();
             this.startTimer();
-            console.log("WAV Recording started");
+            console.log(`WAV Recording started: ${audioSettings.sampleRate}Hz, buffer ${audioSettings.bufferSize}`);
             return true;
           } catch (error) {
             console.error("Error starting recording:", error);
@@ -660,14 +676,31 @@
           this.onTimerUpdate = onTimerUpdate;
           this.recordedChunks = [];
           try {
+            const result = await chrome.storage.local.get(["settings"]);
+            const settings = result.settings || {};
+            const videoSettings = {
+              codec: "vp9",
+              resolution: "720p",
+              bitrate: 2e3,
+              fps: 30,
+              timeslice: 1e3,
+              ...settings.video || {}
+            };
+            console.log("Video settings:", videoSettings);
+            const resolutionPresets = {
+              "1080p": { width: 1920, height: 1080 },
+              "720p": { width: 1280, height: 720 },
+              "480p": { width: 854, height: 480 }
+            };
+            const resolution = resolutionPresets[videoSettings.resolution] || resolutionPresets["720p"];
             this.stream = await navigator.mediaDevices.getDisplayMedia({
               video: {
                 displaySurface: "monitor",
                 logicalSurface: true,
                 cursor: "always",
-                width: { ideal: 1280, max: 1920 },
-                height: { ideal: 720, max: 1080 },
-                frameRate: { ideal: 30, max: 30 }
+                width: { ideal: resolution.width, max: 1920 },
+                height: { ideal: resolution.height, max: 1080 },
+                frameRate: { ideal: videoSettings.fps, max: 60 }
               },
               audio: true
             });
@@ -713,26 +746,36 @@
               ]);
               this.micStream = micStream;
             }
-            let mimeType = "video/webm;codecs=vp9,opus";
+            const codecOptions = {
+              "vp9": "video/webm;codecs=vp9,opus",
+              "vp8": "video/webm;codecs=vp8,opus",
+              "h264": "video/webm;codecs=h264,opus"
+            };
+            let mimeType = codecOptions[videoSettings.codec] || codecOptions["vp9"];
             if (!MediaRecorder.isTypeSupported(mimeType)) {
-              mimeType = "video/webm;codecs=vp8,opus";
-            }
-            if (!MediaRecorder.isTypeSupported(mimeType)) {
-              mimeType = "video/webm";
+              if (MediaRecorder.isTypeSupported(codecOptions["vp9"])) {
+                mimeType = codecOptions["vp9"];
+              } else if (MediaRecorder.isTypeSupported(codecOptions["vp8"])) {
+                mimeType = codecOptions["vp8"];
+              } else {
+                mimeType = "video/webm";
+              }
+              console.warn(`Codec ${videoSettings.codec} not supported, using fallback: ${mimeType}`);
             }
             const options = {
               mimeType,
-              videoBitsPerSecond: 2e6,
+              videoBitsPerSecond: videoSettings.bitrate * 1e3,
+              // Convert kbps to bps
               audioBitsPerSecond: 128e3
             };
-            console.log(`Using codec: ${mimeType}`);
+            console.log(`Using codec: ${mimeType}, bitrate: ${videoSettings.bitrate} kbps`);
             this.mediaRecorder = new MediaRecorder(finalStream, options);
             this.mediaRecorder.ondataavailable = (event) => {
               if (event.data && event.data.size > 0) {
                 this.recordedChunks.push(event.data);
               }
             };
-            this.mediaRecorder.start(1e3);
+            this.mediaRecorder.start(videoSettings.timeslice);
             this.startTime = Date.now();
             this.startTimer();
             this.stream.getVideoTracks()[0].onended = () => {
@@ -742,6 +785,7 @@
               }
             };
             console.log(`Screen recording started for ${this.platform}`);
+            console.log(`Settings: ${videoSettings.resolution} @ ${videoSettings.fps}fps, timeslice: ${videoSettings.timeslice}ms`);
             return true;
           } catch (error) {
             console.error("Error starting screen recording:", error);

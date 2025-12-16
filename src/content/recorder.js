@@ -15,14 +15,34 @@ export class Recorder {
         this.audioBuffers = []; // Store Float32Arrays
 
         try {
+            // Load settings from chrome.storage
+            const result = await chrome.storage.local.get(['settings']);
+            const settings = result.settings || {};
+
+            // Apply defaults
+            const audioSettings = {
+                sampleRate: 44100,
+                bufferSize: 4096,
+                ...(settings.audio || {})
+            };
+
+            console.log('Audio settings:', audioSettings);
+
             this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+            // Create AudioContext with configured sample rate
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                sampleRate: audioSettings.sampleRate
+            });
 
             this.mediaStreamSource = this.audioContext.createMediaStreamSource(this.stream);
 
-            // Use ScriptProcessor for raw PCM access (bufferSize, inputChannels, outputChannels)
-            // 4096 is a good balance for latency/performance
-            this.recorder = this.audioContext.createScriptProcessor(4096, 1, 1);
+            // Use ScriptProcessor with configured buffer size
+            this.recorder = this.audioContext.createScriptProcessor(
+                audioSettings.bufferSize,
+                1, // inputChannels
+                1  // outputChannels
+            );
 
             this.recorder.onaudioprocess = (e) => {
                 // Clone the data because the buffer is reused
@@ -36,7 +56,7 @@ export class Recorder {
             this.startTime = Date.now();
             this.startTimer();
 
-            console.log("WAV Recording started");
+            console.log(`WAV Recording started: ${audioSettings.sampleRate}Hz, buffer ${audioSettings.bufferSize}`);
             return true;
         } catch (error) {
             console.error("Error starting recording:", error);

@@ -75,15 +75,93 @@ async function setupSettings() {
     const modal = document.getElementById('settings-modal');
     const cancelBtn = document.getElementById('cancel-settings');
     const saveBtn = document.getElementById('save-settings');
-    const promptInput = document.getElementById('prompt-text');
+    const resetBtn = document.getElementById('reset-settings');
 
-    // Default from shared config or fallback
-    const DEFAULT_PROMPT = "Please answer based on this audio";
+    // Get all input elements
+    const promptInput = document.getElementById('prompt-text');
+    const videoCodec = document.getElementById('video-codec');
+    const videoResolution = document.getElementById('video-resolution');
+    const videoBitrate = document.getElementById('video-bitrate');
+    const bitrateValue = document.getElementById('bitrate-value');
+    const videoFps = document.getElementById('video-fps');
+    const videoTimeslice = document.getElementById('video-timeslice');
+    const audioSampleRate = document.getElementById('audio-sample-rate');
+    const audioBufferSize = document.getElementById('audio-buffer-size');
+
+    // Load settings from storage
+    async function loadSettings() {
+        const result = await chrome.storage.local.get(['settings']);
+        const settings = result.settings || {};
+
+        // Apply defaults
+        const defaults = {
+            promptText: "Please answer based on this audio",
+            video: {
+                codec: 'vp9',
+                resolution: '720p',
+                bitrate: 2000,
+                fps: 30,
+                timeslice: 1000
+            },
+            audio: {
+                sampleRate: 44100,
+                bufferSize: 4096
+            }
+        };
+
+        // Merge with defaults
+        const merged = {
+            promptText: settings.promptText || defaults.promptText,
+            video: { ...defaults.video, ...(settings.video || {}) },
+            audio: { ...defaults.audio, ...(settings.audio || {}) }
+        };
+
+        // Populate form fields
+        promptInput.value = merged.promptText;
+        videoCodec.value = merged.video.codec;
+        videoResolution.value = merged.video.resolution;
+        videoBitrate.value = merged.video.bitrate;
+        bitrateValue.textContent = merged.video.bitrate;
+        videoFps.value = merged.video.fps;
+        videoTimeslice.value = merged.video.timeslice;
+        audioSampleRate.value = merged.audio.sampleRate;
+        audioBufferSize.value = merged.audio.bufferSize;
+    }
+
+    // Save settings to storage
+    async function saveSettings() {
+        const settings = {
+            promptText: promptInput.value,
+            video: {
+                codec: videoCodec.value,
+                resolution: videoResolution.value,
+                bitrate: parseInt(videoBitrate.value),
+                fps: parseInt(videoFps.value),
+                timeslice: parseInt(videoTimeslice.value)
+            },
+            audio: {
+                sampleRate: parseInt(audioSampleRate.value),
+                bufferSize: parseInt(audioBufferSize.value)
+            }
+        };
+
+        await chrome.storage.local.set({ settings });
+    }
+
+    // Reset to defaults
+    async function resetSettings() {
+        await chrome.storage.local.remove(['settings']);
+        await loadSettings();
+    }
+
+    // Bitrate slider update
+    videoBitrate.oninput = () => {
+        bitrateValue.textContent = videoBitrate.value;
+    };
 
     // Open Modal
     settingsBtn.onclick = async () => {
-        const result = await chrome.storage.local.get(['promptText']);
-        promptInput.value = result.promptText || DEFAULT_PROMPT;
+        await loadSettings();
         modal.style.display = 'block';
     };
 
@@ -94,9 +172,17 @@ async function setupSettings() {
 
     // Save Settings
     saveBtn.onclick = async () => {
-        const text = promptInput.value;
-        await chrome.storage.local.set({ promptText: text });
+        await saveSettings();
         modal.style.display = 'none';
+        console.log('Settings saved successfully');
+    };
+
+    // Reset Settings
+    resetBtn.onclick = async () => {
+        if (confirm('Reset all settings to defaults?')) {
+            await resetSettings();
+            console.log('Settings reset to defaults');
+        }
     };
 
     // Close on click outside
@@ -106,3 +192,4 @@ async function setupSettings() {
         }
     };
 }
+

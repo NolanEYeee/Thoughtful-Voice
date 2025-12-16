@@ -62,20 +62,89 @@
         const modal = document.getElementById("settings-modal");
         const cancelBtn = document.getElementById("cancel-settings");
         const saveBtn = document.getElementById("save-settings");
+        const resetBtn = document.getElementById("reset-settings");
         const promptInput = document.getElementById("prompt-text");
-        const DEFAULT_PROMPT = "Please answer based on this audio";
+        const videoCodec = document.getElementById("video-codec");
+        const videoResolution = document.getElementById("video-resolution");
+        const videoBitrate = document.getElementById("video-bitrate");
+        const bitrateValue = document.getElementById("bitrate-value");
+        const videoFps = document.getElementById("video-fps");
+        const videoTimeslice = document.getElementById("video-timeslice");
+        const audioSampleRate = document.getElementById("audio-sample-rate");
+        const audioBufferSize = document.getElementById("audio-buffer-size");
+        async function loadSettings() {
+          const result = await chrome.storage.local.get(["settings"]);
+          const settings = result.settings || {};
+          const defaults = {
+            promptText: "Please answer based on this audio",
+            video: {
+              codec: "vp9",
+              resolution: "720p",
+              bitrate: 2e3,
+              fps: 30,
+              timeslice: 1e3
+            },
+            audio: {
+              sampleRate: 44100,
+              bufferSize: 4096
+            }
+          };
+          const merged = {
+            promptText: settings.promptText || defaults.promptText,
+            video: { ...defaults.video, ...settings.video || {} },
+            audio: { ...defaults.audio, ...settings.audio || {} }
+          };
+          promptInput.value = merged.promptText;
+          videoCodec.value = merged.video.codec;
+          videoResolution.value = merged.video.resolution;
+          videoBitrate.value = merged.video.bitrate;
+          bitrateValue.textContent = merged.video.bitrate;
+          videoFps.value = merged.video.fps;
+          videoTimeslice.value = merged.video.timeslice;
+          audioSampleRate.value = merged.audio.sampleRate;
+          audioBufferSize.value = merged.audio.bufferSize;
+        }
+        async function saveSettings() {
+          const settings = {
+            promptText: promptInput.value,
+            video: {
+              codec: videoCodec.value,
+              resolution: videoResolution.value,
+              bitrate: parseInt(videoBitrate.value),
+              fps: parseInt(videoFps.value),
+              timeslice: parseInt(videoTimeslice.value)
+            },
+            audio: {
+              sampleRate: parseInt(audioSampleRate.value),
+              bufferSize: parseInt(audioBufferSize.value)
+            }
+          };
+          await chrome.storage.local.set({ settings });
+        }
+        async function resetSettings() {
+          await chrome.storage.local.remove(["settings"]);
+          await loadSettings();
+        }
+        videoBitrate.oninput = () => {
+          bitrateValue.textContent = videoBitrate.value;
+        };
         settingsBtn.onclick = async () => {
-          const result = await chrome.storage.local.get(["promptText"]);
-          promptInput.value = result.promptText || DEFAULT_PROMPT;
+          await loadSettings();
           modal.style.display = "block";
         };
         cancelBtn.onclick = () => {
           modal.style.display = "none";
         };
         saveBtn.onclick = async () => {
-          const text = promptInput.value;
-          await chrome.storage.local.set({ promptText: text });
+          await saveSettings();
           modal.style.display = "none";
+          console.log("Settings saved successfully");
+        };
+        resetBtn.onclick = async () => {
+          if (confirm("Reset all settings to defaults?")) {
+            await resetSettings();
+            console.log("Settings reset to defaults");
+          }
         };
         window.onclick = (event) => {
           if (event.target == modal) {

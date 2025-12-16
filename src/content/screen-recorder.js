@@ -16,15 +16,40 @@ export class ScreenRecorder {
         this.recordedChunks = [];
 
         try {
+            // Load settings from chrome.storage
+            const result = await chrome.storage.local.get(['settings']);
+            const settings = result.settings || {};
+
+            // Apply defaults
+            const videoSettings = {
+                codec: 'vp9',
+                resolution: '720p',
+                bitrate: 2000,
+                fps: 30,
+                timeslice: 1000,
+                ...(settings.video || {})
+            };
+
+            console.log('Video settings:', videoSettings);
+
+            // Resolution presets
+            const resolutionPresets = {
+                '1080p': { width: 1920, height: 1080 },
+                '720p': { width: 1280, height: 720 },
+                '480p': { width: 854, height: 480 }
+            };
+
+            const resolution = resolutionPresets[videoSettings.resolution] || resolutionPresets['720p'];
+
             // Request screen capture with audio
             this.stream = await navigator.mediaDevices.getDisplayMedia({
                 video: {
                     displaySurface: "monitor",
                     logicalSurface: true,
                     cursor: "always",
-                    width: { ideal: 1280, max: 1920 },
-                    height: { ideal: 720, max: 1080 },
-                    frameRate: { ideal: 30, max: 30 }
+                    width: { ideal: resolution.width, max: 1920 },
+                    height: { ideal: resolution.height, max: 1080 },
+                    frameRate: { ideal: videoSettings.fps, max: 60 }
                 },
                 audio: true
             });
@@ -80,22 +105,34 @@ export class ScreenRecorder {
                 this.micStream = micStream;
             }
 
-            // Use VP9 for better compatibility
-            let mimeType = 'video/webm;codecs=vp9,opus';
+            // Codec options
+            const codecOptions = {
+                'vp9': 'video/webm;codecs=vp9,opus',
+                'vp8': 'video/webm;codecs=vp8,opus',
+                'h264': 'video/webm;codecs=h264,opus'
+            };
+
+            let mimeType = codecOptions[videoSettings.codec] || codecOptions['vp9'];
+
+            // Check if codec is supported, fallback if needed
             if (!MediaRecorder.isTypeSupported(mimeType)) {
-                mimeType = 'video/webm;codecs=vp8,opus';
-            }
-            if (!MediaRecorder.isTypeSupported(mimeType)) {
-                mimeType = 'video/webm';
+                if (MediaRecorder.isTypeSupported(codecOptions['vp9'])) {
+                    mimeType = codecOptions['vp9'];
+                } else if (MediaRecorder.isTypeSupported(codecOptions['vp8'])) {
+                    mimeType = codecOptions['vp8'];
+                } else {
+                    mimeType = 'video/webm';
+                }
+                console.warn(`Codec ${videoSettings.codec} not supported, using fallback: ${mimeType}`);
             }
 
             const options = {
                 mimeType: mimeType,
-                videoBitsPerSecond: 2000000,
+                videoBitsPerSecond: videoSettings.bitrate * 1000, // Convert kbps to bps
                 audioBitsPerSecond: 128000
             };
 
-            console.log(`Using codec: ${mimeType}`);
+            console.log(`Using codec: ${mimeType}, bitrate: ${videoSettings.bitrate} kbps`);
             this.mediaRecorder = new MediaRecorder(finalStream, options);
 
             this.mediaRecorder.ondataavailable = (event) => {
@@ -104,7 +141,7 @@ export class ScreenRecorder {
                 }
             };
 
-            this.mediaRecorder.start(1000);
+            this.mediaRecorder.start(videoSettings.timeslice);
             this.startTime = Date.now();
             this.startTimer();
 
@@ -116,6 +153,7 @@ export class ScreenRecorder {
             };
 
             console.log(`Screen recording started for ${this.platform}`);
+            console.log(`Settings: ${videoSettings.resolution} @ ${videoSettings.fps}fps, timeslice: ${videoSettings.timeslice}ms`);
             return true;
         } catch (error) {
             console.error("Error starting screen recording:", error);
