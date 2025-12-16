@@ -1,4 +1,5 @@
 import { Recorder } from './recorder.js';
+import { ScreenRecorder } from './screen-recorder.js';
 import { Injector } from './injector.js';
 import { BubbleRenderer } from './bubble.js';
 import { StorageHelper } from './storage.js';
@@ -33,8 +34,10 @@ async function init() {
     bubbleRenderer.init();
 
     const recorder = new Recorder();
+    const screenRecorder = new ScreenRecorder(strategy.name.toLowerCase()); // Pass 'gemini' or 'chatgpt'
 
-    const injector = new Injector(recorder, async (blob, duration) => {
+    // Audio upload handler
+    const handleAudioUpload = async (blob, duration) => {
         // 1. Upload to Platform
         await strategy.handleUpload(blob, duration);
 
@@ -45,21 +48,58 @@ async function init() {
 
         await StorageHelper.saveRecording({
             timestamp: Date.now(),
-            site: strategy.name, // Use strategy name instead of hardcoded 'Gemini'
+            site: strategy.name,
             durationString: `${m}:${s}`,
             filename: generateAudioFilename()
         }, blob);
-    });
+    };
+
+    // Video upload handler
+    const handleVideoUpload = async (result) => {
+        // 1. Upload video to Platform (pass the whole result object with blob, duration, and format)
+        await strategy.handleVideoUpload(result);
+
+        // 2. Save to History (optional - can extend StorageHelper later for video)
+        const seconds = Math.floor(result.duration / 1000);
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+
+        console.log(`Screen recording uploaded: ${m}:${s} (${result.format.toUpperCase()})`);
+    };
+
+    const injector = new Injector(recorder, screenRecorder, handleAudioUpload, handleVideoUpload);
 
     // Initial check
     const target = strategy.getInjectionTarget();
     injector.inject(target);
 
-    // Watch for page changes (SPA navigation)
+    // Watch for page changes (SPA navigation) and re-position if needed
     const observer = new MutationObserver(() => {
         const newTarget = strategy.getInjectionTarget();
-        if (newTarget && !document.getElementById('ai-voice-uploader-btn')) {
+        const existingButton = document.getElementById('ai-voice-uploader-btn');
+        const existingScreenButton = document.getElementById('ai-screen-recorder-btn');
+
+        if (!existingButton && newTarget) {
+            // Button doesn't exist, inject it
             injector.inject(newTarget);
+        } else if (existingButton && newTarget) {
+            // Button exists, but check if it's in the correct location
+            // The correct location is next to the Tools button
+            const toolsContainer = document.querySelector('.toolbox-drawer-button-container');
+
+            if (toolsContainer) {
+                // Check if our button is a sibling of the toolsContainer
+                const expectedParent = toolsContainer.parentElement;
+                const currentParent = existingButton.parentElement;
+
+                // If button is not in the expected parent, re-inject it
+                if (currentParent !== expectedParent) {
+                    console.log("AI Voice Uploader: Button in wrong location, re-positioning...");
+                    existingButton.remove();
+                    if (existingScreenButton) existingScreenButton.remove();
+                    injector.inject(newTarget);
+                }
+            }
         }
     });
 

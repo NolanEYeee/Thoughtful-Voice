@@ -1,9 +1,13 @@
 export class Injector {
-    constructor(recorder, handleUpload) {
+    constructor(recorder, screenRecorder, handleUpload, handleVideoUpload) {
         this.recorder = recorder;
+        this.screenRecorder = screenRecorder;
         this.handleUpload = handleUpload;
+        this.handleVideoUpload = handleVideoUpload;
         this.button = null;
+        this.screenButton = null;
         this.isRecording = false;
+        this.isScreenRecording = false;
     }
 
     createButton() {
@@ -11,7 +15,7 @@ export class Injector {
         btn.id = 'ai-voice-uploader-btn';
         btn.innerHTML = '🎙️'; // Default icon
         btn.className = 'ai-voice-btn';
-        btn.title = 'Hold to record (or click to toggle)';
+        btn.title = 'Click to record audio';
 
         // Simple click toggle logic
         btn.onclick = async () => {
@@ -23,6 +27,26 @@ export class Injector {
         };
 
         this.button = btn;
+        return btn;
+    }
+
+    createScreenRecordButton() {
+        const btn = document.createElement('button');
+        btn.id = 'ai-screen-recorder-btn';
+        btn.innerHTML = '📺'; // TV emoji
+        btn.className = 'ai-voice-btn';
+        btn.title = 'Click to record screen + audio';
+
+        // Screen recording toggle logic
+        btn.onclick = async () => {
+            if (this.isScreenRecording) {
+                await this.stopScreenRecording();
+            } else {
+                await this.startScreenRecording();
+            }
+        };
+
+        this.screenButton = btn;
         return btn;
     }
 
@@ -55,8 +79,38 @@ export class Injector {
         }
     }
 
+    async startScreenRecording() {
+        const started = await this.screenRecorder.start((time) => {
+            if (this.screenButton) {
+                this.screenButton.innerHTML = `🔴 ${time}`;
+            }
+        });
+
+        if (started) {
+            this.isScreenRecording = true;
+            this.screenButton.classList.add('screen-recording');
+            this.screenButton.innerHTML = '🔴 00:00';
+        }
+    }
+
+    async stopScreenRecording() {
+        this.isScreenRecording = false;
+        this.screenButton.classList.remove('screen-recording');
+        this.screenButton.innerHTML = '⏳'; // Processing
+
+        const result = await this.screenRecorder.stop();
+        this.screenButton.innerHTML = '📺';
+
+        if (result) {
+            console.log("Screen recording completed:", result);
+            // Call the video upload handler with the complete result object
+            await this.handleVideoUpload(result);
+        }
+    }
+
     inject(targetSpec) {
         if (!this.button) this.createButton();
+        if (!this.screenButton) this.createScreenRecordButton();
 
         // Avoid double injection
         if (document.getElementById('ai-voice-uploader-btn')) return;
@@ -73,15 +127,20 @@ export class Injector {
 
         if (container) {
             if (insertBefore) {
-                // If insertBefore is valid and is a child of container (or we trust the caller)
+                // Insert audio button first
                 try {
                     container.insertBefore(this.button, insertBefore);
+                    // Insert screen button right after audio button
+                    container.insertBefore(this.screenButton, insertBefore);
                 } catch (e) {
                     console.warn("Injection failed with insertBefore, falling back to append", e);
                     container.appendChild(this.button);
+                    container.appendChild(this.screenButton);
                 }
             } else {
+                // Append both buttons
                 container.appendChild(this.button);
+                container.appendChild(this.screenButton);
             }
         } else {
             // Fallback: Fixed position
@@ -90,7 +149,13 @@ export class Injector {
             this.button.style.bottom = '100px';
             this.button.style.right = '20px';
             this.button.style.zIndex = '9999';
+
+            document.body.appendChild(this.screenButton);
+            this.screenButton.style.position = 'fixed';
+            this.screenButton.style.bottom = '100px';
+            this.screenButton.style.right = '80px'; // To the left of audio button
+            this.screenButton.style.zIndex = '9999';
         }
-        console.log("Button injected");
+        console.log("Buttons injected (audio + screen)");
     }
 }

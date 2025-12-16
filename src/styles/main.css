@@ -36,6 +36,17 @@
     gap: 8px;
 }
 
+.ai-voice-btn.screen-recording {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    width: auto;
+    padding: 0 16px;
+    border-radius: 20px;
+    font-size: 16px;
+    font-weight: 500;
+    gap: 8px;
+}
+
 /* Dark theme support */
 @media (prefers-color-scheme: dark) {
     .ai-voice-btn {
@@ -49,6 +60,11 @@
     .ai-voice-btn.recording {
         background-color: #5c1e1e;
         color: #f2b8b5;
+    }
+
+    .ai-voice-btn.screen-recording {
+        background-color: #1a3a52;
+        color: #90caf9;
     }
 }
 

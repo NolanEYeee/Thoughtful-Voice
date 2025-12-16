@@ -116,4 +116,49 @@ export class ChatGPTStrategy {
             document.execCommand('insertText', false, textToInsert);
         }
     }
+
+    async handleVideoUpload(result) {
+        console.log("ChatGPTStrategy: Handling video upload via Clipboard Paste");
+
+        const blob = result.blob;
+        const format = result.format || 'webm';
+
+        // Create a friendly filename with date and time
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
+        const timeStr = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/:/g, '-');
+        const filename = `Screen-${dateStr}_${timeStr}.${format}`;
+
+        const mimeType = format === 'mp4' ? 'video/mp4' : 'video/webm';
+        const file = new File([blob], filename, { type: mimeType });
+
+        const textBox = document.getElementById('prompt-textarea');
+
+        if (!textBox) {
+            console.error("ChatGPT input not found");
+            return;
+        }
+
+        try {
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+
+            const pasteEvent = new ClipboardEvent('paste', {
+                bubbles: true,
+                cancelable: true,
+                clipboardData: dataTransfer
+            });
+
+            textBox.focus();
+            textBox.dispatchEvent(pasteEvent);
+
+            console.log(`ChatGPTStrategy: Video paste event dispatched (${format.toUpperCase()})`);
+
+            // Insert text prompt
+            await this.insertText(textBox);
+
+        } catch (e) {
+            console.error("ChatGPT Video Paste failed", e);
+        }
+    }
 }
