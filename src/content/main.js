@@ -50,6 +50,7 @@ async function init() {
             type: 'audio',
             timestamp: Date.now(),
             site: strategy.name,
+            url: window.location.href, // Save chatroom URL
             durationString: `${m}:${s}`,
             filename: generateAudioFilename()
         }, blob);
@@ -69,6 +70,7 @@ async function init() {
             type: 'video',
             timestamp: Date.now(),
             site: strategy.name,
+            url: window.location.href, // Save chatroom URL
             durationString: `${m}:${s}`,
             filename: `video_recording_${Date.now()}.webm`,
             format: result.format

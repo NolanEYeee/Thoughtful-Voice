@@ -1481,6 +1481,8 @@
             type: "audio",
             timestamp: Date.now(),
             site: strategy.name,
+            url: window.location.href,
+            // Save chatroom URL
             durationString: `${m}:${s}`,
             filename: generateAudioFilename()
           }, blob);
@@ -1494,6 +1496,8 @@
             type: "video",
             timestamp: Date.now(),
             site: strategy.name,
+            url: window.location.href,
+            // Save chatroom URL
             durationString: `${m}:${s}`,
             filename: `video_recording_${Date.now()}.webm`,
             format: result.format

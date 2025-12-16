@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Test Recording Data</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .test-section {
+            background: #f5f5f5;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+
+        pre {
+            background: #fff;
+            padding: 10px;
+            overflow-x: auto;
+        }
+
+        button {
+            background: #ff6b00;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #e65100;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🧪 Recording Data Test</h1>
+
+    <div class="test-section">
+        <h2>Current Recordings</h2>
+        <button onclick="loadRecordings()">Load Recordings</button>
+        <button onclick="clearAllRecordings()">Clear All</button>
+        <pre id="recordings-output">Click "Load Recordings" to view</pre>
+    </div>
+
+    <div class="test-section">
+        <h2>Add Test Data</h2>
+        <button onclick="addTestAudio()">Add Test Audio (with URL)</button>
+        <button onclick="addTestVideo()">Add Test Video (with URL)</button>
+        <button onclick="addOldAudio()">Add Old Audio (no URL)</button>
+        <button onclick="addOldVideo()">Add Old Video (no URL)</button>
+    </div>
+
+    <script>
+        async function loadRecordings() {
+            const result = await chrome.storage.local.get(['recordings']);
+            const recordings = result.recordings || [];
+            document.getElementById('recordings-output').textContent =
+                JSON.stringify(recordings, null, 2);
+        }
+
+        async function clearAllRecordings() {
+            await chrome.storage.local.set({ recordings: [] });
+            alert('All recordings cleared!');
+            loadRecordings();
+        }
+
+        async function addTestAudio() {
+            const result = await chrome.storage.local.get(['recordings']);
+            const recordings = result.recordings || [];
+
+            recordings.unshift({
+                type: 'audio',
+                timestamp: Date.now(),
+                site: 'Gemini',
+                url: 'https://gemini.google.com/app/test123',
+                durationString: '00:42',
+                audioData: 'data:audio/wav;base64,test',
+                filename: 'test_audio.wav'
+            });
+
+            await chrome.storage.local.set({ recordings });
+            alert('Test audio added!');
+            loadRecordings();
+        }
+
+        async function addTestVideo() {
+            const result = await chrome.storage.local.get(['recordings']);
+            const recordings = result.recordings || [];
+
+            recordings.unshift({
+                type: 'video',
+                timestamp: Date.now(),
+                site: 'ChatGPT',
+                url: 'https://chatgpt.com/c/test456',
+                durationString: '01:23',
+                audioData: 'data:video/webm;base64,test',
+                filename: 'test_video.webm',
+                format: 'vp9'
+            });
+
+            await chrome.storage.local.set({ recordings });
+            alert('Test video added!');
+            loadRecordings();
+        }
+
+        async function addOldAudio() {
+            const result = await chrome.storage.local.get(['recordings']);
+            const recordings = result.recordings || [];
+
+            recordings.unshift({
+                type: 'audio',
+                timestamp: Date.now(),
+                site: 'Gemini',
+                // NO URL - simulating old data
+                durationString: '00:30',
+                audioData: 'data:audio/wav;base64,oldtest',
+                filename: 'old_audio.wav'
+            });
+
+            await chrome.storage.local.set({ recordings });
+            alert('Old audio added (no URL)!');
+            loadRecordings();
+        }
+
+        async function addOldVideo() {
+            const result = await chrome.storage.local.get(['recordings']);
+            const recordings = result.recordings || [];
+
+            recordings.unshift({
+                type: 'video',
+                timestamp: Date.now(),
+                site: 'ChatGPT',
+                // NO URL - simulating old data
+                durationString: '01:00',
+                audioData: 'data:video/webm;base64,oldtest',
+                filename: 'old_video.webm'
+            });
+
+            await chrome.storage.local.set({ recordings });
+            alert('Old video added (no URL)!');
+            loadRecordings();
+        }
+
+        // Load on page load
+        loadRecordings();
+    </script>
+</body>
+
+</html>

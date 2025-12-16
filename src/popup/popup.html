@@ -2,365 +2,714 @@
 <html>
 
 <head>
-    <title>AI Voice Uploader History</title>
+    <title>AI Voice Walkman</title>
     <style>
         /* 
-           VINTAGE KRAFT DESIGN SYSTEM 
+           RETRO WALKMAN DESIGN SYSTEM - PREMIUM EDITION
            Palette:
-           - Background: #e6dac3 (Kraft Paper)
-           - Card Paper: #fcf5e5 (Aged Paper)
-           - Ink: #2c1e14 (Dark Sepia)
-           - Accent: #8d6e63 (Brown Grey)
-           - Alert: #bf360c (Burnt Orange/Stamp Red)
+           - Body: #222224 (Matte Black Plastic)
+           - Texture: Subtle noise/grain
+           - Accent: #ff6b00 (Sony Walkman Orange)
+           - Metal: #d0d0d0 (Brushed Aluminum)
+           - Screen: #0a0a0a (Dark CRT)
+           - Cassette: #e3dccb (Off-white/Beige Plastic)
         */
 
+        :root {
+            --walkman-bg: #1a1a1a;
+            --walkman-case: #262629;
+            --walkman-accent: #ff6b00;
+            --metal-gradient: linear-gradient(135deg, #e0e0e0 0%, #b0b0b0 100%);
+            --tape-body: #e3dccb;
+            --text-main: #f0f0f0;
+            --text-dim: #888;
+        }
+
         body {
-            width: 350px;
-            min-height: 400px;
+            width: 400px;
+            height: 600px;
             margin: 0;
-            padding: 20px;
-            /* Kraft Paper Texture Simulation */
-            background-color: #e6dac3;
-            background-image:
-                radial-gradient(circle at 10% 20%, rgba(0, 0, 0, 0.02) 0%, transparent 20%),
-                radial-gradient(circle at 90% 80%, rgba(0, 0, 0, 0.02) 0%, transparent 20%),
-                linear-gradient(45deg, rgba(0, 0, 0, 0.02) 25%, transparent 25%, transparent 75%, rgba(0, 0, 0, 0.02) 75%, rgba(0, 0, 0, 0.02)),
-                linear-gradient(45deg, rgba(0, 0, 0, 0.02) 25%, transparent 25%, transparent 75%, rgba(0, 0, 0, 0.02) 75%, rgba(0, 0, 0, 0.02));
-            background-size: 100% 100%, 100% 100%, 20px 20px, 20px 20px;
-            background-position: 0 0, 0 0, 0 0, 10px 10px;
-
-            font-family: 'Georgia', 'Times New Roman', serif;
-            color: #2c1e14;
+            padding: 0;
+            background-color: var(--walkman-bg);
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: var(--text-main);
+            overflow: hidden;
+            user-select: none;
         }
 
-        /* "Stamped" Header */
-        .header {
-            text-align: center;
-            margin-bottom: 25px;
-            padding: 10px;
-            border: 3px double #5d4037;
-            border-radius: 4px;
-            background: rgba(255, 255, 255, 0.1);
-            color: #3e2723;
-        }
-
-        .header span {
-            font-size: 20px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.4);
-        }
-
-        .content {
+        /* The Main Device Container */
+        .walkman-container {
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            height: 100vh;
+            background: var(--walkman-case);
+            /* Subtle plastic texture */
+            background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 4px 4px;
+            border-right: 6px solid #111;
+            box-shadow: inset 10px 0 20px rgba(0, 0, 0, 0.5);
         }
 
-        .empty-state {
-            text-align: center;
-            color: #5d4037;
-            padding: 20px;
-            font-size: 14px;
-            font-style: italic;
-            border: 1px dashed #a1887f;
-            border-radius: 4px;
-        }
-
-        /* Vintage Card Styles */
-        .recording-item {
-            background-color: #fcf5e5;
-            background-image: linear-gradient(to bottom, #fcf5e5 0%, #f4e4bc 100%);
-            border: 1px solid #d7ccc8;
-            border-radius: 2px;
-            padding: 15px;
-            position: relative;
-            box-shadow:
-                0 1px 1px rgba(0, 0, 0, 0.1),
-                0 3px 6px rgba(0, 0, 0, 0.1),
-                inset 0 0 20px rgba(139, 69, 19, 0.05);
-            transition: transform 0.2s ease;
-        }
-
-        .recording-item:hover {
-            transform: translateY(-2px);
-            box-shadow:
-                0 4px 8px rgba(0, 0, 0, 0.15),
-                inset 0 0 20px rgba(139, 69, 19, 0.05);
-        }
-
-        .meta {
+        /* Header / Branding Plate */
+        .brand-plate {
+            background: #111;
+            border-bottom: 1px solid #333;
+            padding: 12px 18px;
             display: flex;
             justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 12px;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 12px;
-            color: #5d4037;
-            border-bottom: 1px dashed #a1887f;
-            padding-bottom: 5px;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+            position: relative;
         }
 
-        .site-name {
-            font-weight: bold;
+        /* Metallic effect for logo area */
+        .brand-plate::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--walkman-accent);
+        }
+
+        .brand-logo {
+            font-family: 'Arial Black', sans-serif;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+            color: #fff;
             text-transform: uppercase;
-        }
-
-        .controls {
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
         }
 
-        audio {
-            width: 100%;
-            height: 30px;
-            filter: sepia(0.8) contrast(1.2) grayscale(0.2);
-            opacity: 0.9;
+        .brand-logo svg {
+            fill: var(--walkman-accent);
+            filter: drop-shadow(0 0 5px rgba(255, 107, 0, 0.5));
         }
 
-        video {
-            width: 100%;
-            max-height: 180px;
+        .brand-model {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 10px;
+            color: #333;
+            background: var(--walkman-accent);
+            padding: 2px 6px;
             border-radius: 2px;
-            border: 1px solid #d7ccc8;
-            filter: sepia(0.3) contrast(1.1);
+            font-weight: bold;
+            box-shadow: 0 0 5px rgba(255, 107, 0, 0.4);
         }
 
-        /* Video-specific card styling */
-        .recording-item.video-item {
-            background-color: #f4e4bc;
-            background-image: linear-gradient(to bottom, #f4e4bc 0%, #ead5a7 100%);
-            border: 2px solid #c5b89a;
+        .top-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
         }
 
-        .recording-item.video-item .meta {
-            border-bottom: 2px dashed #a1887f;
+        .icon-btn {
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+            padding: 4px;
+            border-radius: 50%;
         }
 
-        /* Type badge styling */
-        .type-badge {
-            display: inline-block;
-            font-size: 16px;
-            margin-right: 5px;
-            vertical-align: middle;
+        .icon-btn:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
         }
 
-        button.delete-btn {
-            background: transparent;
-            border: 2px solid #bf360c;
-            color: #bf360c;
-            font-family: 'Courier New', Courier, monospace;
+        /* Main Content Area */
+        .main-stage {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+
+
+        /* Content List */
+        .content-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            scroll-behavior: smooth;
+        }
+
+        /* Recording Group */
+        .recording-group {
+            margin-bottom: 30px;
+        }
+
+        /* === CASSETTE TAPE CARD === */
+        .tape-card {
+            background: var(--tape-body);
+            color: #222;
+            border-radius: 6px;
+            margin-bottom: 25px;
+            position: relative;
+            box-shadow:
+                0 5px 15px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+            font-family: 'Arial Narrow', sans-serif;
+            overflow: hidden;
+            border: 1px solid #bbb;
+        }
+
+        /* Decorative Screws */
+        .tape-card::before,
+        .tape-card::after {
+            content: '+';
+            position: absolute;
+            top: 5px;
+            color: #999;
+            font-size: 10px;
+            font-family: monospace;
+        }
+
+        .tape-card::before {
+            left: 5px;
+        }
+
+        .tape-card::after {
+            right: 5px;
+        }
+
+        .tape-label {
+            background: #f4f0e6;
+            padding: 8px 12px;
+            border-bottom: 1px solid #c0b8a0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .label-left {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .label-right {
+            font-size: 9px;
+            color: #999;
+            font-weight: bold;
+            white-space: nowrap;
+            margin-left: 10px;
+        }
+
+        .tape-site-name {
+            font-size: 10px;
+            color: #666;
             font-weight: bold;
             text-transform: uppercase;
-            padding: 4px 8px;
-            font-size: 11px;
-            cursor: pointer;
+            letter-spacing: 0.5px;
+        }
+
+        .tape-window {
+            background:
+                linear-gradient(180deg, #1a1a1a 0%, #252525 50%, #1a1a1a 100%);
+            margin: 10px 15px;
+            padding: 12px;
             border-radius: 4px;
-            transform: rotate(-2deg);
-            transition: all 0.2s;
-            white-space: nowrap;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            box-shadow:
+                inset 0 3px 8px rgba(0, 0, 0, 0.9),
+                inset 0 -2px 4px rgba(255, 255, 255, 0.03),
+                0 1px 0 rgba(255, 255, 255, 0.05);
+            position: relative;
+            border: 1px solid #111;
+            border-top-color: #000;
+            border-bottom-color: #333;
         }
 
-        button.delete-btn:hover {
-            background: #bf360c;
-            color: #fcf5e5;
+        /* Glass reflection on window */
+        .tape-window::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                linear-gradient(135deg,
+                    rgba(255, 255, 255, 0.08) 0%,
+                    transparent 30%,
+                    transparent 70%,
+                    rgba(0, 0, 0, 0.1) 100%);
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
+        .reel {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            position: relative;
+            background:
+                radial-gradient(circle at center,
+                    #2a2a2a 0%,
+                    #2a2a2a 18%,
+                    #444 19%,
+                    #555 22%,
+                    #333 23%,
+                    #1a1a1a 40%);
+            box-shadow:
+                0 2px 6px rgba(0, 0, 0, 0.8),
+                inset 0 1px 2px rgba(255, 255, 255, 0.1),
+                0 0 0 1px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Center hub with metallic shine */
+        .reel::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 32%;
+            height: 32%;
+            transform: translate(-50%, -50%);
+            background:
+                radial-gradient(circle at 30% 30%,
+                    #999 0%,
+                    #666 20%,
+                    #333 50%,
+                    #1a1a1a 100%);
+            border-radius: 50%;
+            box-shadow:
+                0 1px 3px rgba(0, 0, 0, 0.8),
+                inset 0 -1px 2px rgba(255, 255, 255, 0.2),
+                inset 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Spokes - create 6 spokes for more realistic look */
+        .reel::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 85%;
+            height: 85%;
+            transform: translate(-50%, -50%);
+            background-image:
+                linear-gradient(0deg, transparent 47%, #555 47%, #666 50%, #555 53%, transparent 53%),
+                linear-gradient(60deg, transparent 47%, #555 47%, #666 50%, #555 53%, transparent 53%),
+                linear-gradient(120deg, transparent 47%, #555 47%, #666 50%, #555 53%, transparent 53%);
+            border-radius: 50%;
+            opacity: 0.8;
+        }
+
+        .playing .reel {
+            animation: spin 1.5s linear infinite;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .tape-controls {
+            background: #d4c4a8;
+            padding: 8px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            min-height: 36px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        /* Time Information Group */
+        .time-info {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .time-display {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            background: #222;
+            color: #76ff03;
+            padding: 3px 6px;
+            border-radius: 2px;
+            border: 1px solid #555;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8);
+            text-shadow: 0 0 2px rgba(118, 255, 3, 0.5);
+        }
+
+        .time-display.duration {
+            color: #ea0;
+            text-shadow: 0 0 2px rgba(238, 170, 0, 0.5);
+        }
+
+        /* Clickable Site Link */
+        .site-link {
+            color: inherit;
             text-decoration: none;
-            transform: rotate(0deg) scale(1.05);
+            border-bottom: 1px dotted currentColor;
+            transition: all 0.2s;
+            cursor: pointer;
         }
 
-        /* Scrollbar styling */
+        .site-link:hover {
+            color: var(--walkman-accent);
+            border-bottom-color: var(--walkman-accent);
+            text-shadow: 0 0 5px rgba(255, 107, 0, 0.3);
+        }
+
+        /* Site link in tape label */
+        .tape-site-name .site-link {
+            color: #666;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .tape-site-name .site-link:hover {
+            color: var(--walkman-accent);
+        }
+
+        /* Site link in video label */
+        .viewfinder-label .site-link {
+            font-size: 10px;
+            color: #aaa;
+        }
+
+        .viewfinder-label .site-link:hover {
+            color: var(--walkman-accent);
+        }
+
+
+        /* === CRT CARD === */
+        .crt-card {
+            background: #2b2b2b;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 25px;
+            box-shadow:
+                0 10px 20px rgba(0, 0, 0, 0.6),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border: 2px solid #1a1a1a;
+        }
+
+        .viewfinder-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-family: 'Arial', sans-serif;
+            font-size: 10px;
+            color: #aaa;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .crt-screen {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 4px solid #111;
+            background: #000;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+        }
+
+        .crt-screen video {
+            width: 100%;
+            max-height: 180px;
+            display: block;
+            object-fit: contain;
+        }
+
+        .crt-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .crt-controls {
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            border-top: 1px solid #333;
+            padding-top: 8px;
+            min-height: 36px;
+        }
+
+        /* === RETRO BUTTONS === */
+        .retro-btn {
+            appearance: none;
+            background: linear-gradient(to bottom, #555, #333);
+            border: 1px solid #222;
+            color: #fff;
+            padding: 5px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-family: sans-serif;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow:
+                0 3px 0 #111,
+                0 4px 4px rgba(0, 0, 0, 0.3);
+            text-transform: uppercase;
+            transition: transform 0.1s;
+            min-width: 30px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            flex-shrink: 0;
+            box-sizing: border-box;
+        }
+
+        a.retro-btn {
+            text-decoration: none;
+        }
+
+        .retro-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 0 0 #111;
+        }
+
+        .retro-btn.primary {
+            background: linear-gradient(to bottom, #ff8c00, #e65100);
+            border-color: #bf360c;
+            box-shadow:
+                0 3px 0 #872800,
+                0 4px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .retro-btn.primary:active {
+            box-shadow: 0 0 0 #872800;
+        }
+
+        .retro-btn.delete {
+            background: linear-gradient(to bottom, #c62828, #8e0000);
+            border-color: #550000;
+            box-shadow:
+                0 3px 0 #4a0000,
+                0 4px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .retro-btn.delete:active {
+            box-shadow: 0 0 0 #4a0000;
+        }
+
+        .retro-btn.copy {
+            background: linear-gradient(to bottom, #4a90e2, #2563a3);
+            border-color: #1a4d7a;
+            box-shadow:
+                0 3px 0 #0d3a5c,
+                0 4px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .retro-btn.copy:active {
+            box-shadow: 0 0 0 #0d3a5c;
+        }
+
+        .retro-btn.copy.copied {
+            background: linear-gradient(to bottom, #4caf50, #2e7d32);
+            border-color: #1b5e20;
+        }
+
+        /* Scrollbar */
         ::-webkit-scrollbar {
-            width: 8px;
+            width: 4px;
         }
 
         ::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.05);
+            background: #111;
         }
 
         ::-webkit-scrollbar-thumb {
-            background: #a1887f;
-            border-radius: 4px;
+            background: #444;
+            border-radius: 2px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: #8d6e63;
+            background: var(--walkman-accent);
+        }
+
+        /* Settings Modal Content */
+        #settings-modal {
+            backdrop-filter: blur(2px);
+        }
+
+        .settings-content {
+            background: #2a2a2e;
+            border: 2px solid #555;
+            color: #ddd;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
+        }
+
+        .settings-header {
+            color: var(--walkman-accent);
+            border-bottom: 1px solid #444;
+        }
+
+        .settings-group {
+            border-bottom: 1px solid #333;
+        }
+
+        .settings-label {
+            color: #aaa;
+        }
+
+        select,
+        input[type="text"],
+        textarea {
+            background: #111;
+            border: 1px solid #444;
+            color: #ccc;
         }
     </style>
 </head>
 
 <body>
-    <div class="header">
-        <span>Recording History</span>
-        <div class="toolbar" style="margin-top: 10px; display: flex; justify-content: center; gap: 15px;">
-            <a href="https://github.com/google/ai-voice-uploader" target="_blank" title="GitHub"
-                style="text-decoration: none; color: #3e2723; font-size: 18px;">
-                <svg height="20" viewBox="0 0 16 16" width="20" style="fill: currentColor; vertical-align: middle;">
+    <div class="walkman-container">
+        <!-- Brand Plate -->
+        <div class="brand-plate">
+            <div class="brand-logo">
+                <svg height="16" width="16" viewBox="0 0 24 24">
                     <path
-                        d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z">
+                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z">
                     </path>
                 </svg>
-            </a>
-            <button id="settings-btn" title="Settings"
-                style="background: none; border: none; cursor: pointer; color: #3e2723; font-size: 18px; padding: 0;">
-                <svg height="20" viewBox="0 0 24 24" width="20" style="fill: currentColor; vertical-align: middle;">
-                    <path
-                        d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.49l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z">
-                    </path>
-                </svg>
-            </button>
+                AI WALKMAN
+            </div>
+            <div class="top-controls">
+                <span class="brand-model">WM-2025</span>
+                <a href="https://github.com/google/ai-voice-uploader" target="_blank" class="icon-btn" title="GitHub">
+                    <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path
+                            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z">
+                        </path>
+                    </svg>
+                </a>
+                <button id="settings-btn" class="icon-btn" title="Settings">
+                    <svg height="16" width="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94L14.4 2.81c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41L9.25 5.35c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.03-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Stage -->
+        <div class="main-stage">
+            <!-- Content Area -->
+            <div class="content-scroll" id="content-scroll">
+                <div id="list">
+                    <!-- Cards Injected Here -->
+                    <div style="text-align: center; color: #666; padding: 20px;">No tapes inserted.</div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Settings Modal -->
+    <!-- Retro Settings Modal -->
     <div id="settings-modal"
-        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 100; overflow-y: auto;">
-        <div
-            style="background: linear-gradient(135deg, #fcf5e5 0%, #f4e4bc 100%); margin: 30px auto; padding: 28px; max-width: 480px; border-radius: 6px; border: 3px double #5d4037; font-family: Georgia, 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', serif; box-shadow: 0 12px 24px rgba(0,0,0,0.4), inset 0 0 40px rgba(139, 69, 19, 0.06);">
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100; overflow-y: auto;">
+        <div class="settings-content" style="margin: 30px auto; padding: 25px; max-width: 320px; border-radius: 4px;">
 
             <!-- Header -->
-            <div
-                style="text-align: center; margin-bottom: 24px; border-bottom: 2px solid #d7ccc8; padding-bottom: 14px;">
+            <div class="settings-header" style="text-align: center; margin-bottom: 20px; padding-bottom: 10px;">
                 <h2
-                    style="margin: 0; color: #3e2723; font-size: 19px; font-weight: bold; letter-spacing: 3px; text-transform: uppercase; text-shadow: 1px 1px 0 rgba(255,255,255,0.5);">
-                    ⚙️ Settings</h2>
+                    style="margin: 0; font-size: 16px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px;">
+                    🔧 SYSTEM MENU</h2>
             </div>
 
-            <!-- Prompt Text Section -->
-            <div
-                style="margin-bottom: 22px; padding: 16px; background: rgba(255,255,255,0.5); border-radius: 5px; border: 1px solid #d7ccc8;">
-                <label
-                    style="display: block; margin-bottom: 9px; font-size: 14px; color: #3e2723; font-weight: bold;">📝
-                    Prompt Text</label>
+            <!-- Prompt Text -->
+            <div class="settings-group" style="margin-bottom: 15px; padding-bottom: 15px;">
+                <label class="settings-label"
+                    style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: bold;">
+                    PROMPT DATA</label>
                 <textarea id="prompt-text"
-                    style="width: 100%; height: 70px; box-sizing: border-box; background: #fffdf7; border: 2px solid #d7ccc8; padding: 10px; font-family: Georgia, serif; font-size: 13px; resize: vertical; border-radius: 3px;"></textarea>
-                <p style="margin: 6px 0 0 0; font-size: 10px; color: #8d6e63; font-style: italic;">Text sent with
-                    uploads</p>
+                    style="width: 100%; height: 60px; box-sizing: border-box; padding: 8px; font-family: monospace; font-size: 11px; resize: vertical; border-radius: 2px;"></textarea>
             </div>
 
-            <!-- Video Settings Section -->
-            <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dashed #d7ccc8;">
-                <h3 style="margin: 0 0 12px 0; color: #5d4037; font-size: 14px; font-weight: bold;">📺 Video Recording
-                </h3>
+            <!-- Video Settings -->
+            <div class="settings-group" style="margin-bottom: 15px; padding-bottom: 15px;">
+                <h3 style="margin: 0 0 10px 0; color: #888; font-size: 12px; font-weight: bold;">VIDEO SETTINGS</h3>
 
-                <!-- Codec -->
-                <div style="margin-bottom: 10px;">
-                    <label style="display: block; margin-bottom: 5px; font-size: 11px; color: #5d4037;">Codec:</label>
-                    <select id="video-codec"
-                        style="width: 100%; padding: 6px; background: #fffdf7; border: 1px solid #d7ccc8; font-family: inherit; font-size: 11px;">
-                        <option value="vp9">VP9 (Recommended)</option>
+                <div style="margin-bottom: 8px;">
+                    <label class="settings-label" style="font-size: 10px;">Codec</label>
+                    <select id="video-codec" style="width: 100%; padding: 4px; font-size: 10px;">
+                        <option value="vp9">VP9 (Modern)</option>
                         <option value="vp8">VP8</option>
                         <option value="h264">H.264</option>
                     </select>
                 </div>
 
-                <!-- Resolution -->
-                <div style="margin-bottom: 10px;">
-                    <label
-                        style="display: block; margin-bottom: 5px; font-size: 11px; color: #5d4037;">Resolution:</label>
-                    <select id="video-resolution"
-                        style="width: 100%; padding: 6px; background: #fffdf7; border: 1px solid #d7ccc8; font-family: inherit; font-size: 11px;">
-                        <option value="1080p">1080p (1920x1080)</option>
-                        <option value="720p">720p (1280x720) ✓</option>
-                        <option value="480p">480p (854x480)</option>
-                    </select>
-                </div>
-
-                <!-- Bitrate -->
-                <div style="margin-bottom: 10px;">
-                    <label style="display: block; margin-bottom: 5px; font-size: 11px; color: #5d4037;">
-                        Bitrate: <span id="bitrate-value">2000</span> kbps
-                    </label>
-                    <input type="range" id="video-bitrate" min="500" max="8000" step="500" value="2000"
-                        style="width: 100%;">
-                    <div style="display: flex; justify-content: space-between; font-size: 9px; color: #8d6e63;">
-                        <span>500</span>
-                        <span>2000 (Default)</span>
-                        <span>8000</span>
-                    </div>
-                </div>
-
-                <!-- FPS -->
-                <div style="margin-bottom: 10px;">
-                    <label style="display: block; margin-bottom: 5px; font-size: 11px; color: #5d4037;">Frame Rate
-                        (FPS):</label>
-                    <select id="video-fps"
-                        style="width: 100%; padding: 6px; background: #fffdf7; border: 1px solid #d7ccc8; font-family: inherit; font-size: 11px;">
-                        <option value="15">15 FPS</option>
-                        <option value="24">24 FPS</option>
-                        <option value="30">30 FPS ✓</option>
-                        <option value="60">60 FPS</option>
-                    </select>
-                </div>
-
-                <!-- Timeslice -->
-                <div style="margin-bottom: 10px;">
-                    <label style="display: block; margin-bottom: 5px; font-size: 11px; color: #5d4037;">Data Interval
-                        (Timeslice):</label>
-                    <select id="video-timeslice"
-                        style="width: 100%; padding: 6px; background: #fffdf7; border: 1px solid #d7ccc8; font-family: inherit; font-size: 11px;">
-                        <option value="100">100ms (Smooth)</option>
-                        <option value="500">500ms</option>
-                        <option value="1000">1000ms (Default) ✓</option>
-                        <option value="2000">2000ms</option>
+                <div style="margin-bottom: 8px;">
+                    <label class="settings-label" style="font-size: 10px;">Resolution</label>
+                    <select id="video-resolution" style="width: 100%; padding: 4px; font-size: 10px;">
+                        <option value="1080p">1080p</option>
+                        <option value="720p">720p ✓</option>
+                        <option value="480p">480p</option>
                     </select>
                 </div>
             </div>
 
-            <!-- Audio Settings Section -->
-            <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dashed #d7ccc8;">
-                <h3 style="margin: 0 0 12px 0; color: #5d4037; font-size: 14px; font-weight: bold;">🎙️ Audio Recording
-                </h3>
-
-                <!-- Sample Rate -->
-                <div style="margin-bottom: 10px;">
-                    <label style="display: block; margin-bottom: 5px; font-size: 11px; color: #5d4037;">Sample
-                        Rate:</label>
-                    <select id="audio-sample-rate"
-                        style="width: 100%; padding: 6px; background: #fffdf7; border: 1px solid #d7ccc8; font-family: inherit; font-size: 11px;">
-                        <option value="22050">22050 Hz</option>
-                        <option value="44100">44100 Hz (CD Quality) ✓</option>
-                        <option value="48000">48000 Hz (Studio)</option>
-                    </select>
-                </div>
-
-                <!-- Buffer Size -->
-                <div style="margin-bottom: 10px;">
-                    <label style="display: block; margin-bottom: 5px; font-size: 11px; color: #5d4037;">Buffer
-                        Size:</label>
-                    <select id="audio-buffer-size"
-                        style="width: 100%; padding: 6px; background: #fffdf7; border: 1px solid #d7ccc8; font-family: inherit; font-size: 11px;">
-                        <option value="2048">2048 samples (Low Latency)</option>
-                        <option value="4096">4096 samples (Balanced) ✓</option>
-                        <option value="8192">8192 samples (High Quality)</option>
+            <!-- Audio Settings -->
+            <div class="settings-group" style="margin-bottom: 15px; padding-bottom: 15px;">
+                <h3 style="margin: 0 0 10px 0; color: #888; font-size: 12px; font-weight: bold;">AUDIO SETTINGS</h3>
+                <div style="margin-bottom: 8px;">
+                    <label class="settings-label" style="font-size: 10px;">Sample Rate</label>
+                    <select id="audio-sample-rate" style="width: 100%; padding: 4px; font-size: 10px;">
+                        <option value="44100">44.1kHz (CD)</option>
+                        <option value="48000">48kHz (DAT)</option>
                     </select>
                 </div>
             </div>
 
-            <!-- Action Buttons -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
-                <button id="reset-settings"
-                    style="cursor: pointer; background: transparent; border: 2px solid #bf360c; color: #bf360c; padding: 8px 12px; border-radius: 3px; font-size: 11px; font-weight: bold; transition: all 0.2s;">
-                    RESET
-                </button>
+            <!-- Buttons -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+                <button id="reset-settings" class="retro-btn delete" style="font-size: 9px;">RESET</button>
                 <div>
-                    <button id="cancel-settings"
-                        style="cursor: pointer; background: transparent; border: 1px solid #5d4037; color: #5d4037; padding: 8px 15px; margin-right: 8px; border-radius: 3px; font-size: 11px;">
-                        Cancel
-                    </button>
-                    <button id="save-settings"
-                        style="cursor: pointer; background: #5d4037; border: 1px solid #5d4037; color: #fcf5e5; padding: 8px 15px; border-radius: 3px; font-size: 11px; font-weight: bold;">
-                        Save
-                    </button>
+                    <button id="cancel-settings" class="retro-btn" style="margin-right: 5px;">EXIT</button>
+                    <button id="save-settings" class="retro-btn primary">SAVE</button>
                 </div>
             </div>
         </div>
     </div>
-    <div class="content" id="list">
-        <!-- Items will be injected here -->
-        <div class="empty-state">No recordings yet.</div>
-    </div>
+
+    <!-- Hidden settings inputs - used by popup.js -->
+    <input type="range" id="video-bitrate" min="500" max="8000" step="500" value="2000" style="display:none">
+    <select id="video-fps" style="display:none">
+        <option value="30">30</option>
+    </select>
+    <select id="video-timeslice" style="display:none">
+        <option value="1000">1000</option>
+    </select>
+    <select id="audio-buffer-size" style="display:none">
+        <option value="4096">4096</option>
+    </select>
+
+
     <script src="../../dist/popup.bundle.js"></script>
 </body>
 
