@@ -1,33 +1,32 @@
+/**
+ * Main Content Script - Thoughtful Voice
+ * 
+ * This is the entry point for the content script.
+ * It uses the strategy pattern to support multiple AI platforms.
+ */
+
 import { Recorder } from './recorder.js';
 import { ScreenRecorder } from './screen-recorder.js';
 import { Injector } from './injector.js';
 import { BubbleRenderer } from './bubble.js';
 import { StorageHelper } from './storage.js';
-import { GeminiStrategy } from './strategies/gemini.js';
-import { ChatGPTStrategy } from './strategies/chatgpt.js';
-import { AIStudioStrategy } from './strategies/ai-studio.js';
+import { getStrategyForHost } from './strategies/index.js';
 import { generateAudioFilename } from '../utils/config.js';
 
 console.log("Thoughtful Voice: Content script loaded");
 
 async function init() {
     const host = window.location.hostname;
-    let strategy = null;
 
-    if (host.includes('gemini.google.com')) {
-        strategy = new GeminiStrategy();
-    } else if (host.includes('chatgpt.com') || host.includes('openai.com')) {
-        strategy = new ChatGPTStrategy();
-    } else if (host.includes('aistudio.google.com')) {
-        strategy = new AIStudioStrategy();
-    }
+    // Get the appropriate strategy for this platform
+    const strategy = getStrategyForHost(host);
 
     if (!strategy) {
-        console.log("Thoughtful Voice: Unknown platform");
+        console.log("Thoughtful Voice: Unknown platform, extension inactive");
         return;
     }
 
-    console.log(`Thoughtful Voice: Using ${strategy.name}`);
+    console.log(`Thoughtful Voice: Using ${strategy.name} strategy`);
 
     // Wait for DOM to be ready for injection
     await strategy.waitForDOM();
@@ -36,16 +35,19 @@ async function init() {
     const bubbleRenderer = new BubbleRenderer();
     bubbleRenderer.init();
 
+    // Initialize recorders
     const recorder = new Recorder();
-    const screenRecorder = new ScreenRecorder(strategy.name.toLowerCase()); // Pass 'gemini' or 'chatgpt'
+    const screenRecorder = new ScreenRecorder(strategy.name.toLowerCase());
 
-    // Track URL changes and update storage
-    let lastRecordingTimestamp = null;
+    // URL tracking for recording provenance
     let urlUpdateWatcher = null;
 
-    const startUrlWatcher = (timestamp, type) => {
+    /**
+     * Start watching for URL changes after upload
+     * This allows recordings to be linked to their chat conversation
+     */
+    const startUrlWatcher = (timestamp) => {
         const initialUrl = window.location.href;
-        lastRecordingTimestamp = timestamp;
 
         // Clear any existing watcher
         if (urlUpdateWatcher) {
@@ -54,37 +56,37 @@ async function init() {
 
         // Watch for URL changes for up to 30 seconds after upload
         let watchDuration = 0;
-        const maxWatchTime = 30000; // 30 seconds
+        const maxWatchTime = 30000;
 
         urlUpdateWatcher = setInterval(async () => {
             watchDuration += 500;
             const currentUrl = window.location.href;
 
-            // If URL changed, update the recording
             if (currentUrl !== initialUrl) {
-                console.log(`Thoughtful Voice: URL changed from ${initialUrl} to ${currentUrl}`);
+                console.log(`Thoughtful Voice: URL changed to ${currentUrl}`);
                 await StorageHelper.updateRecordingUrl(timestamp, currentUrl);
                 clearInterval(urlUpdateWatcher);
                 urlUpdateWatcher = null;
             }
 
-            // Stop watching after max time
             if (watchDuration >= maxWatchTime) {
                 clearInterval(urlUpdateWatcher);
                 urlUpdateWatcher = null;
             }
-        }, 500); // Check every 500ms
+        }, 500);
     };
 
     // Declare injector placeholder (will be created after handlers)
     let injector = null;
 
-    // Audio upload handler
+    /**
+     * Handle audio recording completion
+     */
     const handleAudioUpload = async (blob, duration) => {
-        // Get URL from when recording started (stored in injector)
+        // Get URL from when recording started
         const recordingUrl = injector.audioRecordingStartUrl || window.location.href;
 
-        // 1. Upload to Platform
+        // 1. Upload to Platform (using strategy)
         await strategy.handleUpload(blob, duration);
 
         // 2. Save to History
@@ -97,24 +99,26 @@ async function init() {
             type: 'audio',
             timestamp: timestamp,
             site: strategy.name,
-            url: recordingUrl, // Use URL from when recording started
+            url: recordingUrl,
             durationString: `${m}:${s}`,
             filename: generateAudioFilename()
         }, blob);
 
-        // Start watching for URL changes after upload
-        startUrlWatcher(timestamp, 'audio');
+        // Start watching for URL changes
+        startUrlWatcher(timestamp);
 
-        // Reset the start URL in injector
+        // Reset the start URL
         injector.audioRecordingStartUrl = null;
     };
 
-    // Video upload handler
+    /**
+     * Handle video recording completion
+     */
     const handleVideoUpload = async (result) => {
-        // Get URL from when recording started (stored in injector)
+        // Get URL from when recording started
         const recordingUrl = injector.videoRecordingStartUrl || window.location.href;
 
-        // 1. Upload video to Platform (pass the whole result object with blob, duration, and format)
+        // 1. Upload video to Platform (using strategy)
         await strategy.handleVideoUpload(result);
 
         // 2. Save to History
@@ -127,7 +131,7 @@ async function init() {
             type: 'video',
             timestamp: timestamp,
             site: strategy.name,
-            url: recordingUrl, // Use URL from when recording started
+            url: recordingUrl,
             durationString: `${m}:${s}`,
             filename: `video_recording_${Date.now()}.webm`,
             format: result.format
@@ -135,16 +139,17 @@ async function init() {
 
         console.log(`Screen recording uploaded: ${m}:${s} (${result.format.toUpperCase()})`);
 
-        // Start watching for URL changes after upload
-        startUrlWatcher(timestamp, 'video');
+        // Start watching for URL changes
+        startUrlWatcher(timestamp);
 
-        // Reset the start URL in injector
+        // Reset the start URL
         injector.videoRecordingStartUrl = null;
     };
 
+    // Create injector with handlers
     injector = new Injector(recorder, screenRecorder, handleAudioUpload, handleVideoUpload);
 
-    // Initial check
+    // Initial injection
     const target = strategy.getInjectionTarget();
     injector.inject(target);
 
@@ -158,22 +163,16 @@ async function init() {
             // Button doesn't exist, inject it
             injector.inject(newTarget);
         } else if (existingButton && newTarget) {
-            // Button exists, but check if it's in the correct location
-            // The correct location is next to the Tools button
-            const toolsContainer = document.querySelector('.toolbox-drawer-button-container');
+            // Button exists, check if it's in the correct location
+            // This handles SPA navigation where elements are recreated
+            const expectedParent = newTarget.container;
+            const currentParent = existingButton.parentElement;
 
-            if (toolsContainer) {
-                // Check if our button is a sibling of the toolsContainer
-                const expectedParent = toolsContainer.parentElement;
-                const currentParent = existingButton.parentElement;
-
-                // If button is not in the expected parent, re-inject it
-                if (currentParent !== expectedParent) {
-                    console.log("Thoughtful Voice: Button in wrong location, re-positioning...");
-                    existingButton.remove();
-                    if (existingScreenButton) existingScreenButton.remove();
-                    injector.inject(newTarget);
-                }
+            if (currentParent !== expectedParent) {
+                console.log("Thoughtful Voice: Button in wrong location, re-positioning...");
+                existingButton.remove();
+                if (existingScreenButton) existingScreenButton.remove();
+                injector.inject(newTarget);
             }
         }
     });

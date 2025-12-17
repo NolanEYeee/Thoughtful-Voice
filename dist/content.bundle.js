@@ -40,12 +40,17 @@
           this.audioBuffers = [];
           this.stream = null;
           this.startTime = 0;
+          this.pausedTime = 0;
+          this.pauseStartTime = 0;
           this.timerInterval = null;
           this.onTimerUpdate = null;
+          this.isPaused = false;
         }
         async start(onTimerUpdate) {
           this.onTimerUpdate = onTimerUpdate;
           this.audioBuffers = [];
+          this.pausedTime = 0;
+          this.isPaused = false;
           try {
             const result = await chrome.storage.local.get(["settings"]);
             const settings = result.settings || {};
@@ -68,8 +73,10 @@
               // outputChannels
             );
             this.recorder.onaudioprocess = (e) => {
-              const input = e.inputBuffer.getChannelData(0);
-              this.audioBuffers.push(new Float32Array(input));
+              if (!this.isPaused) {
+                const input = e.inputBuffer.getChannelData(0);
+                this.audioBuffers.push(new Float32Array(input));
+              }
             };
             this.mediaStreamSource.connect(this.recorder);
             this.recorder.connect(this.audioContext.destination);
@@ -83,11 +90,40 @@
             return false;
           }
         }
+        /**
+         * Pause the recording
+         */
+        pause() {
+          if (this.isPaused || !this.recorder) return false;
+          this.isPaused = true;
+          this.pauseStartTime = Date.now();
+          console.log("Recording paused");
+          return true;
+        }
+        /**
+         * Resume the recording after pause
+         */
+        resume() {
+          if (!this.isPaused || !this.recorder) return false;
+          this.isPaused = false;
+          this.pausedTime += Date.now() - this.pauseStartTime;
+          console.log("Recording resumed");
+          return true;
+        }
+        /**
+         * Check if recording is currently paused
+         */
+        get paused() {
+          return this.isPaused;
+        }
         stop() {
           return new Promise(async (resolve) => {
             if (!this.recorder || !this.audioContext) {
               resolve(null);
               return;
+            }
+            if (this.isPaused) {
+              this.pausedTime += Date.now() - this.pauseStartTime;
             }
             this.recorder.disconnect();
             this.mediaStreamSource.disconnect();
@@ -95,22 +131,31 @@
             this.stream.getTracks().forEach((track) => track.stop());
             this.stream = null;
             const blob = this.exportWAV(this.audioBuffers, this.audioContext.sampleRate);
+            const totalElapsed = Date.now() - this.startTime;
+            const actualDuration = totalElapsed - this.pausedTime;
             if (this.audioContext.state !== "closed") {
               await this.audioContext.close();
             }
             this.recorder = null;
             this.audioContext = null;
+            this.isPaused = false;
             console.log("Recording stopped, WAV blob size:", blob.size);
+            console.log(`Total time: ${totalElapsed}ms, Paused: ${this.pausedTime}ms, Actual: ${actualDuration}ms`);
             resolve({
               blob,
-              duration: Date.now() - this.startTime
+              duration: actualDuration
             });
           });
         }
         startTimer() {
           this.stopTimer();
           this.timerInterval = setInterval(() => {
-            const elapsed = Date.now() - this.startTime;
+            let elapsed;
+            if (this.isPaused) {
+              elapsed = this.pauseStartTime - this.startTime - this.pausedTime;
+            } else {
+              elapsed = Date.now() - this.startTime - this.pausedTime;
+            }
             const seconds = Math.floor(elapsed / 1e3);
             const m = Math.floor(seconds / 60).toString().padStart(2, "0");
             const s = (seconds % 60).toString().padStart(2, "0");
@@ -671,10 +716,20 @@
           this.timerInterval = null;
           this.onTimerUpdate = null;
           this.platform = platform;
+          this.micStream = null;
+          this.micGainNode = null;
+          this.audioContext = null;
+          this.isMicMuted = false;
+          this.onMicStateChange = null;
+          this.onExternalStop = null;
+          this.isPaused = false;
         }
-        async start(onTimerUpdate) {
+        async start(onTimerUpdate, onMicStateChange) {
           this.onTimerUpdate = onTimerUpdate;
+          this.onMicStateChange = onMicStateChange;
           this.recordedChunks = [];
+          this.isMicMuted = false;
+          this.isPaused = false;
           try {
             const result = await chrome.storage.local.get(["settings"]);
             const settings = result.settings || {};
@@ -711,9 +766,8 @@
               },
               audio: true
             });
-            let micStream = null;
             try {
-              micStream = await navigator.mediaDevices.getUserMedia({
+              this.micStream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                   echoCancellation: true,
                   noiseSuppression: true,
@@ -723,36 +777,32 @@
             } catch (micError) {
               console.warn("Could not access microphone:", micError);
             }
-            const audioTracks = [];
+            this.audioContext = new AudioContext();
+            const audioDestination = this.audioContext.createMediaStreamDestination();
             const screenAudioTrack = this.stream.getAudioTracks()[0];
-            if (screenAudioTrack) audioTracks.push(screenAudioTrack);
-            if (micStream) {
-              const micAudioTrack = micStream.getAudioTracks()[0];
-              if (micAudioTrack) audioTracks.push(micAudioTrack);
+            if (screenAudioTrack) {
+              const screenSource = this.audioContext.createMediaStreamSource(
+                new MediaStream([screenAudioTrack])
+              );
+              screenSource.connect(audioDestination);
             }
-            let finalStream = this.stream;
-            if (audioTracks.length > 1) {
-              const audioContext = new AudioContext();
-              const audioDestination = audioContext.createMediaStreamDestination();
-              audioTracks.forEach((track) => {
-                const source = audioContext.createMediaStreamSource(new MediaStream([track]));
-                source.connect(audioDestination);
-              });
-              const videoTrack = this.stream.getVideoTracks()[0];
-              finalStream = new MediaStream([
-                videoTrack,
-                ...audioDestination.stream.getAudioTracks()
-              ]);
-              this.micStream = micStream;
-              this.audioContext = audioContext;
-            } else if (micStream && audioTracks.length === 1) {
-              const videoTrack = this.stream.getVideoTracks()[0];
-              finalStream = new MediaStream([
-                videoTrack,
-                micStream.getAudioTracks()[0]
-              ]);
-              this.micStream = micStream;
+            if (this.micStream) {
+              const micAudioTrack = this.micStream.getAudioTracks()[0];
+              if (micAudioTrack) {
+                const micSource = this.audioContext.createMediaStreamSource(
+                  new MediaStream([micAudioTrack])
+                );
+                this.micGainNode = this.audioContext.createGain();
+                this.micGainNode.gain.value = 1;
+                micSource.connect(this.micGainNode);
+                this.micGainNode.connect(audioDestination);
+              }
             }
+            const videoTrack = this.stream.getVideoTracks()[0];
+            const finalStream = new MediaStream([
+              videoTrack,
+              ...audioDestination.stream.getAudioTracks()
+            ]);
             const codecOptions = {
               "vp9": "video/webm;codecs=vp9,opus",
               "vp8": "video/webm;codecs=vp8,opus",
@@ -772,7 +822,6 @@
             const options = {
               mimeType,
               videoBitsPerSecond: videoSettings.bitrate * 1e3,
-              // Convert kbps to bps
               audioBitsPerSecond: 128e3
             };
             console.log(`Using codec: ${mimeType}, bitrate: ${videoSettings.bitrate} kbps`);
@@ -784,15 +833,21 @@
             };
             this.mediaRecorder.start(videoSettings.timeslice);
             this.startTime = Date.now();
+            this.pausedDuration = 0;
+            this.pauseStartTime = 0;
             this.startTimer();
-            this.stream.getVideoTracks()[0].onended = () => {
-              console.log("Screen sharing stopped by user");
-              if (this.mediaRecorder && this.mediaRecorder.state === "recording") {
-                this.stop();
+            this.stream.getVideoTracks()[0].onended = async () => {
+              console.log("Screen sharing stopped by user via browser controls");
+              if (this.mediaRecorder && (this.mediaRecorder.state === "recording" || this.mediaRecorder.state === "paused")) {
+                const result2 = await this.stop();
+                if (this.onExternalStop && result2) {
+                  this.onExternalStop(result2);
+                }
               }
             };
             console.log(`Screen recording started for ${this.platform}`);
             console.log(`Settings: ${videoSettings.resolution} @ ${videoSettings.fps}fps, timeslice: ${videoSettings.timeslice}ms`);
+            console.log(`Microphone: ${this.micStream ? "enabled" : "disabled"}`);
             return true;
           } catch (error) {
             console.error("Error starting screen recording:", error);
@@ -802,6 +857,107 @@
             return false;
           }
         }
+        /**
+         * Pause the screen recording
+         */
+        pause() {
+          console.log("ScreenRecorder.pause() called");
+          if (!this.mediaRecorder) {
+            console.log("  FAILED: mediaRecorder is null");
+            return false;
+          }
+          if (this.mediaRecorder.state !== "recording") {
+            console.log("  FAILED: mediaRecorder.state is not 'recording', it's:", this.mediaRecorder.state);
+            return false;
+          }
+          this.mediaRecorder.pause();
+          this.isPaused = true;
+          this.pauseStartTime = Date.now();
+          this.stopTimer();
+          console.log("  SUCCESS: Screen recording paused");
+          return true;
+        }
+        /**
+         * Resume the screen recording
+         */
+        resume() {
+          console.log("ScreenRecorder.resume() called");
+          if (!this.mediaRecorder) {
+            console.log("  FAILED: mediaRecorder is null");
+            return false;
+          }
+          if (this.mediaRecorder.state !== "paused") {
+            console.log("  FAILED: mediaRecorder.state is not 'paused', it's:", this.mediaRecorder.state);
+            return false;
+          }
+          if (this.pauseStartTime > 0) {
+            this.pausedDuration += Date.now() - this.pauseStartTime;
+            console.log("  Total paused duration so far:", this.pausedDuration, "ms");
+          }
+          this.mediaRecorder.resume();
+          this.isPaused = false;
+          this.pauseStartTime = 0;
+          this.startTimer();
+          console.log("  SUCCESS: Screen recording resumed");
+          return true;
+        }
+        /**
+         * Check if recording is paused
+         */
+        get paused() {
+          return this.isPaused || false;
+        }
+        /**
+         * Mute the microphone (audio from screen will still be recorded)
+         */
+        muteMic() {
+          if (!this.micGainNode || this.isMicMuted) return false;
+          this.micGainNode.gain.value = 0;
+          this.isMicMuted = true;
+          if (this.onMicStateChange) {
+            this.onMicStateChange(true);
+          }
+          console.log("Microphone muted");
+          return true;
+        }
+        /**
+         * Unmute the microphone
+         */
+        unmuteMic() {
+          if (!this.micGainNode || !this.isMicMuted) return false;
+          this.micGainNode.gain.value = 1;
+          this.isMicMuted = false;
+          if (this.onMicStateChange) {
+            this.onMicStateChange(false);
+          }
+          console.log("Microphone unmuted");
+          return true;
+        }
+        /**
+         * Toggle microphone mute state
+         * @returns {boolean} New mute state (true = muted, false = unmuted)
+         */
+        toggleMic() {
+          if (this.isMicMuted) {
+            this.unmuteMic();
+            return false;
+          } else {
+            this.muteMic();
+            return true;
+          }
+        }
+        /**
+         * Check if microphone is currently muted
+         */
+        get micMuted() {
+          return this.isMicMuted;
+        }
+        /**
+         * Check if microphone is available
+         */
+        get hasMic() {
+          return this.micStream !== null && this.micGainNode !== null;
+        }
         stop() {
           return new Promise((resolve) => {
             if (!this.mediaRecorder) {
@@ -809,6 +965,9 @@
               return;
             }
             this.stopTimer();
+            if (this.isPaused && this.pauseStartTime > 0) {
+              this.pausedDuration += Date.now() - this.pauseStartTime;
+            }
             this.mediaRecorder.onstop = async () => {
               if (this.stream) {
                 this.stream.getTracks().forEach((track) => track.stop());
@@ -822,14 +981,18 @@
                 this.audioContext.close();
                 this.audioContext = null;
               }
+              this.micGainNode = null;
+              this.isMicMuted = false;
+              this.isPaused = false;
               const rawBlob = new Blob(this.recordedChunks, { type: "video/webm" });
-              const duration = Date.now() - this.startTime;
+              const totalDuration = Date.now() - this.startTime;
+              const actualDuration = totalDuration - (this.pausedDuration || 0);
               console.log(`Raw WebM size: ${(rawBlob.size / 1024 / 1024).toFixed(2)} MB`);
-              console.log(`Duration: ${Math.floor(duration / 1e3)} seconds`);
+              console.log(`Total time: ${Math.floor(totalDuration / 1e3)}s, Paused: ${Math.floor((this.pausedDuration || 0) / 1e3)}s, Actual: ${Math.floor(actualDuration / 1e3)}s`);
               let fixedBlob;
               try {
                 console.log("Fixing WebM duration metadata...");
-                fixedBlob = await (0, import_fix_webm_duration.default)(rawBlob, duration, { logger: false });
+                fixedBlob = await (0, import_fix_webm_duration.default)(rawBlob, actualDuration);
                 console.log("WebM duration fixed successfully!");
               } catch (e) {
                 console.warn("Could not fix WebM duration:", e);
@@ -838,18 +1001,21 @@
               console.log(`Final WebM size: ${(fixedBlob.size / 1024 / 1024).toFixed(2)} MB`);
               this.mediaRecorder = null;
               this.recordedChunks = [];
+              this.pausedDuration = 0;
+              this.pauseStartTime = 0;
               resolve({
                 blob: fixedBlob,
-                duration,
+                duration: actualDuration,
                 format: "webm"
               });
             };
-            if (this.mediaRecorder.state === "recording") {
+            if (this.mediaRecorder.state === "recording" || this.mediaRecorder.state === "paused") {
               this.mediaRecorder.stop();
             } else {
               const blob = new Blob(this.recordedChunks, { type: "video/webm" });
               this.mediaRecorder = null;
               this.recordedChunks = [];
+              this.isPaused = false;
               resolve({
                 blob,
                 duration: Date.now() - this.startTime,
@@ -861,7 +1027,7 @@
         startTimer() {
           this.stopTimer();
           this.timerInterval = setInterval(() => {
-            const elapsed = Date.now() - this.startTime;
+            const elapsed = Date.now() - this.startTime - (this.pausedDuration || 0);
             const seconds = Math.floor(elapsed / 1e3);
             const m = Math.floor(seconds / 60).toString().padStart(2, "0");
             const s = (seconds % 60).toString().padStart(2, "0");
@@ -890,8 +1056,12 @@
           this.handleVideoUpload = handleVideoUpload;
           this.button = null;
           this.screenButton = null;
+          this.pauseButton = null;
           this.isRecording = false;
+          this.isRecordingPaused = false;
           this.isScreenRecording = false;
+          this.isScreenPaused = false;
+          this.isMicMuted = false;
           this.audioRecordingStartUrl = null;
           this.videoRecordingStartUrl = null;
         }
@@ -900,8 +1070,12 @@
           btn.id = "thoughtful-voice-btn";
           btn.innerHTML = "\u{1F399}\uFE0F";
           btn.className = "ai-voice-btn";
-          btn.title = "Click to record audio";
+          btn.title = "Record audio";
           btn.onclick = async () => {
+            if (this.isScreenRecording) {
+              this.toggleMicDuringScreenRecording();
+              return;
+            }
             if (this.isRecording) {
               await this.stopRecording();
             } else {
@@ -917,7 +1091,7 @@
           btn.id = "ai-screen-recorder-btn";
           btn.innerHTML = "\u{1F4FA}";
           btn.className = "ai-voice-btn";
-          btn.title = "Click to record screen + audio";
+          btn.title = "Record screen";
           btn.onclick = async () => {
             if (this.isScreenRecording) {
               await this.stopScreenRecording();
@@ -929,6 +1103,24 @@
           this.screenButton = btn;
           return btn;
         }
+        createPauseButton() {
+          const btn = document.createElement("button");
+          btn.id = "ai-pause-btn";
+          btn.innerHTML = "\u23F8";
+          btn.className = "ai-voice-btn pause-btn";
+          btn.title = "Pause";
+          btn.style.display = "none";
+          btn.onclick = () => {
+            if (this.isRecording) {
+              this.toggleRecordingPause();
+            } else if (this.isScreenRecording) {
+              this.toggleScreenPause();
+            }
+          };
+          this.pauseButton = btn;
+          return btn;
+        }
+        // ========== Audio Recording ==========
         async startRecording() {
           const startUrl = window.location.href;
           const started = await this.recorder.start((time) => {
@@ -938,50 +1130,193 @@
           });
           if (started) {
             this.isRecording = true;
+            this.isRecordingPaused = false;
             this.button.classList.add("recording");
             this.button.innerHTML = "\u{1F534} 00:00";
+            this.button.title = "Stop recording";
+            this.showPauseButton();
+            if (this.screenButton) this.screenButton.style.display = "none";
           }
           return startUrl;
         }
+        toggleRecordingPause() {
+          if (this.isRecordingPaused) {
+            const resumed = this.recorder.resume();
+            if (resumed) {
+              this.isRecordingPaused = false;
+              this.button.classList.remove("paused");
+              this.pauseButton.innerHTML = "\u23F8";
+              this.pauseButton.title = "Pause";
+            }
+          } else {
+            const paused = this.recorder.pause();
+            if (paused) {
+              this.isRecordingPaused = true;
+              this.button.classList.add("paused");
+              this.pauseButton.innerHTML = "\u25B6";
+              this.pauseButton.title = "Resume";
+            }
+          }
+        }
         async stopRecording() {
           this.isRecording = false;
-          this.button.classList.remove("recording");
+          this.isRecordingPaused = false;
+          this.button.classList.remove("recording", "paused");
           this.button.innerHTML = "\u23F3";
+          this.button.title = "Processing...";
+          this.hidePauseButton();
           const result = await this.recorder.stop();
           this.button.innerHTML = "\u{1F399}\uFE0F";
+          this.button.title = "Record audio";
+          if (this.screenButton) this.screenButton.style.display = "";
           if (result) {
             console.log("Audio recorded:", result);
             await this.handleUpload(result.blob, result.duration);
           }
         }
+        // ========== Screen Recording ==========
         async startScreenRecording() {
           const startUrl = window.location.href;
-          const started = await this.screenRecorder.start((time) => {
-            if (this.screenButton) {
-              this.screenButton.innerHTML = `\u{1F534} ${time}`;
+          this.screenRecorder.onExternalStop = async (result) => {
+            console.log("External stop detected, processing recording...");
+            this.isScreenRecording = false;
+            this.isScreenPaused = false;
+            this.isMicMuted = false;
+            this.screenButton.classList.remove("screen-recording", "paused");
+            this.screenButton.innerHTML = "\u23F3";
+            this.screenButton.title = "Processing...";
+            this.hidePauseButton();
+            this.updateMicButtonState();
+            this.screenButton.innerHTML = "\u{1F4FA}";
+            this.screenButton.title = "Record screen";
+            if (result) {
+              console.log("Screen recording completed via external stop:", result);
+              await this.handleVideoUpload(result);
             }
-          });
+          };
+          const started = await this.screenRecorder.start(
+            (time) => {
+              if (this.screenButton) {
+                this.screenButton.innerHTML = `\u{1F534} ${time}`;
+              }
+            },
+            (isMuted) => {
+              this.isMicMuted = isMuted;
+              this.updateMicButtonState();
+            }
+          );
           if (started) {
             this.isScreenRecording = true;
+            this.isScreenPaused = false;
+            this.isMicMuted = false;
             this.screenButton.classList.add("screen-recording");
             this.screenButton.innerHTML = "\u{1F534} 00:00";
+            this.screenButton.title = "Stop recording";
+            this.showPauseButton();
+            this.updateMicButtonState();
           }
           return startUrl;
         }
+        toggleScreenPause() {
+          console.log("toggleScreenPause called, isScreenPaused:", this.isScreenPaused);
+          if (this.isScreenPaused) {
+            const resumed = this.screenRecorder.resume();
+            console.log("Screen resume result:", resumed);
+            if (resumed) {
+              this.isScreenPaused = false;
+              this.screenButton.classList.remove("paused");
+              this.pauseButton.innerHTML = "\u23F8";
+              this.pauseButton.title = "Pause";
+              this.updateMicButtonState();
+            }
+          } else {
+            const paused = this.screenRecorder.pause();
+            console.log("Screen pause result:", paused);
+            if (paused) {
+              this.isScreenPaused = true;
+              this.screenButton.classList.add("paused");
+              this.pauseButton.innerHTML = "\u25B6";
+              this.pauseButton.title = "Resume";
+              this.updateMicButtonState();
+            }
+          }
+        }
         async stopScreenRecording() {
           this.isScreenRecording = false;
-          this.screenButton.classList.remove("screen-recording");
+          this.isScreenPaused = false;
+          this.isMicMuted = false;
+          this.screenButton.classList.remove("screen-recording", "paused");
           this.screenButton.innerHTML = "\u23F3";
+          this.screenButton.title = "Processing...";
+          this.hidePauseButton();
+          this.updateMicButtonState();
           const result = await this.screenRecorder.stop();
           this.screenButton.innerHTML = "\u{1F4FA}";
+          this.screenButton.title = "Record screen";
           if (result) {
             console.log("Screen recording completed:", result);
             await this.handleVideoUpload(result);
           }
         }
+        // ========== Pause Button Control ==========
+        showPauseButton() {
+          if (this.pauseButton) {
+            this.pauseButton.style.display = "";
+            this.pauseButton.innerHTML = "\u23F8";
+            this.pauseButton.title = "Pause";
+          }
+        }
+        hidePauseButton() {
+          if (this.pauseButton) {
+            this.pauseButton.style.display = "none";
+          }
+        }
+        // ========== Mic Control ==========
+        toggleMicDuringScreenRecording() {
+          if (!this.isScreenRecording || !this.screenRecorder.hasMic || this.isScreenPaused) return;
+          const newMuteState = this.screenRecorder.toggleMic();
+          this.isMicMuted = newMuteState;
+          this.updateMicButtonState();
+        }
+        updateMicButtonState() {
+          if (!this.button) return;
+          if (this.isScreenRecording) {
+            this.button.classList.add("mic-control");
+            if (this.isScreenPaused) {
+              this.button.innerHTML = "\u23F8\uFE0F";
+              this.button.classList.remove("mic-muted", "mic-active", "mic-unavailable");
+              this.button.classList.add("mic-paused");
+              this.button.title = "Recording paused";
+            } else if (this.screenRecorder.hasMic) {
+              this.button.classList.remove("mic-paused");
+              if (this.isMicMuted) {
+                this.button.innerHTML = "\u{1F507}";
+                this.button.classList.add("mic-muted");
+                this.button.classList.remove("mic-active");
+                this.button.title = "Mic OFF - Click to unmute";
+              } else {
+                this.button.innerHTML = "\u{1F399}\uFE0F";
+                this.button.classList.add("mic-active");
+                this.button.classList.remove("mic-muted");
+                this.button.title = "Mic ON - Click to mute";
+              }
+            } else {
+              this.button.classList.remove("mic-paused");
+              this.button.innerHTML = "\u{1F6AB}";
+              this.button.classList.add("mic-unavailable");
+              this.button.title = "No microphone";
+            }
+          } else {
+            this.button.classList.remove("mic-control", "mic-muted", "mic-active", "mic-unavailable", "mic-paused");
+            this.button.innerHTML = "\u{1F399}\uFE0F";
+            this.button.title = "Record audio";
+          }
+        }
+        // ========== Injection ==========
         inject(targetSpec) {
           if (!this.button) this.createButton();
           if (!this.screenButton) this.createScreenRecordButton();
+          if (!this.pauseButton) this.createPauseButton();
           if (document.getElementById("thoughtful-voice-btn")) return;
           let container = null;
           let insertBefore = null;
@@ -996,14 +1331,17 @@
               try {
                 container.insertBefore(this.button, insertBefore);
                 container.insertBefore(this.screenButton, insertBefore);
+                container.insertBefore(this.pauseButton, insertBefore);
               } catch (e) {
-                console.warn("Injection failed with insertBefore, falling back to append", e);
+                console.warn("Injection failed, falling back to append", e);
                 container.appendChild(this.button);
                 container.appendChild(this.screenButton);
+                container.appendChild(this.pauseButton);
               }
             } else {
               container.appendChild(this.button);
               container.appendChild(this.screenButton);
+              container.appendChild(this.pauseButton);
             }
           } else {
             document.body.appendChild(this.button);
@@ -1016,8 +1354,13 @@
             this.screenButton.style.bottom = "100px";
             this.screenButton.style.right = "80px";
             this.screenButton.style.zIndex = "9999";
+            document.body.appendChild(this.pauseButton);
+            this.pauseButton.style.position = "fixed";
+            this.pauseButton.style.bottom = "100px";
+            this.pauseButton.style.right = "140px";
+            this.pauseButton.style.zIndex = "9999";
           }
-          console.log("Buttons injected (audio + screen)");
+          console.log("Buttons injected");
         }
       };
     }
@@ -1174,15 +1517,337 @@
     }
   });
 
+  // src/content/strategies/base-strategy.js
+  var BaseStrategy;
+  var init_base_strategy = __esm({
+    "src/content/strategies/base-strategy.js"() {
+      init_config();
+      BaseStrategy = class {
+        constructor(name) {
+          this.name = name;
+        }
+        // ========== Abstract Methods (MUST be implemented by subclasses) ==========
+        /**
+         * Wait for the DOM to be ready for button injection
+         * @returns {Promise<void>}
+         */
+        async waitForDOM() {
+          throw new Error(`${this.name}Strategy: waitForDOM() must be implemented`);
+        }
+        /**
+         * Get the injection target for our buttons
+         * @returns {{ container: HTMLElement, insertBefore: HTMLElement|null } | null}
+         */
+        getInjectionTarget() {
+          throw new Error(`${this.name}Strategy: getInjectionTarget() must be implemented`);
+        }
+        /**
+         * Get the main text input element for the platform
+         * @returns {HTMLElement|null}
+         */
+        getInputElement() {
+          throw new Error(`${this.name}Strategy: getInputElement() must be implemented`);
+        }
+        // ========== Optional Override Methods ==========
+        /**
+         * Get the priority order of upload strategies to try
+         * Subclasses can override this to change the order or exclude certain methods
+         * @returns {string[]} Array of strategy names: 'paste', 'fileInput', 'dragAndDrop'
+         */
+        getUploadStrategies() {
+          return ["paste", "fileInput", "dragAndDrop"];
+        }
+        /**
+         * Get file input element (some platforms may need custom selector)
+         * @returns {HTMLElement|null}
+         */
+        getFileInputElement() {
+          return document.querySelector('input[type="file"]');
+        }
+        /**
+         * Get the drop zone for drag and drop uploads
+         * Defaults to the input element, can be overridden
+         * @returns {HTMLElement}
+         */
+        getDropZone() {
+          return this.getInputElement() || document.body;
+        }
+        // ========== Common Upload Logic ==========
+        /**
+         * Handle audio file upload - tries multiple strategies in order
+         * @param {Blob} blob - The audio blob to upload
+         * @param {string} durationString - Duration string for logging
+         */
+        async handleUpload(blob, durationString) {
+          console.log(`${this.name}Strategy: Handling audio upload`);
+          const filename = generateAudioFilename();
+          const file = new File([blob], filename, { type: "audio/wav" });
+          const success = await this._executeUploadStrategies(file);
+          if (success) {
+            await this.insertText();
+          } else {
+            console.error(`${this.name}Strategy: All upload strategies failed`);
+          }
+        }
+        /**
+         * Handle video file upload - tries multiple strategies in order
+         * @param {Object} result - Object containing blob, duration, and format
+         */
+        async handleVideoUpload(result) {
+          console.log(`${this.name}Strategy: Handling video upload`);
+          const blob = result.blob;
+          const format = result.format || "webm";
+          const filename = this._generateVideoFilename(format);
+          const mimeType = format === "mp4" ? "video/mp4" : "video/webm";
+          const file = new File([blob], filename, { type: mimeType });
+          const success = await this._executeUploadStrategies(file);
+          if (success) {
+            console.log(`${this.name}Strategy: Video upload successful (${format.toUpperCase()})`);
+            await this.insertText();
+          } else {
+            console.error(`${this.name}Strategy: All video upload strategies failed`);
+          }
+        }
+        /**
+         * Insert prompt text into the input element
+         * Only inserts if the text doesn't already exist in the input
+         */
+        async insertText() {
+          const inputEl = this.getInputElement();
+          if (!inputEl) {
+            console.warn(`${this.name}Strategy: No input element found for text insertion`);
+            return;
+          }
+          const result = await chrome.storage.local.get(["settings"]);
+          const textToInsert = result.settings?.promptText || DEFAULT_PROMPT_TEXT;
+          const currentContent = this._getInputContent(inputEl);
+          if (currentContent.includes(textToInsert)) {
+            console.log(`${this.name}Strategy: Prompt text already exists, skipping insertion`);
+            return;
+          }
+          inputEl.focus();
+          const success = document.execCommand("insertText", false, textToInsert);
+          if (!success) {
+            if (inputEl.tagName === "TEXTAREA" || inputEl.tagName === "INPUT") {
+              const currentValue = inputEl.value || "";
+              inputEl.value = currentValue + (currentValue ? "\n" : "") + textToInsert;
+              inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+            } else if (inputEl.getAttribute("contenteditable") || inputEl.getAttribute("role") === "textbox") {
+              inputEl.innerText += textToInsert;
+              inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+            }
+          }
+        }
+        /**
+         * Get the current text content of an input element
+         * Works with textarea, input, and contenteditable elements
+         * @param {HTMLElement} inputEl - The input element
+         * @returns {string} - The current text content
+         */
+        _getInputContent(inputEl) {
+          if (inputEl.tagName === "TEXTAREA" || inputEl.tagName === "INPUT") {
+            return inputEl.value || "";
+          } else {
+            return inputEl.innerText || inputEl.textContent || "";
+          }
+        }
+        // ========== Private Helper Methods ==========
+        /**
+         * Execute upload strategies in order until one succeeds
+         * @param {File} file - The file to upload
+         * @returns {Promise<boolean>} - Whether any strategy succeeded
+         */
+        async _executeUploadStrategies(file) {
+          const strategies = this.getUploadStrategies();
+          for (const strategyName of strategies) {
+            try {
+              console.log(`${this.name}Strategy: Trying ${strategyName} upload...`);
+              const success = await this._tryUploadStrategy(strategyName, file);
+              if (success) {
+                console.log(`${this.name}Strategy: ${strategyName} upload succeeded`);
+                return true;
+              }
+            } catch (e) {
+              console.warn(`${this.name}Strategy: ${strategyName} failed, trying next...`, e);
+            }
+          }
+          return false;
+        }
+        /**
+         * Try a specific upload strategy
+         * @param {string} strategyName - Name of the strategy to try
+         * @param {File} file - The file to upload
+         * @returns {Promise<boolean>} - Whether the strategy succeeded
+         */
+        async _tryUploadStrategy(strategyName, file) {
+          switch (strategyName) {
+            case "paste":
+              return await this._pasteUpload(file);
+            case "fileInput":
+              return await this._fileInputUpload(file);
+            case "dragAndDrop":
+              return await this._dragAndDropUpload(file);
+            default:
+              console.warn(`${this.name}Strategy: Unknown upload strategy: ${strategyName}`);
+              return false;
+          }
+        }
+        /**
+         * Upload file via clipboard paste event
+         * @param {File} file - The file to upload
+         * @returns {Promise<boolean>} - Whether the upload succeeded
+         */
+        async _pasteUpload(file) {
+          const targetEl = this.getInputElement();
+          if (!targetEl) {
+            console.warn(`${this.name}Strategy: No input element for paste upload`);
+            return false;
+          }
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(file);
+          const pasteEvent = new ClipboardEvent("paste", {
+            bubbles: true,
+            cancelable: true,
+            clipboardData: dataTransfer
+          });
+          targetEl.focus();
+          targetEl.dispatchEvent(pasteEvent);
+          console.log(`${this.name}Strategy: Paste event dispatched`);
+          return true;
+        }
+        /**
+         * Upload file via hidden file input
+         * @param {File} file - The file to upload
+         * @returns {Promise<boolean>} - Whether the upload succeeded
+         */
+        async _fileInputUpload(file) {
+          const fileInput = this.getFileInputElement();
+          if (!fileInput) {
+            console.warn(`${this.name}Strategy: No file input found`);
+            return false;
+          }
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(file);
+          fileInput.files = dataTransfer.files;
+          const changeEvent = new Event("change", { bubbles: true });
+          fileInput.dispatchEvent(changeEvent);
+          console.log(`${this.name}Strategy: File input upload completed`);
+          return true;
+        }
+        /**
+         * Upload file via drag and drop
+         * @param {File} file - The file to upload
+         * @returns {Promise<boolean>} - Whether the upload succeeded
+         */
+        async _dragAndDropUpload(file) {
+          const dropZone = this.getDropZone();
+          if (!dropZone) {
+            console.warn(`${this.name}Strategy: No drop zone found`);
+            return false;
+          }
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(file);
+          const createEvent = (type) => new DragEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            composed: true,
+            view: window,
+            dataTransfer
+          });
+          dropZone.dispatchEvent(createEvent("dragenter"));
+          await this._delay(50);
+          dropZone.dispatchEvent(createEvent("dragover"));
+          await this._delay(50);
+          dropZone.dispatchEvent(createEvent("drop"));
+          console.log(`${this.name}Strategy: Drag and drop completed`);
+          return true;
+        }
+        /**
+         * Generate a video filename with timestamp
+         * @param {string} format - Video format (webm or mp4)
+         * @returns {string} - Generated filename
+         */
+        _generateVideoFilename(format) {
+          const now = /* @__PURE__ */ new Date();
+          const dateStr = now.toLocaleDateString("zh-CN", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit"
+          }).replace(/\//g, "-");
+          const timeStr = now.toLocaleTimeString("zh-CN", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false
+          }).replace(/:/g, "-");
+          return `Screen-${dateStr}_${timeStr}.${format}`;
+        }
+        /**
+         * Utility delay function
+         * @param {number} ms - Milliseconds to delay
+         * @returns {Promise<void>}
+         */
+        _delay(ms) {
+          return new Promise((resolve) => setTimeout(resolve, ms));
+        }
+        // ========== DOM Utility Methods ==========
+        /**
+         * Wait for an element to appear in the DOM
+         * @param {string} selector - CSS selector
+         * @param {number} timeout - Maximum wait time in ms (default: 10000)
+         * @returns {Promise<HTMLElement|null>}
+         */
+        async _waitForElement(selector, timeout = 1e4) {
+          const startTime = Date.now();
+          return new Promise((resolve) => {
+            const check = () => {
+              const element = document.querySelector(selector);
+              if (element) {
+                resolve(element);
+                return;
+              }
+              if (Date.now() - startTime > timeout) {
+                resolve(null);
+                return;
+              }
+              setTimeout(check, 100);
+            };
+            check();
+          });
+        }
+        /**
+         * Find parent element matching a condition
+         * @param {HTMLElement} element - Starting element
+         * @param {Function} condition - Function that returns true when parent is found
+         * @param {number} maxDepth - Maximum depth to search (default: 10)
+         * @returns {HTMLElement|null}
+         */
+        _findParent(element, condition, maxDepth = 10) {
+          let current = element;
+          let depth = 0;
+          while (current && depth < maxDepth) {
+            if (condition(current)) {
+              return current;
+            }
+            current = current.parentElement;
+            depth++;
+          }
+          return null;
+        }
+      };
+    }
+  });
+
   // src/content/strategies/gemini.js
   var GeminiStrategy;
   var init_gemini = __esm({
     "src/content/strategies/gemini.js"() {
-      init_config();
-      GeminiStrategy = class {
+      init_base_strategy();
+      GeminiStrategy = class extends BaseStrategy {
         constructor() {
-          this.name = "Gemini";
+          super("Gemini");
         }
+        // ========== Required Implementations ==========
         async waitForDOM() {
           return new Promise((resolve) => {
             const check = () => {
@@ -1208,9 +1873,9 @@
           });
         }
         getInjectionTarget() {
-          console.log("Thoughtful Voice: Looking for injection target...");
+          console.log("Thoughtful Voice: Looking for Gemini injection target...");
           const toolsContainer = document.querySelector(".toolbox-drawer-button-container");
-          if (toolsContainer && toolsContainer.parentElement) {
+          if (toolsContainer?.parentElement) {
             console.log("Thoughtful Voice: Found Tools button container");
             return {
               container: toolsContainer.parentElement,
@@ -1223,33 +1888,25 @@
             return {
               container: actionButtonsRow,
               insertBefore: null
-              // Append to end of the row
             };
           }
           const uploadButton = document.querySelector('.upload-card-button, [class*="upload-button"]');
           if (uploadButton) {
-            let parent = uploadButton.parentElement;
-            while (parent && parent !== document.body) {
-              const buttonChildren = parent.querySelectorAll('button, [role="button"]');
-              if (buttonChildren.length > 1) {
-                console.log("Thoughtful Voice: Found common parent with multiple buttons");
-                return {
-                  container: parent,
-                  insertBefore: null
-                };
-              }
-              parent = parent.parentElement;
+            const parent = this._findParent(uploadButton, (el) => {
+              const buttonChildren = el.querySelectorAll('button, [role="button"]');
+              return buttonChildren.length > 1;
+            });
+            if (parent) {
+              console.log("Thoughtful Voice: Found common parent with multiple buttons");
+              return { container: parent, insertBefore: null };
             }
             if (uploadButton.parentElement) {
               console.log("Thoughtful Voice: Using upload button parent as fallback");
-              return {
-                container: uploadButton.parentElement,
-                insertBefore: null
-              };
+              return { container: uploadButton.parentElement, insertBefore: null };
             }
           }
           const micButton = document.querySelector('.speech_dictation_mic_button, [class*="mic-button"]');
-          if (micButton && micButton.parentElement) {
+          if (micButton?.parentElement) {
             console.log("Thoughtful Voice: Found native mic button");
             return {
               container: micButton.parentElement,
@@ -1257,127 +1914,23 @@
             };
           }
           const inputArea = document.querySelector('[role="textbox"]');
-          if (inputArea && inputArea.parentElement) {
+          if (inputArea?.parentElement) {
             console.log("Thoughtful Voice: Using textbox parent as last resort");
             const target = inputArea.parentElement.parentElement || document.body;
-            return {
-              container: target,
-              insertBefore: null
-            };
+            return { container: target, insertBefore: null };
           }
-          console.warn("Thoughtful Voice: No suitable injection target found");
+          console.warn("Thoughtful Voice: No suitable injection target found for Gemini");
           return null;
         }
-        async handleUpload(blob, durationString) {
-          console.log("GeminiStrategy: Handling upload via Clipboard Paste (Alternative Method)");
-          const filename = generateAudioFilename();
-          const file = new File([blob], filename, { type: "audio/wav" });
-          const textBox = document.querySelector('[role="textbox"]');
-          if (!textBox) {
-            console.warn("Gemini Input (textbox) not found for paste. Falling back to Drag and Drop.");
-            await this.performDragAndDrop(file);
-            return;
-          }
-          try {
-            const dataTransfer = new DataTransfer();
-            dataTransfer.items.add(file);
-            const pasteEvent = new ClipboardEvent("paste", {
-              bubbles: true,
-              cancelable: true,
-              formattedInputValue: "",
-              // Legacy/React stuff might check this
-              clipboardData: dataTransfer
-            });
-            textBox.focus();
-            textBox.dispatchEvent(pasteEvent);
-            console.log("GeminiStrategy: Paste event dispatched");
-            await this.insertText();
-          } catch (e) {
-            console.error("Paste failed, falling back to Drag and Drop.", e);
-            await this.performDragAndDrop(file);
-          }
+        getInputElement() {
+          return document.querySelector('[role="textbox"]');
         }
-        async insertText() {
-          const textBox = document.querySelector('[role="textbox"]');
-          if (textBox) {
-            textBox.focus();
-            const result = await chrome.storage.local.get(["promptText"]);
-            const textToInsert = result.promptText || DEFAULT_PROMPT_TEXT;
-            document.execCommand("insertText", false, textToInsert) || (textBox.innerText += textToInsert);
-          }
+        // ========== Optional Overrides ==========
+        getUploadStrategies() {
+          return ["paste", "dragAndDrop"];
         }
-        async performDragAndDrop(file) {
-          const dropZone = document.querySelector('[role="textbox"]');
-          if (!dropZone) {
-            console.warn("GeminiStrategy: No textbox found for Drag and Drop fallback. Attempting to drop on body.");
-            const bodyDropZone = document.body;
-            if (!bodyDropZone) return;
-            const dataTransfer = new DataTransfer();
-            dataTransfer.items.add(file);
-            const createEvent = (type) => new DragEvent(type, {
-              bubbles: true,
-              cancelable: true,
-              composed: true,
-              view: window,
-              dataTransfer
-            });
-            bodyDropZone.dispatchEvent(createEvent("dragenter"));
-            await new Promise((r) => setTimeout(r, 50));
-            bodyDropZone.dispatchEvent(createEvent("dragover"));
-            await new Promise((r) => setTimeout(r, 50));
-            bodyDropZone.dispatchEvent(createEvent("drop"));
-            console.log("GeminiStrategy: Drag and Drop performed on body.");
-          } else {
-            const dataTransfer = new DataTransfer();
-            dataTransfer.items.add(file);
-            const createEvent = (type) => new DragEvent(type, {
-              bubbles: true,
-              cancelable: true,
-              composed: true,
-              view: window,
-              dataTransfer
-            });
-            dropZone.dispatchEvent(createEvent("dragenter"));
-            await new Promise((r) => setTimeout(r, 50));
-            dropZone.dispatchEvent(createEvent("dragover"));
-            await new Promise((r) => setTimeout(r, 50));
-            dropZone.dispatchEvent(createEvent("drop"));
-            console.log("GeminiStrategy: Drag and Drop performed on textbox.");
-          }
-          this.insertText();
-        }
-        async handleVideoUpload(result) {
-          console.log("GeminiStrategy: Handling video upload via Clipboard Paste");
-          const blob = result.blob;
-          const format = result.format || "webm";
-          const now = /* @__PURE__ */ new Date();
-          const dateStr = now.toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/\//g, "-");
-          const timeStr = now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).replace(/:/g, "-");
-          const filename = `Screen-${dateStr}_${timeStr}.${format}`;
-          const mimeType = format === "mp4" ? "video/mp4" : "video/webm";
-          const file = new File([blob], filename, { type: mimeType });
-          const textBox = document.querySelector('[role="textbox"]');
-          if (!textBox) {
-            console.warn("Gemini Input (textbox) not found for paste. Falling back to Drag and Drop.");
-            await this.performDragAndDrop(file);
-            return;
-          }
-          try {
-            const dataTransfer = new DataTransfer();
-            dataTransfer.items.add(file);
-            const pasteEvent = new ClipboardEvent("paste", {
-              bubbles: true,
-              cancelable: true,
-              clipboardData: dataTransfer
-            });
-            textBox.focus();
-            textBox.dispatchEvent(pasteEvent);
-            console.log(`GeminiStrategy: Video paste event dispatched (${format.toUpperCase()})`);
-            await this.insertText();
-          } catch (e) {
-            console.error("Video paste failed, falling back to Drag and Drop.", e);
-            await this.performDragAndDrop(file);
-          }
+        getDropZone() {
+          return this.getInputElement() || document.body;
         }
       };
     }
@@ -1387,15 +1940,17 @@
   var ChatGPTStrategy;
   var init_chatgpt = __esm({
     "src/content/strategies/chatgpt.js"() {
-      init_config();
-      ChatGPTStrategy = class {
+      init_base_strategy();
+      ChatGPTStrategy = class extends BaseStrategy {
         constructor() {
-          this.name = "ChatGPT";
+          super("ChatGPT");
         }
+        // ========== Required Implementations ==========
         async waitForDOM() {
           return new Promise((resolve) => {
             const check = () => {
               if (document.getElementById("prompt-textarea")) {
+                console.log("Thoughtful Voice: ChatGPT prompt textarea found");
                 resolve();
               } else {
                 setTimeout(check, 500);
@@ -1405,8 +1960,10 @@
           });
         }
         getInjectionTarget() {
+          console.log("Thoughtful Voice: Looking for ChatGPT injection target...");
           const attachButton = document.querySelector('button[aria-label="Attach files"]');
-          if (attachButton && attachButton.parentElement) {
+          if (attachButton?.parentElement) {
+            console.log("Thoughtful Voice: Found attach files button");
             return {
               container: attachButton.parentElement,
               insertBefore: attachButton
@@ -1419,6 +1976,7 @@
             if (inputWrapper) {
               const firstButton = inputWrapper.querySelector("button");
               if (firstButton) {
+                console.log("Thoughtful Voice: Found input wrapper with buttons");
                 return {
                   container: inputWrapper,
                   insertBefore: firstButton.nextSibling
@@ -1426,71 +1984,15 @@
               }
             }
           }
+          console.warn("Thoughtful Voice: No suitable injection target found for ChatGPT");
           return null;
         }
-        async handleUpload(blob, durationString) {
-          console.log("ChatGPTStrategy: Handling upload via Clipboard Paste");
-          const filename = generateAudioFilename();
-          const file = new File([blob], filename, { type: "audio/wav" });
-          const textBox = document.getElementById("prompt-textarea");
-          if (!textBox) {
-            console.error("ChatGPT input not found");
-            return;
-          }
-          try {
-            const dataTransfer = new DataTransfer();
-            dataTransfer.items.add(file);
-            const pasteEvent = new ClipboardEvent("paste", {
-              bubbles: true,
-              cancelable: true,
-              clipboardData: dataTransfer
-            });
-            textBox.focus();
-            textBox.dispatchEvent(pasteEvent);
-            console.log("ChatGPTStrategy: Paste event dispatched");
-            await this.insertText(textBox);
-          } catch (e) {
-            console.error("ChatGPT Paste failed", e);
-          }
+        getInputElement() {
+          return document.getElementById("prompt-textarea");
         }
-        async insertText(textBox) {
-          if (textBox) {
-            textBox.focus();
-            const result = await chrome.storage.local.get(["promptText"]);
-            const textToInsert = result.promptText || DEFAULT_PROMPT_TEXT;
-            document.execCommand("insertText", false, textToInsert);
-          }
-        }
-        async handleVideoUpload(result) {
-          console.log("ChatGPTStrategy: Handling video upload via Clipboard Paste");
-          const blob = result.blob;
-          const format = result.format || "webm";
-          const now = /* @__PURE__ */ new Date();
-          const dateStr = now.toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/\//g, "-");
-          const timeStr = now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).replace(/:/g, "-");
-          const filename = `Screen-${dateStr}_${timeStr}.${format}`;
-          const mimeType = format === "mp4" ? "video/mp4" : "video/webm";
-          const file = new File([blob], filename, { type: mimeType });
-          const textBox = document.getElementById("prompt-textarea");
-          if (!textBox) {
-            console.error("ChatGPT input not found");
-            return;
-          }
-          try {
-            const dataTransfer = new DataTransfer();
-            dataTransfer.items.add(file);
-            const pasteEvent = new ClipboardEvent("paste", {
-              bubbles: true,
-              cancelable: true,
-              clipboardData: dataTransfer
-            });
-            textBox.focus();
-            textBox.dispatchEvent(pasteEvent);
-            console.log(`ChatGPTStrategy: Video paste event dispatched (${format.toUpperCase()})`);
-            await this.insertText(textBox);
-          } catch (e) {
-            console.error("ChatGPT Video Paste failed", e);
-          }
+        // ========== Optional Overrides ==========
+        getUploadStrategies() {
+          return ["paste"];
         }
       };
     }
@@ -1500,11 +2002,12 @@
   var AIStudioStrategy;
   var init_ai_studio = __esm({
     "src/content/strategies/ai-studio.js"() {
-      init_config();
-      AIStudioStrategy = class {
+      init_base_strategy();
+      AIStudioStrategy = class extends BaseStrategy {
         constructor() {
-          this.name = "AI Studio";
+          super("AI Studio");
         }
+        // ========== Required Implementations ==========
         async waitForDOM() {
           return new Promise((resolve) => {
             const check = () => {
@@ -1526,33 +2029,29 @@
           if (insertButton) {
             console.log("Thoughtful Voice: Found Insert button");
             const insertButtonWrapper = insertButton.parentElement;
-            if (insertButtonWrapper && insertButtonWrapper.parentElement) {
+            if (insertButtonWrapper?.parentElement) {
               console.log("Thoughtful Voice: Injecting at Insert button wrapper level");
               return {
                 container: insertButtonWrapper.parentElement,
                 insertBefore: insertButtonWrapper.nextElementSibling
-                // Insert right after Insert button wrapper
               };
             }
           }
           const textarea = document.querySelector('textarea[aria-label="Enter a prompt"], textarea');
           if (textarea) {
             console.log("Thoughtful Voice: Fallback to textarea area");
-            let container = textarea.parentElement;
-            let attempts = 0;
-            while (container && attempts < 10) {
-              const buttons = container.querySelectorAll("button");
-              if (buttons.length > 1) {
-                const runButton = Array.from(buttons).find(
-                  (btn) => btn.textContent && btn.textContent.includes("Run")
-                );
-                return {
-                  container,
-                  insertBefore: runButton || null
-                };
-              }
-              container = container.parentElement;
-              attempts++;
+            const container = this._findParent(textarea, (el) => {
+              const buttons = el.querySelectorAll("button");
+              return buttons.length > 1;
+            });
+            if (container) {
+              const runButton = Array.from(container.querySelectorAll("button")).find(
+                (btn) => btn.textContent?.includes("Run")
+              );
+              return {
+                container,
+                insertBefore: runButton || null
+              };
             }
             return {
               container: textarea.parentElement,
@@ -1562,128 +2061,71 @@
           console.warn("Thoughtful Voice: No suitable injection target found for AI Studio");
           return null;
         }
-        async handleUpload(blob, durationString) {
-          console.log("AIStudioStrategy: Handling audio upload via File Input or Paste");
-          const filename = generateAudioFilename();
-          const file = new File([blob], filename, { type: "audio/wav" });
-          const fileInput = document.querySelector('input[type="file"]');
-          if (fileInput) {
-            console.log("AIStudioStrategy: Using file input method");
-            try {
-              const dataTransfer = new DataTransfer();
-              dataTransfer.items.add(file);
-              fileInput.files = dataTransfer.files;
-              const changeEvent = new Event("change", { bubbles: true });
-              fileInput.dispatchEvent(changeEvent);
-              await this.insertText();
-              return;
-            } catch (e) {
-              console.warn("File input method failed, trying paste", e);
-            }
-          }
-          const textarea = document.querySelector('textarea[placeholder*="prompt" i], textarea[aria-label*="prompt" i], .prompt-input textarea, textarea');
-          if (textarea) {
-            try {
-              console.log("AIStudioStrategy: Using paste method");
-              const dataTransfer = new DataTransfer();
-              dataTransfer.items.add(file);
-              const pasteEvent = new ClipboardEvent("paste", {
-                bubbles: true,
-                cancelable: true,
-                clipboardData: dataTransfer
-              });
-              textarea.focus();
-              textarea.dispatchEvent(pasteEvent);
-              console.log("AIStudioStrategy: Paste event dispatched");
-              await this.insertText();
-            } catch (e) {
-              console.error("Paste failed, falling back to drag and drop", e);
-              await this.performDragAndDrop(file);
-            }
-          } else {
-            await this.performDragAndDrop(file);
-          }
+        getInputElement() {
+          return document.querySelector('textarea[aria-label="Enter a prompt"], textarea[placeholder*="prompt" i], textarea');
         }
-        async insertText() {
-          const textarea = document.querySelector('textarea[placeholder*="prompt" i], textarea[aria-label*="prompt" i], .prompt-input textarea, textarea');
-          if (textarea) {
-            textarea.focus();
-            const result = await chrome.storage.local.get(["promptText"]);
-            const textToInsert = result.promptText || DEFAULT_PROMPT_TEXT;
-            if (!document.execCommand("insertText", false, textToInsert)) {
-              const currentValue = textarea.value || "";
-              textarea.value = currentValue + (currentValue ? "\n" : "") + textToInsert;
-              const inputEvent = new Event("input", { bubbles: true });
-              textarea.dispatchEvent(inputEvent);
-            }
-          }
+        // ========== Optional Overrides ==========
+        getUploadStrategies() {
+          return ["fileInput", "paste", "dragAndDrop"];
         }
-        async performDragAndDrop(file) {
-          const dropZone = document.querySelector('textarea, [class*="prompt" i], .input-area') || document.body;
-          const dataTransfer = new DataTransfer();
-          dataTransfer.items.add(file);
-          const createEvent = (type) => new DragEvent(type, {
-            bubbles: true,
-            cancelable: true,
-            composed: true,
-            view: window,
-            dataTransfer
-          });
-          dropZone.dispatchEvent(createEvent("dragenter"));
-          await new Promise((r) => setTimeout(r, 50));
-          dropZone.dispatchEvent(createEvent("dragover"));
-          await new Promise((r) => setTimeout(r, 50));
-          dropZone.dispatchEvent(createEvent("drop"));
-          console.log("AIStudioStrategy: Drag and Drop performed");
-          await this.insertText();
-        }
-        async handleVideoUpload(result) {
-          console.log("AIStudioStrategy: Handling video upload");
-          const blob = result.blob;
-          const format = result.format || "webm";
-          const now = /* @__PURE__ */ new Date();
-          const dateStr = now.toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/\//g, "-");
-          const timeStr = now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).replace(/:/g, "-");
-          const filename = `Screen-${dateStr}_${timeStr}.${format}`;
-          const mimeType = format === "mp4" ? "video/mp4" : "video/webm";
-          const file = new File([blob], filename, { type: mimeType });
-          const fileInput = document.querySelector('input[type="file"]');
-          if (fileInput) {
-            try {
-              const dataTransfer = new DataTransfer();
-              dataTransfer.items.add(file);
-              fileInput.files = dataTransfer.files;
-              const changeEvent = new Event("change", { bubbles: true });
-              fileInput.dispatchEvent(changeEvent);
-              await this.insertText();
-              return;
-            } catch (e) {
-              console.warn("File input method failed for video, trying paste", e);
-            }
-          }
-          const textarea = document.querySelector('textarea[placeholder*="prompt" i], textarea[aria-label*="prompt" i], .prompt-input textarea, textarea');
-          if (textarea) {
-            try {
-              const dataTransfer = new DataTransfer();
-              dataTransfer.items.add(file);
-              const pasteEvent = new ClipboardEvent("paste", {
-                bubbles: true,
-                cancelable: true,
-                clipboardData: dataTransfer
-              });
-              textarea.focus();
-              textarea.dispatchEvent(pasteEvent);
-              console.log(`AIStudioStrategy: Video paste event dispatched (${format.toUpperCase()})`);
-              await this.insertText();
-            } catch (e) {
-              console.error("Video paste failed, falling back to drag and drop", e);
-              await this.performDragAndDrop(file);
-            }
-          } else {
-            await this.performDragAndDrop(file);
-          }
+        getDropZone() {
+          return document.querySelector('textarea, [class*="prompt" i], .input-area') || document.body;
         }
       };
+    }
+  });
+
+  // src/content/strategies/index.js
+  function getStrategyForHost(hostname) {
+    for (const { pattern, Strategy, name } of STRATEGIES) {
+      if (pattern.test(hostname)) {
+        console.log(`Thoughtful Voice: Matched ${name} strategy for ${hostname}`);
+        return new Strategy();
+      }
+    }
+    console.log(`Thoughtful Voice: No strategy found for ${hostname}`);
+    return null;
+  }
+  var STRATEGIES;
+  var init_strategies = __esm({
+    "src/content/strategies/index.js"() {
+      init_gemini();
+      init_chatgpt();
+      init_ai_studio();
+      STRATEGIES = [
+        {
+          pattern: /gemini\.google\.com/,
+          Strategy: GeminiStrategy,
+          name: "Gemini"
+        },
+        {
+          pattern: /chatgpt\.com|chat\.openai\.com/,
+          Strategy: ChatGPTStrategy,
+          name: "ChatGPT"
+        },
+        {
+          pattern: /aistudio\.google\.com/,
+          Strategy: AIStudioStrategy,
+          name: "AI Studio"
+        }
+        // ========== Add new platforms below ==========
+        // Example:
+        // {
+        //     pattern: /claude\.ai/,
+        //     Strategy: ClaudeStrategy,
+        //     name: 'Claude'
+        // },
+        // {
+        //     pattern: /poe\.com/,
+        //     Strategy: PoeStrategy,
+        //     name: 'Poe'
+        // },
+        // {
+        //     pattern: /grok\.x\.ai|x\.com/,
+        //     Strategy: GrokStrategy,
+        //     name: 'Grok'
+        // },
+      ];
     }
   });
 
@@ -1695,36 +2137,25 @@
       init_injector();
       init_bubble();
       init_storage();
-      init_gemini();
-      init_chatgpt();
-      init_ai_studio();
+      init_strategies();
       init_config();
       console.log("Thoughtful Voice: Content script loaded");
       async function init() {
         const host = window.location.hostname;
-        let strategy = null;
-        if (host.includes("gemini.google.com")) {
-          strategy = new GeminiStrategy();
-        } else if (host.includes("chatgpt.com") || host.includes("openai.com")) {
-          strategy = new ChatGPTStrategy();
-        } else if (host.includes("aistudio.google.com")) {
-          strategy = new AIStudioStrategy();
-        }
+        const strategy = getStrategyForHost(host);
         if (!strategy) {
-          console.log("Thoughtful Voice: Unknown platform");
+          console.log("Thoughtful Voice: Unknown platform, extension inactive");
           return;
         }
-        console.log(`Thoughtful Voice: Using ${strategy.name}`);
+        console.log(`Thoughtful Voice: Using ${strategy.name} strategy`);
         await strategy.waitForDOM();
         const bubbleRenderer = new BubbleRenderer();
         bubbleRenderer.init();
         const recorder = new Recorder();
         const screenRecorder = new ScreenRecorder(strategy.name.toLowerCase());
-        let lastRecordingTimestamp = null;
         let urlUpdateWatcher = null;
-        const startUrlWatcher = (timestamp, type) => {
+        const startUrlWatcher = (timestamp) => {
           const initialUrl = window.location.href;
-          lastRecordingTimestamp = timestamp;
           if (urlUpdateWatcher) {
             clearInterval(urlUpdateWatcher);
           }
@@ -1734,7 +2165,7 @@
             watchDuration += 500;
             const currentUrl = window.location.href;
             if (currentUrl !== initialUrl) {
-              console.log(`Thoughtful Voice: URL changed from ${initialUrl} to ${currentUrl}`);
+              console.log(`Thoughtful Voice: URL changed to ${currentUrl}`);
               await StorageHelper.updateRecordingUrl(timestamp, currentUrl);
               clearInterval(urlUpdateWatcher);
               urlUpdateWatcher = null;
@@ -1758,11 +2189,10 @@
             timestamp,
             site: strategy.name,
             url: recordingUrl,
-            // Use URL from when recording started
             durationString: `${m}:${s}`,
             filename: generateAudioFilename()
           }, blob);
-          startUrlWatcher(timestamp, "audio");
+          startUrlWatcher(timestamp);
           injector.audioRecordingStartUrl = null;
         };
         const handleVideoUpload = async (result) => {
@@ -1777,13 +2207,12 @@
             timestamp,
             site: strategy.name,
             url: recordingUrl,
-            // Use URL from when recording started
             durationString: `${m}:${s}`,
             filename: `video_recording_${Date.now()}.webm`,
             format: result.format
           }, result.blob);
           console.log(`Screen recording uploaded: ${m}:${s} (${result.format.toUpperCase()})`);
-          startUrlWatcher(timestamp, "video");
+          startUrlWatcher(timestamp);
           injector.videoRecordingStartUrl = null;
         };
         injector = new Injector(recorder, screenRecorder, handleAudioUpload, handleVideoUpload);
@@ -1796,16 +2225,13 @@
           if (!existingButton && newTarget) {
             injector.inject(newTarget);
           } else if (existingButton && newTarget) {
-            const toolsContainer = document.querySelector(".toolbox-drawer-button-container");
-            if (toolsContainer) {
-              const expectedParent = toolsContainer.parentElement;
-              const currentParent = existingButton.parentElement;
-              if (currentParent !== expectedParent) {
-                console.log("Thoughtful Voice: Button in wrong location, re-positioning...");
-                existingButton.remove();
-                if (existingScreenButton) existingScreenButton.remove();
-                injector.inject(newTarget);
-              }
+            const expectedParent = newTarget.container;
+            const currentParent = existingButton.parentElement;
+            if (currentParent !== expectedParent) {
+              console.log("Thoughtful Voice: Button in wrong location, re-positioning...");
+              existingButton.remove();
+              if (existingScreenButton) existingScreenButton.remove();
+              injector.inject(newTarget);
             }
           }
         });

@@ -6,13 +6,18 @@ export class Recorder {
         this.audioBuffers = [];
         this.stream = null;
         this.startTime = 0;
+        this.pausedTime = 0;      // Total time spent paused
+        this.pauseStartTime = 0;  // When current pause started
         this.timerInterval = null;
         this.onTimerUpdate = null;
+        this.isPaused = false;
     }
 
     async start(onTimerUpdate) {
         this.onTimerUpdate = onTimerUpdate;
-        this.audioBuffers = []; // Store Float32Arrays
+        this.audioBuffers = [];
+        this.pausedTime = 0;
+        this.isPaused = false;
 
         try {
             // Load settings from chrome.storage
@@ -45,13 +50,15 @@ export class Recorder {
             );
 
             this.recorder.onaudioprocess = (e) => {
-                // Clone the data because the buffer is reused
-                const input = e.inputBuffer.getChannelData(0);
-                this.audioBuffers.push(new Float32Array(input));
+                // Only record if not paused
+                if (!this.isPaused) {
+                    const input = e.inputBuffer.getChannelData(0);
+                    this.audioBuffers.push(new Float32Array(input));
+                }
             };
 
             this.mediaStreamSource.connect(this.recorder);
-            this.recorder.connect(this.audioContext.destination); // Necessary for the script processor to run
+            this.recorder.connect(this.audioContext.destination);
 
             this.startTime = Date.now();
             this.startTimer();
@@ -65,11 +72,47 @@ export class Recorder {
         }
     }
 
+    /**
+     * Pause the recording
+     */
+    pause() {
+        if (this.isPaused || !this.recorder) return false;
+
+        this.isPaused = true;
+        this.pauseStartTime = Date.now();
+        console.log("Recording paused");
+        return true;
+    }
+
+    /**
+     * Resume the recording after pause
+     */
+    resume() {
+        if (!this.isPaused || !this.recorder) return false;
+
+        this.isPaused = false;
+        this.pausedTime += Date.now() - this.pauseStartTime;
+        console.log("Recording resumed");
+        return true;
+    }
+
+    /**
+     * Check if recording is currently paused
+     */
+    get paused() {
+        return this.isPaused;
+    }
+
     stop() {
         return new Promise(async (resolve) => {
             if (!this.recorder || !this.audioContext) {
                 resolve(null);
                 return;
+            }
+
+            // If paused when stopping, add the final pause duration
+            if (this.isPaused) {
+                this.pausedTime += Date.now() - this.pauseStartTime;
             }
 
             // Disconnect and Cleanup
@@ -85,6 +128,10 @@ export class Recorder {
             // Process Audio Data
             const blob = this.exportWAV(this.audioBuffers, this.audioContext.sampleRate);
 
+            // Calculate actual recording duration (excluding paused time)
+            const totalElapsed = Date.now() - this.startTime;
+            const actualDuration = totalElapsed - this.pausedTime;
+
             // Close Context
             if (this.audioContext.state !== 'closed') {
                 await this.audioContext.close();
@@ -92,11 +139,14 @@ export class Recorder {
 
             this.recorder = null;
             this.audioContext = null;
+            this.isPaused = false;
 
             console.log("Recording stopped, WAV blob size:", blob.size);
+            console.log(`Total time: ${totalElapsed}ms, Paused: ${this.pausedTime}ms, Actual: ${actualDuration}ms`);
+
             resolve({
                 blob: blob,
-                duration: Date.now() - this.startTime
+                duration: actualDuration
             });
         });
     }
@@ -104,7 +154,15 @@ export class Recorder {
     startTimer() {
         this.stopTimer();
         this.timerInterval = setInterval(() => {
-            const elapsed = Date.now() - this.startTime;
+            // Calculate elapsed time excluding paused time
+            let elapsed;
+            if (this.isPaused) {
+                // When paused, show the time when we paused
+                elapsed = this.pauseStartTime - this.startTime - this.pausedTime;
+            } else {
+                elapsed = Date.now() - this.startTime - this.pausedTime;
+            }
+
             const seconds = Math.floor(elapsed / 1000);
             const m = Math.floor(seconds / 60).toString().padStart(2, '0');
             const s = (seconds % 60).toString().padStart(2, '0');
@@ -132,12 +190,9 @@ export class Recorder {
     }
 
     exportWAV(buffers, sampleRate) {
-        // 1. Merge buffers
         const totalLength = buffers.reduce((acc, b) => acc + b.length, 0);
         const mergedBuffers = this.mergeBuffers(buffers, totalLength);
 
-        // 2. Downsample (Optional, but 44.1/48kHz is standard, keep it simple)
-        // 3. Encode to 16-bit PCM
         const buffer = new ArrayBuffer(44 + mergedBuffers.length * 2);
         const view = new DataView(buffer);
 
@@ -149,18 +204,17 @@ export class Recorder {
         // fmt sub-chunk
         this.writeString(view, 12, 'fmt ');
         view.setUint32(16, 16, true);
-        view.setUint16(20, 1, true); // PCM (linear quantization)
-        view.setUint16(22, 1, true); // Mono
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
         view.setUint32(24, sampleRate, true);
-        view.setUint32(28, sampleRate * 2, true); // Byte rate
-        view.setUint16(32, 2, true); // Block align
-        view.setUint16(34, 16, true); // Bits per sample
+        view.setUint32(28, sampleRate * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
 
         // data sub-chunk
         this.writeString(view, 36, 'data');
         view.setUint32(40, mergedBuffers.length * 2, true);
 
-        // Write PCM samples
         this.floatTo16BitPCM(view, 44, mergedBuffers);
 
         return new Blob([view], { type: 'audio/wav' });
