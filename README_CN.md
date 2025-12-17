@@ -1,16 +1,16 @@
-# 🎙️ AI Voice Droper
+# 🎙️ Thoughtful Voice
 
 <div align="center">
 
-![AI Voice Droper](icons/icon128.png)
+![Thoughtful Voice](icons/icon128.png)
 
 **为 Gemini 和 ChatGPT 提供口述錄音和屏幕录制功能**
 
 录制口述錄音或屏幕內容，直接提交给 AI - 不会识别错误，不会被打断。
 
-[![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://github.com/NolanEYeee/AI-Voice-Droper)
+[![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://github.com/NolanEYeee/Thoughtful-Voice)
 [![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg?style=for-the-badge)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.0-blue.svg?style=for-the-badge)](https://github.com/NolanEYeee/AI-Voice-Droper/releases)
+[![Version](https://img.shields.io/badge/Version-1.0-blue.svg?style=for-the-badge)](https://github.com/NolanEYeee/Thoughtful-Voice/releases)
 
 [功能特性](#-功能特性) • [安装指南](#-安装指南) • [使用场景](#-使用场景) • [开发指南](#-开发指南)
 
@@ -87,8 +87,8 @@ AI 语音输入和实时屏幕共享都有局限性：
 
 1. **下载扩展**
    ```bash
-   git clone https://github.com/NolanEYeee/AI-Voice-Droper.git
-   cd AI-Voice-Droper
+   git clone https://github.com/NolanEYeee/Thoughtful-Voice.git
+   cd Thoughtful-Voice
    ```
 
 2. **安装依赖**
@@ -105,7 +105,7 @@ AI 语音输入和实时屏幕共享都有局限性：
    - 打开 Chrome 并访问 `chrome://extensions/`
    - 启用右上角的**开发者模式**
    - 点击**加载已解压的扩展程序**
-   - 选择 `AI-Voice-Droper` 文件夹
+   - 选择 `Thoughtful-Voice` 文件夹
    - 扩展图标应该会出现在工具栏中！
 
 ---
@@ -145,7 +145,7 @@ AI 语音输入和实时屏幕共享都有局限性：
 ### 项目结构
 
 ```
-AI-Voice-Droper/
+Thoughtful-Voice/
 ├── src/
 │   ├── content/           # 注入到网页的内容脚本
 │   │   ├── strategies/    # 平台特定注入策略
@@ -214,7 +214,7 @@ node build.js
 **开发者**：NolanEYeee
 
 - GitHub: [@NolanEYeee](https://github.com/NolanEYeee)
-- 项目链接：[https://github.com/NolanEYeee/AI-Voice-Droper](https://github.com/NolanEYeee/AI-Voice-Droper)
+- 项目链接：[https://github.com/NolanEYeee/Thoughtful-Voice](https://github.com/NolanEYeee/Thoughtful-Voice)
 
 ---
 

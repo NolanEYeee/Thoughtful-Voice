@@ -7,7 +7,7 @@ import { GeminiStrategy } from './strategies/gemini.js';
 import { ChatGPTStrategy } from './strategies/chatgpt.js';
 import { generateAudioFilename } from '../utils/config.js';
 
-console.log("AI Voice Droper: Content script loaded");
+console.log("Thoughtful Voice: Content script loaded");
 
 async function init() {
     const host = window.location.hostname;
@@ -20,11 +20,11 @@ async function init() {
     }
 
     if (!strategy) {
-        console.log("AI Voice Droper: Unknown platform");
+        console.log("Thoughtful Voice: Unknown platform");
         return;
     }
 
-    console.log(`AI Voice Droper: Using ${strategy.name}`);
+    console.log(`Thoughtful Voice: Using ${strategy.name}`);
 
     // Wait for DOM to be ready for injection
     await strategy.waitForDOM();
@@ -59,7 +59,7 @@ async function init() {
 
             // If URL changed, update the recording
             if (currentUrl !== initialUrl) {
-                console.log(`AI Voice Droper: URL changed from ${initialUrl} to ${currentUrl}`);
+                console.log(`Thoughtful Voice: URL changed from ${initialUrl} to ${currentUrl}`);
                 await StorageHelper.updateRecordingUrl(timestamp, currentUrl);
                 clearInterval(urlUpdateWatcher);
                 urlUpdateWatcher = null;
@@ -148,7 +148,7 @@ async function init() {
     // Watch for page changes (SPA navigation) and re-position if needed
     const observer = new MutationObserver(() => {
         const newTarget = strategy.getInjectionTarget();
-        const existingButton = document.getElementById('ai-voice-droper-btn');
+        const existingButton = document.getElementById('thoughtful-voice-btn');
         const existingScreenButton = document.getElementById('ai-screen-recorder-btn');
 
         if (!existingButton && newTarget) {
@@ -166,7 +166,7 @@ async function init() {
 
                 // If button is not in the expected parent, re-inject it
                 if (currentParent !== expectedParent) {
-                    console.log("AI Voice Droper: Button in wrong location, re-positioning...");
+                    console.log("Thoughtful Voice: Button in wrong location, re-positioning...");
                     existingButton.remove();
                     if (existingScreenButton) existingScreenButton.remove();
                     injector.inject(newTarget);

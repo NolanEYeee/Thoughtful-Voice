@@ -1,16 +1,16 @@
-# 🎙️ AI Voice Droper
+# 🎙️ Thoughtful Voice
 
 <div align="center">
 
-![AI Voice Droper](icons/icon128.png)
+![Thoughtful Voice](icons/icon128.png)
 
 **Voice and screen recording for Gemini and ChatGPT**
 
 Record your voice or screen and submit directly to AI - no transcription errors, no interruptions.
 
-[![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://github.com/NolanEYeee/AI-Voice-Droper)
+[![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://github.com/NolanEYeee/Thoughtful-Voice)
 [![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg?style=for-the-badge)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.0-blue.svg?style=for-the-badge)](https://github.com/NolanEYeee/AI-Voice-Droper/releases)
+[![Version](https://img.shields.io/badge/Version-1.0-blue.svg?style=for-the-badge)](https://github.com/NolanEYeee/Thoughtful-Voice/releases)
 
 [Features](#-features) • [Installation](#-installation) • [Use Cases](#-use-cases) • [Development](#-development)
 
@@ -85,8 +85,8 @@ This extension lets you record audio and screen content, then submit it as a com
 
 1. **Download the Extension**
    ```bash
-   git clone https://github.com/NolanEYeee/AI-Voice-Droper.git
-   cd AI-Voice-Droper
+   git clone https://github.com/NolanEYeee/Thoughtful-Voice.git
+   cd Thoughtful-Voice
    ```
 
 2. **Install Dependencies**
@@ -103,7 +103,7 @@ This extension lets you record audio and screen content, then submit it as a com
    - Open Chrome and navigate to `chrome://extensions/`
    - Enable **Developer mode** (toggle in top-right corner)
    - Click **Load unpacked**
-   - Select the `AI-Voice-Droper` folder
+   - Select the `Thoughtful-Voice` folder
    - The extension icon should appear in your toolbar!
 
 ---
@@ -143,7 +143,7 @@ Explain a workflow by demonstrating it. Like explaining to a colleague, but the 
 ### Project Structure
 
 ```
-AI-Voice-Droper/
+Thoughtful-Voice/
 ├── src/
 │   ├── content/           # Content scripts injected into web pages
 │   │   ├── strategies/    # Platform-specific injection strategies
@@ -212,7 +212,7 @@ You are free to use, share, and modify this extension for **non-commercial purpo
 **Developer**: NolanEYeee
 
 - GitHub: [@NolanEYeee](https://github.com/NolanEYeee)
-- Project Link: [https://github.com/NolanEYeee/AI-Voice-Droper](https://github.com/NolanEYeee/AI-Voice-Droper)
+- Project Link: [https://github.com/NolanEYeee/Thoughtful-Voice](https://github.com/NolanEYeee/Thoughtful-Voice)
 
 ---
 

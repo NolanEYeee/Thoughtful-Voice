@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "AI Voice Droper",
+    "name": "Thoughtful Voice",
     "version": "1.0",
     "description": "Record and drop audio/video directly to Gemini and ChatGPT.",
     "permissions": [

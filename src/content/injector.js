@@ -14,7 +14,7 @@ export class Injector {
 
     createButton() {
         const btn = document.createElement('button');
-        btn.id = 'ai-voice-droper-btn';
+        btn.id = 'thoughtful-voice-btn';
         btn.innerHTML = '🎙️'; // Default icon
         btn.className = 'ai-voice-btn';
         btn.title = 'Click to record audio';
@@ -127,7 +127,7 @@ export class Injector {
         if (!this.screenButton) this.createScreenRecordButton();
 
         // Avoid double injection
-        if (document.getElementById('ai-voice-droper-btn')) return;
+        if (document.getElementById('thoughtful-voice-btn')) return;
 
         let container = null;
         let insertBefore = null;

@@ -1,6 +1,6 @@
-# Contributing to AI Voice Droper
+# Contributing to Thoughtful Voice
 
-First off, thank you for considering contributing to AI Voice Droper! 🎉
+First off, thank you for considering contributing to Thoughtful Voice! 🎉
 
 ## 🤝 How Can I Contribute?
 
@@ -49,7 +49,7 @@ Feature suggestions are welcome! Please:
 ```javascript
 // Good
 const recordingButton = document.createElement('button');
-recordingButton.id = 'ai-voice-droper-btn';
+recordingButton.id = 'thoughtful-voice-btn';
 
 // Bad
 var btn = document.createElement('button');
@@ -89,8 +89,8 @@ btn.id = 'btn1';
 
 1. **Clone your fork**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/AI-Voice-Droper.git
-   cd AI-Voice-Droper
+   git clone https://github.com/YOUR_USERNAME/Thoughtful-Voice.git
+   cd Thoughtful-Voice
    ```
 
 2. **Install dependencies**
@@ -122,7 +122,7 @@ btn.id = 'btn1';
 
 ## 🎯 What to Work On
 
-Check out our [issues page](https://github.com/NolanEYeee/AI-Voice-Droper/issues) for:
+Check out our [issues page](https://github.com/NolanEYeee/Thoughtful-Voice/issues) for:
 
 - 🐛 **Bug fixes**: Issues labeled `bug`
 - ✨ **New features**: Issues labeled `enhancement`

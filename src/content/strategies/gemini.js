@@ -12,7 +12,7 @@ export class GeminiStrategy {
                 // This ensures we inject at the correct location from the start
                 const toolsContainer = document.querySelector('.toolbox-drawer-button-container');
                 if (toolsContainer) {
-                    console.log("AI Voice Droper: Tools button found, ready to inject");
+                    console.log("Thoughtful Voice: Tools button found, ready to inject");
                     resolve();
                     return;
                 }
@@ -20,11 +20,11 @@ export class GeminiStrategy {
                 // Fallback: Look for the upload button or text box
                 // Only use this if Tools button doesn't appear after some time
                 if (document.querySelector('.upload-card-button') || document.querySelector('[role="textbox"]')) {
-                    console.log("AI Voice Droper: Tools button not found, using fallback");
+                    console.log("Thoughtful Voice: Tools button not found, using fallback");
                     // Give it a bit more time for Tools to appear
                     setTimeout(() => {
                         if (document.querySelector('.toolbox-drawer-button-container')) {
-                            console.log("AI Voice Droper: Tools button appeared during wait");
+                            console.log("Thoughtful Voice: Tools button appeared during wait");
                         }
                         resolve();
                     }, 1000);
@@ -40,13 +40,13 @@ export class GeminiStrategy {
         // Strategy: Find the parent container that holds both the Tools button and other action buttons
         // We want to insert our button as a sibling to the Tools button container
 
-        console.log("AI Voice Droper: Looking for injection target...");
+        console.log("Thoughtful Voice: Looking for injection target...");
 
         // Priority 1: Next to the Tools button (toolbox-drawer-button-container)
         // Look for the Tools button container and its parent
         const toolsContainer = document.querySelector('.toolbox-drawer-button-container');
         if (toolsContainer && toolsContainer.parentElement) {
-            console.log("AI Voice Droper: Found Tools button container");
+            console.log("Thoughtful Voice: Found Tools button container");
             // Insert AFTER the tools container (as a next sibling)
             return {
                 container: toolsContainer.parentElement,
@@ -58,7 +58,7 @@ export class GeminiStrategy {
         // Some Gemini UI variants might use different class names
         const actionButtonsRow = document.querySelector('[class*="action-button-row"], [class*="input-area-tools"]');
         if (actionButtonsRow) {
-            console.log("AI Voice Droper: Found action buttons row");
+            console.log("Thoughtful Voice: Found action buttons row");
             return {
                 container: actionButtonsRow,
                 insertBefore: null // Append to end of the row
@@ -75,7 +75,7 @@ export class GeminiStrategy {
                 // Look for a parent that has multiple button-like children
                 const buttonChildren = parent.querySelectorAll('button, [role="button"]');
                 if (buttonChildren.length > 1) {
-                    console.log("AI Voice Droper: Found common parent with multiple buttons");
+                    console.log("Thoughtful Voice: Found common parent with multiple buttons");
                     return {
                         container: parent,
                         insertBefore: null
@@ -86,7 +86,7 @@ export class GeminiStrategy {
 
             // Fallback: just use the upload button's parent
             if (uploadButton.parentElement) {
-                console.log("AI Voice Droper: Using upload button parent as fallback");
+                console.log("Thoughtful Voice: Using upload button parent as fallback");
                 return {
                     container: uploadButton.parentElement,
                     insertBefore: null
@@ -97,7 +97,7 @@ export class GeminiStrategy {
         // Priority 4: Next to the native mic button (fallback)
         const micButton = document.querySelector('.speech_dictation_mic_button, [class*="mic-button"]');
         if (micButton && micButton.parentElement) {
-            console.log("AI Voice Droper: Found native mic button");
+            console.log("Thoughtful Voice: Found native mic button");
             return {
                 container: micButton.parentElement,
                 insertBefore: micButton.nextSibling
@@ -107,7 +107,7 @@ export class GeminiStrategy {
         // Priority 5: Input area wrapper (last resort)
         const inputArea = document.querySelector('[role="textbox"]');
         if (inputArea && inputArea.parentElement) {
-            console.log("AI Voice Droper: Using textbox parent as last resort");
+            console.log("Thoughtful Voice: Using textbox parent as last resort");
             // Usually the input row is the parent or grandparent
             const target = inputArea.parentElement.parentElement || document.body;
             return {
@@ -116,7 +116,7 @@ export class GeminiStrategy {
             };
         }
 
-        console.warn("AI Voice Droper: No suitable injection target found");
+        console.warn("Thoughtful Voice: No suitable injection target found");
         return null;
     }
 
