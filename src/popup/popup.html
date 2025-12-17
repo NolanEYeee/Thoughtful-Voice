@@ -566,6 +566,39 @@
             box-shadow: 0 0 0 #4a0000;
         }
 
+        /* Shift-key quick delete visual feedback */
+        .retro-btn.delete.shift-ready {
+            background: linear-gradient(to bottom, #ff4444, #cc0000);
+            border-color: #880000;
+            box-shadow:
+                0 3px 0 #660000,
+                0 4px 4px rgba(0, 0, 0, 0.3),
+                0 0 12px rgba(255, 68, 68, 0.6),
+                0 0 20px rgba(255, 68, 68, 0.3);
+            animation: shiftPulse 0.8s ease-in-out infinite;
+            transform: scale(1.08);
+        }
+
+        @keyframes shiftPulse {
+
+            0%,
+            100% {
+                box-shadow:
+                    0 3px 0 #660000,
+                    0 4px 4px rgba(0, 0, 0, 0.3),
+                    0 0 12px rgba(255, 68, 68, 0.6),
+                    0 0 20px rgba(255, 68, 68, 0.3);
+            }
+
+            50% {
+                box-shadow:
+                    0 3px 0 #660000,
+                    0 4px 4px rgba(0, 0, 0, 0.3),
+                    0 0 16px rgba(255, 68, 68, 0.8),
+                    0 0 30px rgba(255, 68, 68, 0.5);
+            }
+        }
+
         /* Scrollbar */
         ::-webkit-scrollbar {
             width: 4px;

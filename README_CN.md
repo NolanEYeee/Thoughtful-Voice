@@ -57,6 +57,7 @@ AI 语音输入和实时屏幕共享都有局限性：
 |------|------|------|
 | Gemini ⭐ | gemini.google.com | ✅ 支持（推荐） |
 | ChatGPT | chatgpt.com, chat.openai.com | ✅ 支持 |
+| AI Studio | aistudio.google.com | ✅ 支持 |
 
 **⭐ 推荐 Gemini**：Gemini 原生支持超長上下文，多模态输入（音频+视频），且上下文非常大方，难以达到限制。
 

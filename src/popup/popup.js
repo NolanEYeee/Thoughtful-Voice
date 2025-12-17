@@ -1,5 +1,43 @@
 import { StorageHelper } from '../content/storage.js';
 
+// Track Shift key state globally for quick-delete feature
+let isShiftPressed = false;
+
+// Update Shift key visual feedback on delete buttons
+function updateShiftKeyFeedback() {
+    const deleteButtons = document.querySelectorAll('.retro-btn.delete');
+    deleteButtons.forEach(btn => {
+        if (isShiftPressed) {
+            btn.classList.add('shift-ready');
+            btn.title = 'Click to delete immediately (Shift held)';
+        } else {
+            btn.classList.remove('shift-ready');
+            btn.title = 'Delete (Hold Shift for quick delete)';
+        }
+    });
+}
+
+// Set up global Shift key listeners
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Shift' && !isShiftPressed) {
+        isShiftPressed = true;
+        updateShiftKeyFeedback();
+    }
+});
+
+document.addEventListener('keyup', (e) => {
+    if (e.key === 'Shift') {
+        isShiftPressed = false;
+        updateShiftKeyFeedback();
+    }
+});
+
+// Reset shift state when window loses focus
+window.addEventListener('blur', () => {
+    isShiftPressed = false;
+    updateShiftKeyFeedback();
+});
+
 // Custom Confirmation Modal System
 function showConfirmModal(message, onConfirm, onCancel) {
     // Create modal if not exists
@@ -23,6 +61,8 @@ function showConfirmModal(message, onConfirm, onCancel) {
             </div>
         `;
         document.body.appendChild(modal);
+        // Force reflow after creation to ensure animation works on first show
+        void modal.offsetHeight;
     }
 
     const messageEl = modal.querySelector('.confirm-message');
@@ -30,7 +70,14 @@ function showConfirmModal(message, onConfirm, onCancel) {
     const cancelBtn = modal.querySelector('.confirm-btn.cancel');
 
     messageEl.textContent = message;
-    modal.classList.add('show');
+
+    // Use requestAnimationFrame to ensure the browser has painted the initial state
+    // This fixes the first-time animation issue
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            modal.classList.add('show');
+        });
+    });
 
     // Clean up previous listeners
     const newConfirmBtn = confirmBtn.cloneNode(true);
@@ -212,6 +259,9 @@ function createRecordingElement(rec, index) {
 function attachListeners(recordings) {
     // Delete Handlers - Use closest() to handle clicks on SVG inside button
     document.querySelectorAll('.retro-btn.delete').forEach(btn => {
+        // Set initial title
+        btn.title = 'Delete (Hold Shift for quick delete)';
+
         btn.onclick = async (e) => {
             // Use closest to get the button element, even if click was on SVG inside
             const button = e.target.closest('.retro-btn.delete');
@@ -220,7 +270,8 @@ function attachListeners(recordings) {
             const idx = parseInt(button.dataset.index);
             if (isNaN(idx)) return;
 
-            showConfirmModal('Eject and destroy this tape?', async () => {
+            // Helper function to perform the actual deletion
+            const performDelete = async () => {
                 // Find the card element (parent of parent of button)
                 const card = button.closest('.tape-card, .crt-card');
 
@@ -236,9 +287,20 @@ function attachListeners(recordings) {
                 recordings.splice(idx, 1);
                 await chrome.storage.local.set({ recordings });
                 loadRecordings();
-            });
+            };
+
+            // If Shift is held, delete immediately without confirmation
+            if (e.shiftKey) {
+                await performDelete();
+            } else {
+                // Show confirmation modal
+                showConfirmModal('Eject and destroy this tape?', performDelete);
+            }
         };
     });
+
+    // Update shift key feedback after attaching listeners
+    updateShiftKeyFeedback();
 
     // Audio Play Handlers (Custom Spin Animation)
     document.querySelectorAll('.play-btn').forEach(btn => {

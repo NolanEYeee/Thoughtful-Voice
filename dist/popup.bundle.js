@@ -17,6 +17,35 @@
   var require_popup = __commonJS({
     "src/popup/popup.js"() {
       init_storage();
+      var isShiftPressed = false;
+      function updateShiftKeyFeedback() {
+        const deleteButtons = document.querySelectorAll(".retro-btn.delete");
+        deleteButtons.forEach((btn) => {
+          if (isShiftPressed) {
+            btn.classList.add("shift-ready");
+            btn.title = "Click to delete immediately (Shift held)";
+          } else {
+            btn.classList.remove("shift-ready");
+            btn.title = "Delete (Hold Shift for quick delete)";
+          }
+        });
+      }
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Shift" && !isShiftPressed) {
+          isShiftPressed = true;
+          updateShiftKeyFeedback();
+        }
+      });
+      document.addEventListener("keyup", (e) => {
+        if (e.key === "Shift") {
+          isShiftPressed = false;
+          updateShiftKeyFeedback();
+        }
+      });
+      window.addEventListener("blur", () => {
+        isShiftPressed = false;
+        updateShiftKeyFeedback();
+      });
       function showConfirmModal(message, onConfirm, onCancel) {
         let modal = document.getElementById("confirm-modal");
         if (!modal) {
@@ -38,12 +67,17 @@
             </div>
         `;
           document.body.appendChild(modal);
+          void modal.offsetHeight;
         }
         const messageEl = modal.querySelector(".confirm-message");
         const confirmBtn = modal.querySelector(".confirm-btn.confirm");
         const cancelBtn = modal.querySelector(".confirm-btn.cancel");
         messageEl.textContent = message;
-        modal.classList.add("show");
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            modal.classList.add("show");
+          });
+        });
         const newConfirmBtn = confirmBtn.cloneNode(true);
         const newCancelBtn = cancelBtn.cloneNode(true);
         confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
@@ -184,12 +218,13 @@
       }
       function attachListeners(recordings) {
         document.querySelectorAll(".retro-btn.delete").forEach((btn) => {
+          btn.title = "Delete (Hold Shift for quick delete)";
           btn.onclick = async (e) => {
             const button = e.target.closest(".retro-btn.delete");
             if (!button) return;
             const idx = parseInt(button.dataset.index);
             if (isNaN(idx)) return;
-            showConfirmModal("Eject and destroy this tape?", async () => {
+            const performDelete = async () => {
               const card = button.closest(".tape-card, .crt-card");
               if (card) {
                 card.classList.add("recording-deleting");
@@ -198,9 +233,15 @@
               recordings.splice(idx, 1);
               await chrome.storage.local.set({ recordings });
               loadRecordings();
-            });
+            };
+            if (e.shiftKey) {
+              await performDelete();
+            } else {
+              showConfirmModal("Eject and destroy this tape?", performDelete);
+            }
           };
         });
+        updateShiftKeyFeedback();
         document.querySelectorAll(".play-btn").forEach((btn) => {
           btn.onclick = (e) => {
             const audioId = btn.dataset.id;

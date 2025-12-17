@@ -7,16 +7,19 @@
     align-items: center;
     justify-content: center;
 
-    /* Material Design standard size match */
+    /* Adjusted size */
     width: 40px;
     height: 40px;
     border-radius: 50%;
 
-    font-size: 24px;
-    line-height: 1;
+    /* Adjusted emoji size - use !important to override page styles */
+    font-size: 24px !important;
+    line-height: 1 !important;
     color: #444746;
     /* Gemini Grey */
-    /* margin: 0 4px;  <-- Removed to rely on parent gap */
+    /* Add margins to align with other buttons */
+    margin-left: 4px;
+    margin-right: 4px;
     transition: background-color 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
 
@@ -29,22 +32,22 @@
     background-color: #ffebee;
     color: #d93025;
     width: auto;
-    padding: 0 16px;
-    border-radius: 20px;
-    font-size: 16px;
+    padding: 0 10px;
+    border-radius: 16px;
+    font-size: 13px !important;
     font-weight: 500;
-    gap: 8px;
+    gap: 4px;
 }
 
 .ai-voice-btn.screen-recording {
     background-color: #e3f2fd;
     color: #1976d2;
     width: auto;
-    padding: 0 16px;
-    border-radius: 20px;
-    font-size: 16px;
+    padding: 0 10px;
+    border-radius: 16px;
+    font-size: 13px !important;
     font-weight: 500;
-    gap: 8px;
+    gap: 4px;
 }
 
 /* Dark theme support */

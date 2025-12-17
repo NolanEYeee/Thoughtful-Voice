@@ -12,14 +12,16 @@
     "host_permissions": [
         "https://chatgpt.com/*",
         "https://chat.openai.com/*",
-        "https://gemini.google.com/*"
+        "https://gemini.google.com/*",
+        "https://aistudio.google.com/*"
     ],
     "content_scripts": [
         {
             "matches": [
                 "https://chatgpt.com/*",
                 "https://chat.openai.com/*",
-                "https://gemini.google.com/*"
+                "https://gemini.google.com/*",
+                "https://aistudio.google.com/*"
             ],
             "js": [
                 "dist/content.bundle.js"

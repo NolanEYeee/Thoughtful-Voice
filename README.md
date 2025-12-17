@@ -55,9 +55,10 @@ This extension lets you record audio and screen content, then submit it as a com
 | Platform | Domain | Status |
 |----------|--------|--------|
 | Gemini ⭐ | gemini.google.com | ✅ Supported (Recommended) |
+| AI Studio ⭐ | aistudio.google.com | ✅ Supported (Recommended) |
 | ChatGPT | chatgpt.com, chat.openai.com | ✅ Supported |
 
-**⭐ Recommended for Gemini**: Gemini natively supports ultra-long contexts, multimodal input (audio + video), and is very generous with context, making it difficult to reach limits.
+**⭐ Recommended for Gemini & AI Studio**: Gemini natively supports ultra-long contexts, multimodal input (audio + video), and is very generous with context, making it difficult to reach limits.
 
 ## 🚀 Installation
 

@@ -5,6 +5,7 @@ import { BubbleRenderer } from './bubble.js';
 import { StorageHelper } from './storage.js';
 import { GeminiStrategy } from './strategies/gemini.js';
 import { ChatGPTStrategy } from './strategies/chatgpt.js';
+import { AIStudioStrategy } from './strategies/ai-studio.js';
 import { generateAudioFilename } from '../utils/config.js';
 
 console.log("Thoughtful Voice: Content script loaded");
@@ -17,6 +18,8 @@ async function init() {
         strategy = new GeminiStrategy();
     } else if (host.includes('chatgpt.com') || host.includes('openai.com')) {
         strategy = new ChatGPTStrategy();
+    } else if (host.includes('aistudio.google.com')) {
+        strategy = new AIStudioStrategy();
     }
 
     if (!strategy) {
