@@ -4,6 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build": "node build.js",
+    "package": "node package.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

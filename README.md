@@ -12,13 +12,13 @@ Record your voice or screen and submit directly to AI - no transcription errors,
 [![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg?style=for-the-badge)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-1.0-blue.svg?style=for-the-badge)](https://github.com/NolanEYeee/Thoughtful-Voice/releases)
 
-[Features](#-features) • [Installation](#-installation) • [Use Cases](#-use-cases) • [Development](#-development)
+[Features](#-features) • [Platforms](#-platform-support) • [Installation](#-installation) • [Use Cases](#-use-cases) • [Development](#-development)
+
+English | [简体中文](README_CN.md)
 
 </div>
 
----
-
-## 🎯 Why This Exists
+## 🎯 About Thoughtful Voice
 
 AI voice typing and real-time screen sharing have limitations:
 - Voice typing produces transcription errors that need manual correction
@@ -27,63 +27,58 @@ AI voice typing and real-time screen sharing have limitations:
 
 This extension lets you record audio and screen content, then submit it as a complete package. The AI processes your actual voice and video, maintaining full context without interruptions.
 
----
-
-## ✨ Features
-
-### 🎤 Voice Recording
-- Click to start/stop recording
-- WAV format with adjustable bitrate
-- Recordings automatically upload to Gemini or ChatGPT
-- Optional custom prompts for AI context
-
-### 📹 Screen Recording  
-- Record your screen or specific windows
-- Up to 1080p @ 60 FPS
-- Adjustable bitrate (2.5-20 Mbps)
-- Auto-fixes WebM duration metadata
-
-### 🎨 Retro UI
-- 1980s Walkman-inspired design
-- Audio recordings displayed as cassette tapes
-- Video recordings shown on CRT monitors
-- Browse recording history organized by date and platform
-
-### ⚙️ Customization
-- Configure video/audio quality settings
-- Set default prompts for uploaded media
-- All preferences saved automatically
-
-### 🌐 Platform Support
-- ChatGPT (chatgpt.com, chat.openai.com)
-- Gemini (gemini.google.com)
-
----
-
 ## 📸 Screenshots
 
 ### Main Interface - Retro Walkman Design
 <div align="center">
   <img src="docs/screenshots/popup-interface.png" alt="Popup Interface" width="400"/>
-  <p><i>Vintage cassette tape design for audio recordings and CRT monitor for videos</i></p>
+  <p><i>Vintage tape and CRT monitor</i></p>
 </div>
 
 ### In-Action Recording
 <div align="center">
   <img src="docs/screenshots/recording-demo.png" alt="Recording Demo" width="600"/>
-  <p><i>Seamlessly integrated recording buttons in Gemini and ChatGPT</i></p>
+  <p><i>Seamlessly integrated recording buttons in AI Chat</i></p>
 </div>
 
----
+## ✨ Features
+
+| Feature | Description |
+|---------|-------------|
+| 🎤 Voice Recording | WAV format, adjustable bitrate, auto-upload, custom prompts |
+| 📹 Screen Recording | Up to 1080p@60FPS, adjustable bitrate, auto-fix duration metadata |
+| 🎨 Retro UI | 80s Walkman style, cassette/CRT design, browse by date & platform |
+| ⚙️ Customization | Video/audio quality settings, default prompts, auto-save preferences |
+
+## 🌐 Platform Support
+
+| Platform | Domain | Status |
+|----------|--------|--------|
+| Gemini | gemini.google.com | ✅ Supported |
+| ChatGPT | chatgpt.com, chat.openai.com | ✅ Supported |
 
 ## 🚀 Installation
 
-### Option 1: Install from Chrome Web Store (Coming Soon)
-*Extension is currently in review. Stay tuned!*
+### Option 1: Download from Releases (Recommended) 🎯
 
-### Option 2: Manual Installation
+1. **Download the Latest Release**
+   - Visit [Releases](https://github.com/NolanEYeee/Thoughtful-Voice/releases)
+   - Download `thoughtful-voice-v*.*.zip` from the latest release
+   - Extract the ZIP file to a folder
 
-1. **Download the Extension**
+2. **Load in Chrome**
+   - Open Chrome and navigate to `chrome://extensions/`
+   - Enable **Developer mode** (toggle in top-right corner)
+   - Click **Load unpacked**
+   - Select the extracted folder
+   - The extension icon should appear in your toolbar!
+
+### Option 2: Install from Chrome Web Store (Coming Soon)
+*Extension is currently in apply. Stay tuned!*
+
+### Option 3: Build from Source
+
+1. **Clone the Repository**
    ```bash
    git clone https://github.com/NolanEYeee/Thoughtful-Voice.git
    cd Thoughtful-Voice
@@ -96,7 +91,7 @@ This extension lets you record audio and screen content, then submit it as a com
 
 3. **Build the Extension**
    ```bash
-   node build.js
+   npm run build
    ```
 
 4. **Load in Chrome**
@@ -105,8 +100,6 @@ This extension lets you record audio and screen content, then submit it as a com
    - Click **Load unpacked**
    - Select the `Thoughtful-Voice` folder
    - The extension icon should appear in your toolbar!
-
----
 
 ## 💼 Use Cases
 
@@ -127,8 +120,6 @@ Show your code, run it, let the error happen - all while explaining your thought
 Explain a workflow by demonstrating it. Like explaining to a colleague, but the AI remembers everything perfectly.
 
 **Example:** Show a messy downloads folder and explain how you want files auto-organized by type.
-
----
 
 ## 🛠️ Development
 
@@ -181,14 +172,10 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
----
-
 ## 🐛 Known Issues
 
 - **WebM Duration**: Fixed automatically using `fix-webm-duration` library
 - **Platform Changes**: AI platforms may update their UI; we'll keep the extension current
-
----
 
 ## 🗺️ Roadmap
 
@@ -197,15 +184,11 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 - [ ] Keyboard shortcuts
 - [ ] Multiple language support
 
----
-
 ## 📄 License
 
 This project is licensed under the **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License**. 
 
 You are free to use, share, and modify this extension for **non-commercial purposes only**. See the [LICENSE](LICENSE) file for complete details.
-
----
 
 ## 📧 Contact
 
@@ -213,8 +196,6 @@ You are free to use, share, and modify this extension for **non-commercial purpo
 
 - GitHub: [@NolanEYeee](https://github.com/NolanEYeee)
 - Project Link: [https://github.com/NolanEYeee/Thoughtful-Voice](https://github.com/NolanEYeee/Thoughtful-Voice)
-
----
 
 <div align="center">
 

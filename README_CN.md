@@ -12,15 +12,14 @@
 [![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg?style=for-the-badge)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-1.0-blue.svg?style=for-the-badge)](https://github.com/NolanEYeee/Thoughtful-Voice/releases)
 
-[功能特性](#-功能特性) • [安装指南](#-安装指南) • [使用场景](#-使用场景) • [开发指南](#-开发指南)
+[功能特性](#-功能特性) • [平台支持](#-平台支持) • [安装指南](#-安装指南) • [使用场景](#-使用场景) • [开发指南](#-开发指南)
 
 [English](README.md) | 简体中文
 
 </div>
 
----
 
-## 🎯 为什么做这个
+## 🎯 关于 Thoughtful Voice - 深思熟虑的语音模式
 
 AI 语音输入和实时屏幕共享都有局限性：
 - 即便 AI 语音输入也会识别错误，需要手动修正
@@ -29,63 +28,58 @@ AI 语音输入和实时屏幕共享都有局限性：
 
 这个插件讓你先錄製口述錄音和屏幕內容，然後作為完整的包提交。AI 处理的是你的原始语音和视频，保持完整上下文，不会被打断。
 
----
-
-## ✨ 功能特性
-
-### 🎤 口述錄音
-- 点击开始/停止录音
-- WAV 格式，支持调节比特率
-- 录音自动上传到 Gemini 或 ChatGPT
-- 可选自定义提示词为 AI 提供上下文
-
-### 📹 屏幕录制
-- 录制整个屏幕或指定窗口
-- 最高支持 1080p @ 60 FPS
-- 可调节比特率（2.5-20 Mbps）
-- 自动修正 WebM 视频时长元数据
-
-### 🎨 复古界面
-- 80 年代随身听风格设计
-- 音频录音显示为磁带样式
-- 视频录音显示在 CRT 显示器上
-- 按日期和平台浏览录音历史
-
-### ⚙️ 自定义设置
-- 配置视频/音频质量参数
-- 设置上传媒体的默认提示词
-- 所有偏好自动保存
-
-### 🌐 平台支持
-- ChatGPT (chatgpt.com, chat.openai.com)
-- Gemini (gemini.google.com)
-
----
-
 ## 📸 截图展示
 
 ### 主界面 - 复古随身听设计
 <div align="center">
   <img src="docs/screenshots/popup-interface.png" alt="弹窗界面" width="400"/>
-  <p><i>音频录音采用复古磁带设计，视频采用 CRT 显示器设计</i></p>
+  <p><i>复古磁带，与 CRT 显示器</i></p>
 </div>
 
 ### 实时录制
 <div align="center">
   <img src="docs/screenshots/recording-demo.png" alt="录制演示" width="600"/>
-  <p><i>在 Gemini 和 ChatGPT 中无缝集成的录制按钮</i></p>
+  <p><i>在 AI Chat 中无缝集成的录制按钮</i></p>
 </div>
 
----
+## ✨ 功能特性
+
+| 功能 | 说明 |
+|------|------|
+| 🎤 口述錄音 | WAV 格式，可调比特率，自动上传，支持自定义提示词 |
+| 📹 屏幕录制 | 最高 1080p@60FPS，可调比特率，自动修正时长元数据 |
+| 🎨 复古界面 | 80 年代随身听风格，磁带/CRT 设计，按日期平台浏览 |
+| ⚙️ 自定义设置 | 视频/音频质量参数，默认提示词，自动保存偏好 |
+
+## 🌐 平台支持
+
+| 平台 | 域名 | 状态 |
+|------|------|------|
+| Gemini | gemini.google.com | ✅ 支持 |
+| ChatGPT | chatgpt.com, chat.openai.com | ✅ 支持 |
 
 ## 🚀 安装指南
 
-### 方式一：Chrome 应用商店安装（即将推出）
-*扩展目前正在审核中，敬请期待！*
+### 方式一：从 Releases 下载（推荐）🎯
 
-### 方式二：手动安装
+1. **下载最新版本**
+   - 访问 [Releases 页面](https://github.com/NolanEYeee/Thoughtful-Voice/releases)
+   - 下载最新版本的 `thoughtful-voice-v*.*.zip` 文件
+   - 解压 ZIP 文件到一个文件夹
 
-1. **下载扩展**
+2. **在 Chrome 中加载**
+   - 打开 Chrome 并访问 `chrome://extensions/`
+   - 启用右上角的**开发者模式**
+   - 点击**加载已解压的扩展程序**
+   - 选择解压后的文件夹
+   - 扩展图标应该会出现在工具栏中！
+
+### 方式二：Chrome 应用商店安装（即将推出）
+*扩展目前正在申请中！*
+
+### 方式三：从源码构建
+
+1. **克隆仓库**
    ```bash
    git clone https://github.com/NolanEYeee/Thoughtful-Voice.git
    cd Thoughtful-Voice
@@ -98,7 +92,7 @@ AI 语音输入和实时屏幕共享都有局限性：
 
 3. **构建扩展**
    ```bash
-   node build.js
+   npm run build
    ```
 
 4. **在 Chrome 中加载**
@@ -108,7 +102,6 @@ AI 语音输入和实时屏幕共享都有局限性：
    - 选择 `Thoughtful-Voice` 文件夹
    - 扩展图标应该会出现在工具栏中！
 
----
 
 ## 💼 使用场景
 
@@ -130,7 +123,6 @@ AI 语音输入和实时屏幕共享都有局限性：
 
 **示例：** 展示凌乱的下载文件夹，说明你希望按类型自动整理文件。
 
----
 
 ## 🛠️ 开发指南
 
@@ -183,14 +175,10 @@ node build.js
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 开启一个 Pull Request
 
----
-
 ## 🐛 已知问题
 
 - **WebM 时长**：使用 `fix-webm-duration` 库自动修复
 - **平台变化**：AI 平台可能会更新其 UI；我们会保持扩展同步更新
-
----
 
 ## 🗺️ 发展路线图
 
@@ -199,15 +187,11 @@ node build.js
 - [ ] 键盘快捷键
 - [ ] 多语言支持
 
----
-
 ## 📄 许可证
 
 本项目采用 **知识共享署名-非商业性使用-相同方式共享 4.0 国际许可协议** (CC BY-NC-SA 4.0)。
 
 你可以自由使用、分享和修改这个扩展，但**仅限于非商业用途**。详见 [LICENSE](LICENSE) 文件。
-
----
 
 ## 📧 联系方式
 
@@ -215,8 +199,6 @@ node build.js
 
 - GitHub: [@NolanEYeee](https://github.com/NolanEYeee)
 - 项目链接：[https://github.com/NolanEYeee/Thoughtful-Voice](https://github.com/NolanEYeee/Thoughtful-Voice)
-
----
 
 <div align="center">
 
