@@ -134,7 +134,6 @@ AI 语音输入和实时屏幕共享都有局限性：
 - **构建工具**：esbuild
 - **API**：MediaRecorder API、Chrome Extension API
 - **存储**：Chrome Storage API
-- **设计**：自定义 CSS，含玻璃态和复古美学
 
 ### 项目结构
 

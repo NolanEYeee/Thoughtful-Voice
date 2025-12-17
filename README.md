@@ -131,7 +131,6 @@ Explain a workflow by demonstrating it. Like explaining to a colleague, but the 
 - **Build Tool**: esbuild
 - **APIs**: MediaRecorder API, Chrome Extension API
 - **Storage**: Chrome Storage API
-- **Design**: Custom CSS with glassmorphism and retro aesthetics
 
 ### Project Structure
 

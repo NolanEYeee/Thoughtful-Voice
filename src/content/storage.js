@@ -12,22 +12,57 @@ export class StorageHelper {
         // metadata: { id, filename, durationString, timestamp, site }
         try {
             if (blob) {
+                console.log(`Converting blob to Base64... size: ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
                 metadata.audioData = await this.blobToBase64(blob);
+                console.log(`Base64 string length: ${(metadata.audioData.length / 1024 / 1024).toFixed(2)} MB`);
             }
+
+            // Get user settings for max recordings
+            const settingsResult = await chrome.storage.local.get(['settings']);
+            const settings = settingsResult.settings || {};
+            const maxRecordings = settings.maxRecordings || 10; // Default to 10
 
             const result = await chrome.storage.local.get(['recordings']);
             const recordings = result.recordings || [];
 
-            // Limit storage to last 20 items to avoid quota limits
-            if (recordings.length >= 20) {
-                recordings.pop();
+            // Limit storage based on user settings
+            while (recordings.length >= maxRecordings) {
+                recordings.pop(); // Remove oldest
             }
 
             recordings.unshift(metadata); // Add to top
-            await chrome.storage.local.set({ recordings });
-            console.log("Recording saved to storage");
+
+            // Try to save
+            try {
+                await chrome.storage.local.set({ recordings });
+                console.log("Recording saved to storage successfully");
+
+                // Log storage usage
+                if (chrome.storage.local.getBytesInUse) {
+                    chrome.storage.local.getBytesInUse(null, (bytesInUse) => {
+                        console.log(`Storage usage: ${(bytesInUse / 1024 / 1024).toFixed(2)} MB`);
+                    });
+                }
+            } catch (storageError) {
+                console.error("Storage quota exceeded or save failed:", storageError);
+
+                // If it's a quota error, try saving without the audio data
+                if (storageError.message && storageError.message.includes('QUOTA')) {
+                    console.warn("Attempting to save metadata only (without audio data)...");
+                    delete metadata.audioData;
+                    recordings[0] = metadata; // Update the first item
+                    await chrome.storage.local.set({ recordings });
+                    console.log("Saved metadata only (audio data was too large)");
+
+                    // Notify user
+                    console.warn("Recording was too large to save audio data. Only metadata was saved.");
+                } else {
+                    throw storageError;
+                }
+            }
         } catch (e) {
-            console.error("Failed to save recording", e);
+            console.error("Failed to save recording:", e);
+            console.error("Error details:", e.message, e.stack);
         }
     }
 

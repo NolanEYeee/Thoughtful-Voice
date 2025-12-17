@@ -17,6 +17,53 @@
   var require_popup = __commonJS({
     "src/popup/popup.js"() {
       init_storage();
+      function showConfirmModal(message, onConfirm, onCancel) {
+        let modal = document.getElementById("confirm-modal");
+        if (!modal) {
+          modal = document.createElement("div");
+          modal.id = "confirm-modal";
+          modal.innerHTML = `
+            <div class="confirm-backdrop"></div>
+            <div class="confirm-dialog">
+                <div class="confirm-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                    </svg>
+                </div>
+                <div class="confirm-message"></div>
+                <div class="confirm-buttons">
+                    <button class="confirm-btn cancel">Cancel</button>
+                    <button class="confirm-btn confirm">Confirm</button>
+                </div>
+            </div>
+        `;
+          document.body.appendChild(modal);
+        }
+        const messageEl = modal.querySelector(".confirm-message");
+        const confirmBtn = modal.querySelector(".confirm-btn.confirm");
+        const cancelBtn = modal.querySelector(".confirm-btn.cancel");
+        messageEl.textContent = message;
+        modal.classList.add("show");
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        const newCancelBtn = cancelBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+        cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+        const closeModal = () => {
+          modal.classList.remove("show");
+        };
+        newConfirmBtn.addEventListener("click", () => {
+          closeModal();
+          if (onConfirm) onConfirm();
+        });
+        newCancelBtn.addEventListener("click", () => {
+          closeModal();
+          if (onCancel) onCancel();
+        });
+        modal.querySelector(".confirm-backdrop").addEventListener("click", () => {
+          closeModal();
+          if (onCancel) onCancel();
+        });
+      }
       async function loadRecordings() {
         const result = await chrome.storage.local.get(["recordings"]);
         const recordings = result.recordings || [];
@@ -138,11 +185,20 @@
       function attachListeners(recordings) {
         document.querySelectorAll(".retro-btn.delete").forEach((btn) => {
           btn.onclick = async (e) => {
-            if (!confirm("Eject and destroy tape?")) return;
-            const idx = parseInt(e.target.dataset.index);
-            recordings.splice(idx, 1);
-            await chrome.storage.local.set({ recordings });
-            loadRecordings();
+            const button = e.target.closest(".retro-btn.delete");
+            if (!button) return;
+            const idx = parseInt(button.dataset.index);
+            if (isNaN(idx)) return;
+            showConfirmModal("Eject and destroy this tape?", async () => {
+              const card = button.closest(".tape-card, .crt-card");
+              if (card) {
+                card.classList.add("recording-deleting");
+                await new Promise((resolve) => setTimeout(resolve, 300));
+              }
+              recordings.splice(idx, 1);
+              await chrome.storage.local.set({ recordings });
+              loadRecordings();
+            });
           };
         });
         document.querySelectorAll(".play-btn").forEach((btn) => {
@@ -187,10 +243,12 @@
         const cancelBtn = document.getElementById("cancel-settings");
         const saveBtn = document.getElementById("save-settings");
         const resetBtn = document.getElementById("reset-settings");
+        const clearAllBtn = document.getElementById("clear-all-recordings");
         const promptInput = document.getElementById("prompt-text");
         const videoCodec = document.getElementById("video-codec");
         const videoResolution = document.getElementById("video-resolution");
         const audioSampleRate = document.getElementById("audio-sample-rate");
+        const maxRecordingsInput = document.getElementById("max-recordings");
         const videoBitrate = document.getElementById("video-bitrate");
         const videoFps = document.getElementById("video-fps");
         const videoTimeslice = document.getElementById("video-timeslice");
@@ -200,22 +258,34 @@
           const settings = result.settings || {};
           const defaults = {
             promptText: "Please answer based on this audio",
+            maxRecordings: 10,
             video: { codec: "vp9", resolution: "1080p", bitrate: 4e3, fps: 60, timeslice: 1e3 },
             audio: { sampleRate: 44100, bufferSize: 4096 }
           };
           const merged = {
             promptText: settings.promptText || defaults.promptText,
+            maxRecordings: settings.maxRecordings || defaults.maxRecordings,
             video: { ...defaults.video, ...settings.video || {} },
             audio: { ...defaults.audio, ...settings.audio || {} }
           };
           if (promptInput) promptInput.value = merged.promptText;
+          if (maxRecordingsInput) maxRecordingsInput.value = merged.maxRecordings;
           if (videoCodec) videoCodec.value = merged.video.codec;
           if (videoResolution) videoResolution.value = merged.video.resolution;
           if (audioSampleRate) audioSampleRate.value = merged.audio.sampleRate;
+          const bitrateValue = document.getElementById("bitrate-value");
+          if (bitrateValue && videoBitrate) {
+            videoBitrate.value = merged.video.bitrate;
+            bitrateValue.textContent = merged.video.bitrate;
+          }
+          if (videoFps) videoFps.value = merged.video.fps;
+          if (videoTimeslice) videoTimeslice.value = merged.video.timeslice;
+          if (audioBufferSize) audioBufferSize.value = merged.audio.bufferSize;
         }
         async function saveSettings() {
           const settings = {
             promptText: promptInput.value,
+            maxRecordings: parseInt(maxRecordingsInput?.value) || 10,
             video: {
               codec: videoCodec.value,
               resolution: videoResolution.value,
@@ -229,6 +299,16 @@
             }
           };
           await chrome.storage.local.set({ settings });
+          await applyMaxRecordingsLimit(settings.maxRecordings);
+        }
+        async function applyMaxRecordingsLimit(maxRecordings) {
+          const result = await chrome.storage.local.get(["recordings"]);
+          const recordings = result.recordings || [];
+          if (recordings.length > maxRecordings) {
+            const trimmedRecordings = recordings.slice(0, maxRecordings);
+            await chrome.storage.local.set({ recordings: trimmedRecordings });
+            loadRecordings();
+          }
         }
         function openModal(modal2) {
           modal2.style.display = "block";
@@ -261,11 +341,22 @@
           closeModal(modal);
         };
         if (resetBtn) resetBtn.onclick = async () => {
-          if (confirm("Reset system?")) {
+          showConfirmModal("Reset all settings to defaults?", async () => {
             await chrome.storage.local.remove(["settings"]);
             await loadSettings();
-          }
+          });
         };
+        if (clearAllBtn) {
+          clearAllBtn.onclick = () => {
+            showConfirmModal("\u26A0\uFE0F Delete ALL recordings? This cannot be undone!", () => {
+              showConfirmModal("Are you absolutely sure? All recordings will be permanently deleted!", async () => {
+                await chrome.storage.local.set({ recordings: [] });
+                loadRecordings();
+                closeModal(modal);
+              });
+            });
+          };
+        }
         window.onclick = (e) => {
           if (e.target == modal) closeModal(modal);
         };

@@ -680,27 +680,34 @@
             const settings = result.settings || {};
             const videoSettings = {
               codec: "vp9",
-              resolution: "720p",
-              bitrate: 2e3,
-              fps: 30,
+              resolution: "1080p",
+              bitrate: 4e3,
+              fps: 60,
               timeslice: 1e3,
               ...settings.video || {}
             };
             console.log("Video settings:", videoSettings);
             const resolutionPresets = {
+              "2160p": { width: 3840, height: 2160 },
+              // 4K Ultra HD
+              "1440p": { width: 2560, height: 1440 },
+              // 2K Quad HD
               "1080p": { width: 1920, height: 1080 },
+              // Full HD
               "720p": { width: 1280, height: 720 },
+              // HD
               "480p": { width: 854, height: 480 }
+              // SD
             };
-            const resolution = resolutionPresets[videoSettings.resolution] || resolutionPresets["720p"];
+            const resolution = resolutionPresets[videoSettings.resolution] || resolutionPresets["1080p"];
             this.stream = await navigator.mediaDevices.getDisplayMedia({
               video: {
                 displaySurface: "monitor",
                 logicalSurface: true,
                 cursor: "always",
-                width: { ideal: resolution.width, max: 1920 },
-                height: { ideal: resolution.height, max: 1080 },
-                frameRate: { ideal: videoSettings.fps, max: 60 }
+                width: { ideal: resolution.width },
+                height: { ideal: resolution.height },
+                frameRate: { ideal: videoSettings.fps, max: 120 }
               },
               audio: true
             });
@@ -1032,18 +1039,43 @@
         static async saveRecording(metadata, blob) {
           try {
             if (blob) {
+              console.log(`Converting blob to Base64... size: ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
               metadata.audioData = await this.blobToBase64(blob);
+              console.log(`Base64 string length: ${(metadata.audioData.length / 1024 / 1024).toFixed(2)} MB`);
             }
+            const settingsResult = await chrome.storage.local.get(["settings"]);
+            const settings = settingsResult.settings || {};
+            const maxRecordings = settings.maxRecordings || 10;
             const result = await chrome.storage.local.get(["recordings"]);
             const recordings = result.recordings || [];
-            if (recordings.length >= 20) {
+            while (recordings.length >= maxRecordings) {
               recordings.pop();
             }
             recordings.unshift(metadata);
-            await chrome.storage.local.set({ recordings });
-            console.log("Recording saved to storage");
+            try {
+              await chrome.storage.local.set({ recordings });
+              console.log("Recording saved to storage successfully");
+              if (chrome.storage.local.getBytesInUse) {
+                chrome.storage.local.getBytesInUse(null, (bytesInUse) => {
+                  console.log(`Storage usage: ${(bytesInUse / 1024 / 1024).toFixed(2)} MB`);
+                });
+              }
+            } catch (storageError) {
+              console.error("Storage quota exceeded or save failed:", storageError);
+              if (storageError.message && storageError.message.includes("QUOTA")) {
+                console.warn("Attempting to save metadata only (without audio data)...");
+                delete metadata.audioData;
+                recordings[0] = metadata;
+                await chrome.storage.local.set({ recordings });
+                console.log("Saved metadata only (audio data was too large)");
+                console.warn("Recording was too large to save audio data. Only metadata was saved.");
+              } else {
+                throw storageError;
+              }
+            }
           } catch (e) {
-            console.error("Failed to save recording", e);
+            console.error("Failed to save recording:", e);
+            console.error("Error details:", e.message, e.stack);
           }
         }
         static async getRecordings() {
