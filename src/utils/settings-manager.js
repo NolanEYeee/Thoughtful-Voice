@@ -11,9 +11,9 @@ export const DEFAULT_SETTINGS = {
     // Video settings (screen recording)
     video: {
         codec: 'vp9',           // 'vp9', 'vp8', 'h264'
-        resolution: '720p',     // '1080p', '720p', '480p'
-        bitrate: 2000,          // kbps
-        fps: 30,                // frames per second
+        resolution: '1080p',    // '2160p', '1440p', '1080p', '720p', '480p'
+        bitrate: 4000,          // kbps
+        fps: 60,                // frames per second
         timeslice: 1000         // ms - data collection interval
     },
 
@@ -26,9 +26,11 @@ export const DEFAULT_SETTINGS = {
 
 // Resolution presets
 export const RESOLUTION_PRESETS = {
-    '1080p': { width: 1920, height: 1080 },
-    '720p': { width: 1280, height: 720 },
-    '480p': { width: 854, height: 480 }
+    '2160p': { width: 3840, height: 2160 },  // 4K Ultra HD
+    '1440p': { width: 2560, height: 1440 },  // 2K Quad HD
+    '1080p': { width: 1920, height: 1080 },  // Full HD
+    '720p': { width: 1280, height: 720 },   // HD
+    '480p': { width: 854, height: 480 }     // SD
 };
 
 // Codec options
@@ -69,14 +71,14 @@ export async function resetSettings() {
  * @returns {Object} MediaTrackConstraints for getDisplayMedia
  */
 export function getVideoConstraints(videoSettings) {
-    const resolution = RESOLUTION_PRESETS[videoSettings.resolution] || RESOLUTION_PRESETS['720p'];
+    const resolution = RESOLUTION_PRESETS[videoSettings.resolution] || RESOLUTION_PRESETS['1080p'];
     return {
         displaySurface: "monitor",
         logicalSurface: true,
         cursor: "always",
-        width: { ideal: resolution.width, max: 1920 },
-        height: { ideal: resolution.height, max: 1080 },
-        frameRate: { ideal: videoSettings.fps, max: 60 }
+        width: { ideal: resolution.width },
+        height: { ideal: resolution.height },
+        frameRate: { ideal: videoSettings.fps, max: 120 }
     };
 }
 

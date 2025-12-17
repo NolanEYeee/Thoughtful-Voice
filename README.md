@@ -46,7 +46,7 @@ This extension lets you record audio and screen content, then submit it as a com
 | Feature | Description |
 |---------|-------------|
 | 🎤 Voice Recording | WAV format, adjustable bitrate, auto-upload, custom prompts |
-| 📹 Screen Recording | Up to 1080p@60FPS, adjustable bitrate, auto-fix duration metadata |
+| 📹 Screen Recording | Up to 4K@120FPS, adjustable bitrate, auto-fix duration metadata |
 | 🎨 Retro UI | 80s Walkman style, cassette/CRT design, browse by date & platform |
 | ⚙️ Customization | Video/audio quality settings, default prompts, auto-save preferences |
 
@@ -54,8 +54,10 @@ This extension lets you record audio and screen content, then submit it as a com
 
 | Platform | Domain | Status |
 |----------|--------|--------|
-| Gemini | gemini.google.com | ✅ Supported |
+| Gemini ⭐ | gemini.google.com | ✅ Supported (Recommended) |
 | ChatGPT | chatgpt.com, chat.openai.com | ✅ Supported |
+
+**⭐ Recommended for Gemini**: Gemini natively supports ultra-long contexts, multimodal input (audio + video), and is very generous with context, making it difficult to reach limits.
 
 ## 🚀 Installation
 

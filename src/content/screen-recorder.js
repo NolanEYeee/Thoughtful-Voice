@@ -23,9 +23,9 @@ export class ScreenRecorder {
             // Apply defaults
             const videoSettings = {
                 codec: 'vp9',
-                resolution: '720p',
-                bitrate: 2000,
-                fps: 30,
+                resolution: '1080p',
+                bitrate: 4000,
+                fps: 60,
                 timeslice: 1000,
                 ...(settings.video || {})
             };
@@ -34,12 +34,14 @@ export class ScreenRecorder {
 
             // Resolution presets
             const resolutionPresets = {
-                '1080p': { width: 1920, height: 1080 },
-                '720p': { width: 1280, height: 720 },
-                '480p': { width: 854, height: 480 }
+                '2160p': { width: 3840, height: 2160 },  // 4K Ultra HD
+                '1440p': { width: 2560, height: 1440 },  // 2K Quad HD
+                '1080p': { width: 1920, height: 1080 },  // Full HD
+                '720p': { width: 1280, height: 720 },   // HD
+                '480p': { width: 854, height: 480 }     // SD
             };
 
-            const resolution = resolutionPresets[videoSettings.resolution] || resolutionPresets['720p'];
+            const resolution = resolutionPresets[videoSettings.resolution] || resolutionPresets['1080p'];
 
             // Request screen capture with audio
             this.stream = await navigator.mediaDevices.getDisplayMedia({
@@ -47,9 +49,9 @@ export class ScreenRecorder {
                     displaySurface: "monitor",
                     logicalSurface: true,
                     cursor: "always",
-                    width: { ideal: resolution.width, max: 1920 },
-                    height: { ideal: resolution.height, max: 1080 },
-                    frameRate: { ideal: videoSettings.fps, max: 60 }
+                    width: { ideal: resolution.width },
+                    height: { ideal: resolution.height },
+                    frameRate: { ideal: videoSettings.fps, max: 120 }
                 },
                 audio: true
             });
