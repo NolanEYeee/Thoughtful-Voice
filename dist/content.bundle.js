@@ -741,7 +741,13 @@
               timeslice: 1e3,
               ...settings.video || {}
             };
+            const audioSettings = {
+              systemAudioEnabled: true,
+              // Default: record system audio
+              ...settings.audio || {}
+            };
             console.log("Video settings:", videoSettings);
+            console.log("Audio settings:", audioSettings);
             const resolutionPresets = {
               "2160p": { width: 3840, height: 2160 },
               // 4K Ultra HD
@@ -755,7 +761,7 @@
               // SD
             };
             const resolution = resolutionPresets[videoSettings.resolution] || resolutionPresets["1080p"];
-            this.stream = await navigator.mediaDevices.getDisplayMedia({
+            const displayMediaOptions = {
               video: {
                 displaySurface: "monitor",
                 logicalSurface: true,
@@ -764,8 +770,22 @@
                 height: { ideal: resolution.height },
                 frameRate: { ideal: videoSettings.fps, max: 120 }
               },
-              audio: true
-            });
+              audio: audioSettings.systemAudioEnabled ? {
+                // Chrome 105+ supports systemAudio hint
+                // This tells the browser to show the "Share system audio" option
+                suppressLocalAudioPlayback: false
+              } : false,
+              // Chrome 105+: Hint to include system audio in the sharing dialog
+              systemAudio: audioSettings.systemAudioEnabled ? "include" : "exclude",
+              // Prefer current tab for easier audio capture
+              preferCurrentTab: false,
+              // Allow user to select any surface
+              selfBrowserSurface: "include",
+              surfaceSwitching: "include",
+              monitorTypeSurfaces: "include"
+            };
+            console.log("getDisplayMedia options:", displayMediaOptions);
+            this.stream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
             try {
               this.micStream = await navigator.mediaDevices.getUserMedia({
                 audio: {
@@ -779,12 +799,24 @@
             }
             this.audioContext = new AudioContext();
             const audioDestination = this.audioContext.createMediaStreamDestination();
-            const screenAudioTrack = this.stream.getAudioTracks()[0];
-            if (screenAudioTrack) {
-              const screenSource = this.audioContext.createMediaStreamSource(
-                new MediaStream([screenAudioTrack])
-              );
-              screenSource.connect(audioDestination);
+            const screenAudioTracks = this.stream.getAudioTracks();
+            console.log(`Screen capture audio tracks: ${screenAudioTracks.length}`);
+            if (audioSettings.systemAudioEnabled) {
+              if (screenAudioTracks.length > 0) {
+                const screenAudioTrack = screenAudioTracks[0];
+                const screenSource = this.audioContext.createMediaStreamSource(
+                  new MediaStream([screenAudioTrack])
+                );
+                screenSource.connect(audioDestination);
+                console.log("\u2705 System audio: ENABLED and connected");
+                console.log(`   Track label: ${screenAudioTrack.label}`);
+              } else {
+                console.warn("\u26A0\uFE0F System audio was requested but not available!");
+                console.warn("   Make sure to check 'Share audio' in the screen sharing dialog");
+                console.warn("   Note: Audio sharing only works when sharing a tab or entire screen, not a window");
+              }
+            } else {
+              console.log("\u2139\uFE0F System audio: DISABLED by user setting");
             }
             if (this.micStream) {
               const micAudioTrack = this.micStream.getAudioTracks()[0];

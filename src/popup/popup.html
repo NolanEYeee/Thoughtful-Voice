@@ -807,6 +807,28 @@
             animation: modalSlideOut 0.2s ease-in;
         }
 
+        /* Toggle Switch */
+        .toggle-switch input:checked+.toggle-slider {
+            background-color: #76ff03;
+        }
+
+        .toggle-switch input:checked+.toggle-slider::before {
+            transform: translateX(20px);
+        }
+
+        .toggle-slider::before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
         /* Custom Confirmation Modal */
         #confirm-modal {
             position: fixed;

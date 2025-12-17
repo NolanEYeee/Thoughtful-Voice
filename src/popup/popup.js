@@ -365,6 +365,7 @@ async function setupSettings() {
     const videoFps = document.getElementById('video-fps');
     const videoTimeslice = document.getElementById('video-timeslice');
     const audioBufferSize = document.getElementById('audio-buffer-size');
+    const systemAudioEnabled = document.getElementById('system-audio-enabled');
 
     async function loadSettings() {
         const result = await chrome.storage.local.get(['settings']);
@@ -373,7 +374,7 @@ async function setupSettings() {
             promptText: "Please answer based on this audio",
             maxRecordings: 10,
             video: { codec: 'vp9', resolution: '1080p', bitrate: 4000, fps: 60, timeslice: 1000 },
-            audio: { sampleRate: 44100, bufferSize: 4096 }
+            audio: { sampleRate: 44100, bufferSize: 4096, systemAudioEnabled: true }
         };
         const merged = {
             promptText: settings.promptText || defaults.promptText,
@@ -397,6 +398,7 @@ async function setupSettings() {
         if (videoFps) videoFps.value = merged.video.fps;
         if (videoTimeslice) videoTimeslice.value = merged.video.timeslice;
         if (audioBufferSize) audioBufferSize.value = merged.audio.bufferSize;
+        if (systemAudioEnabled) systemAudioEnabled.checked = merged.audio.systemAudioEnabled !== false;
     }
 
     async function saveSettings() {
@@ -412,7 +414,8 @@ async function setupSettings() {
             },
             audio: {
                 sampleRate: parseInt(audioSampleRate.value),
-                bufferSize: parseInt(audioBufferSize.value)
+                bufferSize: parseInt(audioBufferSize.value),
+                systemAudioEnabled: systemAudioEnabled?.checked !== false
             }
         };
         await chrome.storage.local.set({ settings });

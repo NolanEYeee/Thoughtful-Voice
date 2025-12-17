@@ -133,6 +133,23 @@
                     </h3>
                 </div>
 
+                <!-- System Audio Toggle -->
+                <div
+                    style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #1a1a1c; border-radius: 6px; border: 1px solid #333;">
+                    <div>
+                        <label style="font-size: 11px; color: #ddd; font-weight: bold;">Record System Audio</label>
+                        <div style="font-size: 9px; color: #888; margin-top: 2px;">Capture sounds from your computer
+                            (music, videos, etc.)</div>
+                    </div>
+                    <label class="toggle-switch"
+                        style="position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0;">
+                        <input type="checkbox" id="system-audio-enabled" checked
+                            style="opacity: 0; width: 0; height: 0;">
+                        <span class="toggle-slider"
+                            style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: 0.3s; border-radius: 24px;"></span>
+                    </label>
+                </div>
+
                 <div style="margin-bottom: 15px;">
                     <label
                         style="display: block; font-size: 10px; color: #999; margin-bottom: 6px; text-transform: uppercase;">Sample

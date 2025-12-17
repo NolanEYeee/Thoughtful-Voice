@@ -46,7 +46,13 @@ export class ScreenRecorder {
                 ...(settings.video || {})
             };
 
+            const audioSettings = {
+                systemAudioEnabled: true,  // Default: record system audio
+                ...(settings.audio || {})
+            };
+
             console.log('Video settings:', videoSettings);
+            console.log('Audio settings:', audioSettings);
 
             // Resolution presets
             const resolutionPresets = {
@@ -59,8 +65,9 @@ export class ScreenRecorder {
 
             const resolution = resolutionPresets[videoSettings.resolution] || resolutionPresets['1080p'];
 
-            // Request screen capture with audio
-            this.stream = await navigator.mediaDevices.getDisplayMedia({
+            // Request screen capture with audio (system audio)
+            // Use systemAudio: 'include' to hint Chrome to show audio sharing option
+            const displayMediaOptions = {
                 video: {
                     displaySurface: "monitor",
                     logicalSurface: true,
@@ -69,8 +76,23 @@ export class ScreenRecorder {
                     height: { ideal: resolution.height },
                     frameRate: { ideal: videoSettings.fps, max: 120 }
                 },
-                audio: true
-            });
+                audio: audioSettings.systemAudioEnabled ? {
+                    // Chrome 105+ supports systemAudio hint
+                    // This tells the browser to show the "Share system audio" option
+                    suppressLocalAudioPlayback: false
+                } : false,
+                // Chrome 105+: Hint to include system audio in the sharing dialog
+                systemAudio: audioSettings.systemAudioEnabled ? 'include' : 'exclude',
+                // Prefer current tab for easier audio capture
+                preferCurrentTab: false,
+                // Allow user to select any surface
+                selfBrowserSurface: 'include',
+                surfaceSwitching: 'include',
+                monitorTypeSurfaces: 'include'
+            };
+
+            console.log("getDisplayMedia options:", displayMediaOptions);
+            this.stream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
 
             // Also request microphone audio
             try {
@@ -89,13 +111,27 @@ export class ScreenRecorder {
             this.audioContext = new AudioContext();
             const audioDestination = this.audioContext.createMediaStreamDestination();
 
-            // Add screen audio if available
-            const screenAudioTrack = this.stream.getAudioTracks()[0];
-            if (screenAudioTrack) {
-                const screenSource = this.audioContext.createMediaStreamSource(
-                    new MediaStream([screenAudioTrack])
-                );
-                screenSource.connect(audioDestination);
+            // Check what audio tracks we have from screen capture
+            const screenAudioTracks = this.stream.getAudioTracks();
+            console.log(`Screen capture audio tracks: ${screenAudioTracks.length}`);
+
+            // Add screen audio if available and enabled
+            if (audioSettings.systemAudioEnabled) {
+                if (screenAudioTracks.length > 0) {
+                    const screenAudioTrack = screenAudioTracks[0];
+                    const screenSource = this.audioContext.createMediaStreamSource(
+                        new MediaStream([screenAudioTrack])
+                    );
+                    screenSource.connect(audioDestination);
+                    console.log("✅ System audio: ENABLED and connected");
+                    console.log(`   Track label: ${screenAudioTrack.label}`);
+                } else {
+                    console.warn("⚠️ System audio was requested but not available!");
+                    console.warn("   Make sure to check 'Share audio' in the screen sharing dialog");
+                    console.warn("   Note: Audio sharing only works when sharing a tab or entire screen, not a window");
+                }
+            } else {
+                console.log("ℹ️ System audio: DISABLED by user setting");
             }
 
             // Add microphone audio with gain control
