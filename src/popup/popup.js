@@ -1,4 +1,5 @@
 import { StorageHelper } from '../content/storage.js';
+import { AchievementSystem } from './achievements.js';
 
 // Initial data fetch ASAP
 const initialDataPromise = chrome.storage.local.get(['recordings', 'settings']);
@@ -64,46 +65,44 @@ window.addEventListener('blur', () => {
     updateShiftKeyFeedback();
 });
 
-// Custom Confirmation Modal System
+// Custom Confirmation Modal System (Industrial Style)
 function showConfirmModal(message, onConfirm, onCancel) {
-    // Create modal if not exists
     let modal = document.getElementById('confirm-modal');
     if (!modal) {
         modal = document.createElement('div');
         modal.id = 'confirm-modal';
+        modal.className = 'modal-container';
         modal.innerHTML = `
-            <div class="confirm-backdrop"></div>
-            <div class="confirm-dialog">
-                <div class="confirm-icon">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-                    </svg>
+            <div class="modal-box" style="max-width: 320px; top: 20%;">
+                <div class="modal-hero" style="padding: 20px;">
+                    <div class="confirm-icon" style="color: #ff6b00; margin-bottom: 10px;">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                        </svg>
+                    </div>
+                    <h2 style="font-size: 14px; color: #eee; letter-spacing: 1px;">CONFIRM ACTION</h2>
                 </div>
-                <div class="confirm-message"></div>
-                <div class="confirm-buttons">
-                    <button class="confirm-btn cancel">Cancel</button>
-                    <button class="confirm-btn confirm">Confirm</button>
+                <div class="modal-body" style="padding: 20px; text-align: center;">
+                    <div class="confirm-message" style="color: #999; font-size: 11px; line-height: 1.6; margin-bottom: 20px;"></div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="retro-btn cancel" style="flex: 1; height: 36px;">NO, CANCEL</button>
+                        <button class="retro-btn primary confirm" style="flex: 1; height: 36px;">YES, EJECT</button>
+                    </div>
                 </div>
             </div>
         `;
         document.body.appendChild(modal);
-        // Force reflow after creation to ensure animation works on first show
-        void modal.offsetHeight;
     }
 
     const messageEl = modal.querySelector('.confirm-message');
-    const confirmBtn = modal.querySelector('.confirm-btn.confirm');
-    const cancelBtn = modal.querySelector('.confirm-btn.cancel');
+    const confirmBtn = modal.querySelector('.confirm');
+    const cancelBtn = modal.querySelector('.cancel');
 
     messageEl.textContent = message;
 
-    // Use requestAnimationFrame to ensure the browser has painted the initial state
-    // This fixes the first-time animation issue
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-            modal.classList.add('show');
-        });
-    });
+    // Show modal with animation
+    modal.classList.add('active');
+    modal.classList.remove('hiding');
 
     // Clean up previous listeners
     const newConfirmBtn = confirmBtn.cloneNode(true);
@@ -112,7 +111,11 @@ function showConfirmModal(message, onConfirm, onCancel) {
     cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
 
     const closeModal = () => {
-        modal.classList.remove('show');
+        modal.classList.add('hiding');
+        setTimeout(() => {
+            modal.classList.remove('active');
+            modal.classList.remove('hiding');
+        }, 300);
     };
 
     newConfirmBtn.addEventListener('click', () => {
@@ -125,9 +128,11 @@ function showConfirmModal(message, onConfirm, onCancel) {
         if (onCancel) onCancel();
     });
 
-    modal.querySelector('.confirm-backdrop').addEventListener('click', () => {
-        closeModal();
-        if (onCancel) onCancel();
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal();
+            if (onCancel) onCancel();
+        }
     });
 }
 
@@ -518,6 +523,9 @@ function attachListeners(recordings) {
 document.addEventListener('DOMContentLoaded', () => {
     // Stage 1: Absolute Priority - Load data and show first item
     loadRecordings().then(() => {
+        // Initialize achievements
+        const achievements = new AchievementSystem();
+
         // Stage 2: Secondary Priority - Init settings and listeners in next frame
         requestAnimationFrame(() => {
             setupSettings();
@@ -642,27 +650,18 @@ async function setupSettings() {
     }
 
 
-    // Helper functions for modal animation
+    // Helper functions for modal animation (Class-based for CSS Keyframes)
     function openModal(modal) {
-        modal.style.display = 'block';
-        modal.style.opacity = '0';
-        // Force reflow to ensure transition works
-        void modal.offsetHeight;
-        requestAnimationFrame(() => {
-            modal.classList.remove('modal-closing');
-            modal.classList.add('modal-opening');
-            modal.style.opacity = '1';
-        });
+        modal.classList.add('active');
+        modal.classList.remove('hiding');
     }
 
     function closeModal(modal) {
-        modal.classList.remove('modal-opening');
-        modal.classList.add('modal-closing');
-        modal.style.opacity = '0';
+        modal.classList.add('hiding');
         setTimeout(() => {
-            modal.style.display = 'none';
-            modal.classList.remove('modal-closing');
-        }, 300); // Match the longest animation duration (modalSlideOut is 0.3s)
+            modal.classList.remove('active');
+            modal.classList.remove('hiding');
+        }, 300); // Wait for contentPopOut and modalFadeOut
     }
 
     if (settingsBtn) settingsBtn.onclick = async () => { await loadSettings(); openModal(modal); };

@@ -22,8 +22,18 @@ export class StorageHelper {
             const settings = settingsResult.settings || {};
             const maxRecordings = settings.maxRecordings || 10; // Default to 10
 
-            const result = await chrome.storage.local.get(['recordings']);
+            // 2. Save to History
+            const result = await chrome.storage.local.get(['recordings', 'stats']);
             const recordings = result.recordings || [];
+            const stats = result.stats || { lifetimeAudioMs: 0, lifetimeVideoMs: 0, totalRecordings: 0 };
+
+            // Update lifetime stats
+            if (metadata.type === 'audio') {
+                stats.lifetimeAudioMs = (stats.lifetimeAudioMs || 0) + (metadata.durationMs || 0);
+            } else if (metadata.type === 'video') {
+                stats.lifetimeVideoMs = (stats.lifetimeVideoMs || 0) + (metadata.durationMs || 0);
+            }
+            stats.totalRecordings = (stats.totalRecordings || 0) + 1;
 
             // Limit storage based on user settings
             while (recordings.length >= maxRecordings) {
@@ -34,8 +44,8 @@ export class StorageHelper {
 
             // Try to save
             try {
-                await chrome.storage.local.set({ recordings });
-                console.log("Recording saved to storage successfully");
+                await chrome.storage.local.set({ recordings, stats });
+                console.log("Recording and stats saved to storage successfully");
 
                 // Log storage usage
                 if (chrome.storage.local.getBytesInUse) {

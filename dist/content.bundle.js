@@ -1421,15 +1421,22 @@
             const settingsResult = await chrome.storage.local.get(["settings"]);
             const settings = settingsResult.settings || {};
             const maxRecordings = settings.maxRecordings || 10;
-            const result = await chrome.storage.local.get(["recordings"]);
+            const result = await chrome.storage.local.get(["recordings", "stats"]);
             const recordings = result.recordings || [];
+            const stats = result.stats || { lifetimeAudioMs: 0, lifetimeVideoMs: 0, totalRecordings: 0 };
+            if (metadata.type === "audio") {
+              stats.lifetimeAudioMs = (stats.lifetimeAudioMs || 0) + (metadata.durationMs || 0);
+            } else if (metadata.type === "video") {
+              stats.lifetimeVideoMs = (stats.lifetimeVideoMs || 0) + (metadata.durationMs || 0);
+            }
+            stats.totalRecordings = (stats.totalRecordings || 0) + 1;
             while (recordings.length >= maxRecordings) {
               recordings.pop();
             }
             recordings.unshift(metadata);
             try {
-              await chrome.storage.local.set({ recordings });
-              console.log("Recording saved to storage successfully");
+              await chrome.storage.local.set({ recordings, stats });
+              console.log("Recording and stats saved to storage successfully");
               if (chrome.storage.local.getBytesInUse) {
                 chrome.storage.local.getBytesInUse(null, (bytesInUse) => {
                   console.log(`Storage usage: ${(bytesInUse / 1024 / 1024).toFixed(2)} MB`);
@@ -2222,6 +2229,7 @@
             site: strategy.name,
             url: recordingUrl,
             durationString: `${m}:${s}`,
+            durationMs: duration,
             filename: generateAudioFilename()
           }, blob);
           startUrlWatcher(timestamp);
@@ -2240,6 +2248,7 @@
             site: strategy.name,
             url: recordingUrl,
             durationString: `${m}:${s}`,
+            durationMs: result.duration,
             filename: `video_recording_${Date.now()}.webm`,
             format: result.format
           }, result.blob);

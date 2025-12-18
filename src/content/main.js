@@ -101,6 +101,7 @@ async function init() {
             site: strategy.name,
             url: recordingUrl,
             durationString: `${m}:${s}`,
+            durationMs: duration,
             filename: generateAudioFilename()
         }, blob);
 
@@ -133,6 +134,7 @@ async function init() {
             site: strategy.name,
             url: recordingUrl,
             durationString: `${m}:${s}`,
+            durationMs: result.duration,
             filename: `video_recording_${Date.now()}.webm`,
             format: result.format
         }, result.blob);

@@ -56,13 +56,16 @@
 
         /* Header / Branding Plate */
         .brand-plate {
-            background: #111;
+            background: linear-gradient(180deg, #18181a 0%, #0a0a0c 100%);
             border-bottom: 1px solid #333;
-            padding: 12px 18px;
+            padding: 8px 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            flex-wrap: nowrap;
+            overflow: hidden;
+            box-sizing: border-box;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
             z-index: 10;
             position: relative;
         }
@@ -80,14 +83,18 @@
 
         .brand-logo {
             font-family: 'Arial Black', sans-serif;
-            font-size: 18px;
-            letter-spacing: -0.5px;
+            font-size: 17px;
+            letter-spacing: -0.8px;
             color: #fff;
             text-transform: uppercase;
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 4px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            padding-right: 5px;
+            /* Room for translateX(2px) animation */
         }
 
         .brand-logo a {
@@ -117,21 +124,15 @@
             transform: scale(1.1) rotate(5deg);
         }
 
-        .brand-model {
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 10px;
-            color: #333;
-            background: var(--walkman-accent);
-            padding: 2px 6px;
-            border-radius: 2px;
-            font-weight: bold;
-            box-shadow: 0 0 5px rgba(255, 107, 0, 0.4);
-        }
-
         .top-controls {
             display: flex;
-            gap: 15px;
+            gap: 4px;
+            /* Minimized gap to fit big logo */
             align-items: center;
+            flex-shrink: 0;
+            /* Keep buttons together */
+            justify-content: flex-end;
+            margin-left: auto;
         }
 
         .icon-btn {
@@ -163,13 +164,30 @@
         /* Content List */
         .content-scroll {
             width: 400px;
-            height: 540px;
-            /* Brand plate is ~60px */
             flex: 1;
+            /* Filled by flex-grow */
             overflow-y: scroll !important;
             padding: 20px;
             box-sizing: border-box;
             background: #1a1a1c;
+        }
+
+        /* Retro Orange Scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0a0c;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--walkman-accent);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff8c00;
         }
 
         /* Recording Group */
@@ -184,10 +202,13 @@
             border-radius: 6px;
             margin-bottom: 25px;
             position: relative;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            box-shadow:
+                0 10px 25px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.2);
             font-family: 'Arial Narrow', sans-serif;
             overflow: hidden;
-            border: 1px solid #bbb;
+            border: 1px solid #c0b8a0;
             cursor: pointer;
 
             /* Performance: GPU Promotion */
@@ -197,7 +218,7 @@
             /* Reveal State Initialization */
             opacity: 0;
             transform: translateY(15px) translateZ(0);
-            transition: opacity 0.4s ease-out, transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            transition: opacity 0.4s ease-out, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         .tape-card:hover {
@@ -631,153 +652,148 @@
             }
         }
 
-        /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #111;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #444;
-            border-radius: 2px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--walkman-accent);
-        }
-
-        /* Settings Modal Content */
-        #settings-modal {
-            backdrop-filter: blur(4px);
-        }
-
-        .settings-content {
-            background: linear-gradient(180deg, #2a2a2e 0%, #1e1e20 100%);
-            border: 2px solid #444;
-            color: #ddd;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-        }
-
-        .settings-header {
-            background: linear-gradient(135deg, #ff6b00 0%, #e65100 100%);
-            color: #fff;
-            border-bottom: none;
-            border-radius: 4px 4px 0 0;
-            padding: 20px !important;
-            margin: -25px -25px 20px -25px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 4px 12px rgba(255, 107, 0, 0.3);
-        }
-
-        .settings-header::before {
-            content: '';
-            position: absolute;
+        /* === INDUSTRIAL MODAL SYSTEM === */
+        .modal-container {
+            display: none;
+            position: fixed;
             top: 0;
             left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.15), transparent);
-            pointer-events: none;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 200;
+            backdrop-filter: blur(5px);
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
         }
 
-        .settings-header h2 {
+        .modal-container.active {
+            display: block !important;
+            animation: modalFadeIn 0.15s ease-out forwards;
+        }
+
+        .modal-container.hiding {
+            display: block !important;
+            animation: modalFadeOut 0.15s ease-in forwards;
+        }
+
+        .modal-box {
+            background: #121214;
+            border: 1px solid #333;
+            box-shadow: 0 50px 100px rgba(0, 0, 0, 0.95);
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 0 auto;
+            max-width: 380px;
+            transform: scale(0.6) translateY(30px);
+            opacity: 0;
+        }
+
+        .modal-container.active .modal-box {
+            animation: contentPopIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .modal-container.hiding .modal-box {
+            animation: contentPopOut 0.1s ease-in forwards;
+        }
+
+        .modal-hero {
+            background: #0a0a0c;
+            border-bottom: 2px solid #222;
+            padding: 30px 20px;
             position: relative;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
         }
 
-        .settings-group {
-            background: #252528;
+        .modal-hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(circle, #222 1px, transparent 1px);
+            background-size: 6px 6px;
+            opacity: 0.4;
+        }
+
+        .modal-hero h2 {
+            margin: 0;
+            color: #c0b8a0;
+            font-family: 'Arial Black', sans-serif;
+            font-size: 16px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 2;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-body {
+            padding: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .settings-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 8px;
-            padding: 15px !important;
-            margin-bottom: 20px !important;
-            border: 1px solid #3a3a3d !important;
+            padding: 15px;
+            margin-bottom: 20px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
-        .settings-group h3 {
+        .settings-label {
             display: flex;
             align-items: center;
-            gap: 10px;
-        }
-
-        .settings-group h3::before {
-            content: '';
-            width: 4px;
-            height: 16px;
-            border-radius: 2px;
-        }
-
-        .settings-group:has(h3:contains("VIDEO")) h3::before {
-            background: #4a90e2;
-        }
-
-        .settings-group:has(h3:contains("AUDIO")) h3::before {
-            background: #76ff03;
-        }
-
-        .settings-label {
-            color: #999 !important;
+            gap: 8px;
+            font-size: 9px;
+            color: #c0b8a0;
             text-transform: uppercase;
-            font-size: 10px !important;
-            letter-spacing: 0.5px;
+            letter-spacing: 1.5px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            opacity: 0.9;
         }
 
-        select,
-        input[type="text"],
-        textarea {
-            background: #1a1a1c !important;
-            border: 1px solid #444 !important;
-            color: #ddd !important;
-            border-radius: 6px !important;
-            padding: 10px 12px !important;
-            transition: all 0.3s;
+        .settings-label::before {
+            content: '';
+            width: 3px;
+            height: 12px;
+            background: var(--walkman-accent);
+            border-radius: 1px;
         }
 
-        select:focus,
-        input[type="text"]:focus,
-        textarea:focus {
-            border-color: #ff6b00 !important;
-            box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.1) !important;
-            outline: none !important;
+        .settings-input {
+            width: 100%;
+            display: block;
+            box-sizing: border-box;
+            padding: 10px;
+            font-size: 11px;
+            background: #1a1a1c;
+            border: 1px solid #444;
+            color: #eee;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-family: inherit;
         }
 
-        /* Range Slider Styling */
-        input[type="range"] {
-            appearance: none;
-            -webkit-appearance: none;
-            height: 6px !important;
-            background: linear-gradient(to right, #444 0%, #4a90e2 20%, #444 100%);
-            border-radius: 3px;
-            outline: none;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
-            background: #4a90e2;
-            cursor: pointer;
-            border-radius: 50%;
-            box-shadow: 0 2px 6px rgba(74, 144, 226, 0.5);
-        }
-
-        input[type="range"]::-webkit-slider-thumb:hover {
-            background: #5ba3ff;
-            box-shadow: 0 3px 8px rgba(74, 144, 226, 0.7);
-        }
-
-        /* Settings Input Focus States - Prevents Flashing */
         .settings-input:focus {
-            border-color: #ff6b00 !important;
-            box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.1) !important;
-            outline: none !important;
+            outline: none;
+            border-color: var(--walkman-accent);
+            background: #222;
         }
 
-        /* Settings Modal Animations */
+        .input-hint {
+            font-size: 9px;
+            color: #555;
+            margin-top: 6px;
+            display: block;
+        }
+
         @keyframes modalFadeIn {
             from {
                 opacity: 0;
@@ -785,18 +801,6 @@
 
             to {
                 opacity: 1;
-            }
-        }
-
-        @keyframes modalSlideIn {
-            from {
-                opacity: 0;
-                transform: scale(0.9) translateY(-20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: scale(1) translateY(0);
             }
         }
 
@@ -808,6 +812,57 @@
             to {
                 opacity: 0;
             }
+        }
+
+        @keyframes contentPopIn {
+            from {
+                opacity: 0;
+                transform: scale(0.6) translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        @keyframes contentPopOut {
+            from {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+
+            to {
+                opacity: 0;
+                transform: scale(0.8) translateY(20px);
+            }
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--walkman-accent);
+        }
+
+        /* Settings Modal Animations - Handled by unified system */
+        .video-slider {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            outline: none;
+            margin: 10px 0;
+        }
+
+        .video-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--walkman-accent);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 107, 0, 0.4);
+            border: 2px solid #fff;
         }
 
         @keyframes modalSlideOut {
@@ -859,114 +914,6 @@
             transition: 0.3s;
             border-radius: 50%;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        /* Custom Confirmation Modal */
-        #confirm-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 200;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.2s, visibility 0.2s;
-        }
-
-        #confirm-modal.show {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        #confirm-modal .confirm-backdrop {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(4px);
-        }
-
-        #confirm-modal .confirm-dialog {
-            position: relative;
-            background: linear-gradient(180deg, #2d2d30 0%, #1e1e20 100%);
-            border: 1px solid #444;
-            border-radius: 12px;
-            padding: 25px;
-            max-width: 320px;
-            width: 90%;
-            text-align: center;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.05);
-            transform: scale(0.9);
-            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
-        #confirm-modal.show .confirm-dialog {
-            transform: scale(1);
-        }
-
-        #confirm-modal .confirm-icon {
-            color: #ff6b00;
-            margin-bottom: 15px;
-        }
-
-        #confirm-modal .confirm-icon svg {
-            filter: drop-shadow(0 0 10px rgba(255, 107, 0, 0.5));
-        }
-
-        #confirm-modal .confirm-message {
-            color: #ddd;
-            font-size: 14px;
-            line-height: 1.5;
-            margin-bottom: 25px;
-            font-family: 'Helvetica Neue', sans-serif;
-        }
-
-        #confirm-modal .confirm-buttons {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-        }
-
-        #confirm-modal .confirm-btn {
-            padding: 10px 24px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: none;
-        }
-
-        #confirm-modal .confirm-btn.cancel {
-            background: linear-gradient(to bottom, #555, #333);
-            color: #ddd;
-            box-shadow: 0 3px 0 #222;
-        }
-
-        #confirm-modal .confirm-btn.cancel:hover {
-            background: linear-gradient(to bottom, #666, #444);
-        }
-
-        #confirm-modal .confirm-btn.confirm {
-            background: linear-gradient(to bottom, #ff8c00, #e65100);
-            color: #fff;
-            box-shadow: 0 3px 0 #872800;
-        }
-
-        #confirm-modal .confirm-btn.confirm:hover {
-            background: linear-gradient(to bottom, #ffa333, #ff6b00);
-        }
-
-        #confirm-modal .confirm-btn:active {
-            transform: translateY(3px);
-            box-shadow: none;
         }
 
         /* Hide number input spinners */
@@ -1065,6 +1012,7 @@
 
         /* Scroll reveal transitions are handled by .revealed class */
     </style>
+    <link rel="stylesheet" href="achievements.css">
 </head>
 
 <body>
@@ -1083,7 +1031,15 @@
                 </a>
             </div>
             <div class="top-controls">
-                <span class="brand-model">WM-2025</span>
+                <div id="achievement-trigger" class="achievement-badge" title="View Records & Achievements">
+                    <div class="badge-icon">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                    </div>
+                    <span class="badge-text" id="badge-rank-text">STUDIO-GENIUS</span>
+                </div>
                 <a href="https://github.com/NolanEYeee/Thoughtful-Voice" target="_blank" class="icon-btn"
                     title="GitHub">
                     <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
@@ -1114,203 +1070,147 @@
     </div>
 
     <!-- Retro Settings Modal -->
-    <div id="settings-modal"
-        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 100; overflow-y:auto; backdrop-filter: blur(3px); padding: 40px 20px; box-sizing: border-box;">
-        <div
-            style="margin: 0 auto; padding: 0; max-width: 420px; border-radius: 12px; background: linear-gradient(180deg, #2d2d30 0%, #1e1e20 100%); box-shadow: 0 25px 70px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.05); border: 1px solid #3a3a3d;">
-
-            <!-- Header -->
-            <div
-                style="background: linear-gradient(180deg, #2a2a2e 0%, #242428 100%); padding: 20px; border-radius: 12px 12px 0 0; border-bottom: 1px solid #444;">
-                <h2
-                    style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: 0.5px; color: #fff; text-align: center;">
-                    Thoughtful Voice Settings
-                </h2>
+    <div id="settings-modal" class="modal-container">
+        <div class="modal-box" style="max-width: 400px;">
+            <!-- Header (Industrial Style) -->
+            <div class="modal-hero">
+                <h2>System Configuration</h2>
+                <div style="font-size: 9px; color: #666; margin-top: 4px; letter-spacing: 1px;">ADVANCED ANALOG CONTROLS
+                </div>
             </div>
 
             <!-- Content -->
-            <div style="padding: 25px;">
+            <div class="modal-body">
 
                 <!-- Prompt Section -->
-                <div
-                    style="background: #252528; border-radius: 8px; padding: 15px; margin-bottom: 20px; border: 1px solid #3a3a3d; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
-                    <div style="display: flex; align-items: center; margin-bottom: 10px;">
-                        <div
-                            style="width: 4px; height: 16px; background: #888; margin-right: 10px; border-radius: 2px;">
-                        </div>
-                        <label
-                            style="font-size: 12px; font-weight: bold; color: #aaa; text-transform: uppercase; letter-spacing: 1px;">
-                            Prompt Template
-                        </label>
-                    </div>
-                    <textarea id="prompt-text"
-                        style="width: 100%; height: 70px; box-sizing: border-box; padding: 12px; font-family: 'Consolas', monospace; font-size: 11px; resize: vertical; border-radius: 6px; background: #1a1a1c; border: 1px solid #444; color: #ddd; transition: all 0.3s;"
-                        class="settings-input"></textarea>
+                <div class="settings-card">
+                    <label class="settings-label">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+                        </svg>
+                        Prompt Template
+                    </label>
+                    <textarea id="prompt-text" class="settings-input"
+                        style="height: 70px; resize: none; font-family: 'Consolas', monospace;"
+                        placeholder="Enter primary AI instruction..."></textarea>
+                    <span class="input-hint">Context sent with every audio upload</span>
                 </div>
 
-                <!-- Storage Management Section -->
-                <div
-                    style="background: #252528; border-radius: 8px; padding: 15px; margin-bottom: 20px; border: 1px solid #3a3a3d; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
-                    <div style="display: flex; align-items: center; margin-bottom: 15px;">
-                        <div
-                            style="width: 4px; height: 16px; background: #ea0; margin-right: 10px; border-radius: 2px;">
-                        </div>
-                        <h3
-                            style="margin: 0; color: #ea0; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">
-                            Storage Management
-                        </h3>
+                <!-- Storage & Utilities -->
+                <div class="settings-card">
+                    <label class="settings-label">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z" />
+                        </svg>
+                        Deck Management
+                    </label>
+                    <div style="margin-bottom: 12px;">
+                        <input type="number" id="max-recordings" class="settings-input" min="1" max="25" value="10">
+                        <span class="input-hint">Max tapes to retain (forced 25 limit)</span>
                     </div>
-
-                    <div style="margin-bottom: 15px;">
-                        <label
-                            style="display: block; font-size: 10px; color: #999; margin-bottom: 6px; text-transform: uppercase;">Max
-                            Recordings to Keep</label>
-                        <input type="number" id="max-recordings" min="1" max="25" value="10" class="settings-input"
-                            style="width: 100%; padding: 10px; font-size: 11px; background: #1a1a1c; border: 1px solid #444; color: #ddd; border-radius: 6px; transition: all 0.3s;">
-                        <div style="font-size: 9px; color: #666; margin-top: 4px;">
-                            Automatically delete oldest recordings when this limit is exceeded
-                        </div>
-                    </div>
-
-                    <div>
-                        <button id="clear-all-recordings" class="retro-btn delete"
-                            style="width: 100%; padding: 12px; font-size: 11px; border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                <path
-                                    d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-                            </svg>
-                            Clear All Recordings
-                        </button>
-                    </div>
+                    <button id="clear-all-recordings" class="retro-btn delete"
+                        style="width: 100%; height: 34px; font-size: 10px;">PURGE ALL STORAGE</button>
                 </div>
 
-                <!-- Video Card -->
-                <div
-                    style="background: #252528; border-radius: 8px; padding: 15px; margin-bottom: 20px; border: 1px solid #3a3a3d; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
-                    <div style="display: flex; align-items: center; margin-bottom: 15px;">
-                        <div
-                            style="width: 4px; height: 16px; background: #4a90e2; margin-right: 10px; border-radius: 2px;">
-                        </div>
-                        <h3
-                            style="margin: 0; color: #4a90e2; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">
-                            Video Configuration
-                        </h3>
-                    </div>
-
-                    <div style="margin-bottom: 15px;">
-                        <label
-                            style="display: block; font-size: 10px; color: #999; margin-bottom: 6px; text-transform: uppercase;">Codec</label>
-                        <select id="video-codec" class="settings-input"
-                            style="width: 100%; padding: 10px; font-size: 11px; background: #1a1a1c; border: 1px solid #444; color: #ddd; border-radius: 6px; transition: all 0.3s;">
-                            <option value="vp9">VP9 (Modern, Recommended)</option>
-                            <option value="vp8">VP8 (Compatible)</option>
+                <!-- Video Engine -->
+                <div class="settings-card">
+                    <label class="settings-label">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
+                        </svg>
+                        Visual Engine
+                    </label>
+                    <div style="margin-bottom: 12px;">
+                        <span class="input-hint" style="margin-bottom: 4px; display: block;">Encoding Codec</span>
+                        <select id="video-codec" class="settings-input">
+                            <option value="vp9">VP9 (Modern)</option>
+                            <option value="vp8">VP8 (Stable)</option>
                             <option value="h264">H.264 (Universal)</option>
                         </select>
                     </div>
-
-                    <div style="margin-bottom: 15px;">
-                        <label
-                            style="display: block; font-size: 10px; color: #999; margin-bottom: 6px; text-transform: uppercase;">Resolution</label>
-                        <select id="video-resolution" class="settings-input"
-                            style="width: 100%; padding: 10px; font-size: 11px; background: #1a1a1c; border: 1px solid #444; color: #ddd; border-radius: 6px; transition: all 0.3s;">
-                            <option value="2160p">2160p - 4K Ultra HD</option>
-                            <option value="1440p">1440p - 2K Quad HD</option>
-                            <option value="1080p" selected>1080p - Full HD (Default)</option>
-                            <option value="720p">720p - HD</option>
-                            <option value="480p">480p - SD</option>
-                        </select>
-                    </div>
-
-                    <div style="margin-bottom: 15px;">
-                        <div
-                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                            <label style="font-size: 10px; color: #999; text-transform: uppercase;">Bitrate</label>
-                            <span id="bitrate-value"
-                                style="font-size: 12px; color: #4a90e2; font-weight: bold; font-family: monospace;">4000</span>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                        <div>
+                            <span class="input-hint" style="margin-bottom: 4px; display: block;">Resolution</span>
+                            <select id="video-resolution" class="settings-input">
+                                <option value="2160p">4K (UHD)</option>
+                                <option value="1440p">2K (QHD)</option>
+                                <option value="1080p" selected>1080p (FHD)</option>
+                                <option value="720p">720p (HD)</option>
+                                <option value="480p">480p (SD)</option>
+                            </select>
                         </div>
-                        <input type="range" id="video-bitrate" min="1000" max="20000" step="1000" value="4000"
-                            style="width: 100%;"
-                            oninput="document.getElementById('bitrate-value').textContent = this.value">
-                        <div
-                            style="display: flex; justify-content: space-between; font-size: 9px; color: #666; margin-top: 4px;">
-                            <span>1 Mbps</span>
-                            <span>20 Mbps</span>
+                        <div>
+                            <span class="input-hint" style="margin-bottom: 4px; display: block;">Frame Rate</span>
+                            <select id="video-fps" class="settings-input">
+                                <option value="24">24 FPS</option>
+                                <option value="30">30 FPS</option>
+                                <option value="60" selected>60 FPS</option>
+                                <option value="120">120 FPS</option>
+                            </select>
                         </div>
                     </div>
-
-                    <div style="margin-bottom: 15px;">
-                        <label
-                            style="display: block; font-size: 10px; color: #999; margin-bottom: 6px; text-transform: uppercase;">Frame
-                            Rate</label>
-                        <select id="video-fps" class="settings-input"
-                            style="width: 100%; padding: 10px; font-size: 11px; background: #1a1a1c; border: 1px solid #444; color: #ddd; border-radius: 6px; transition: all 0.3s;">
-                            <option value="24">24 fps (Cinematic)</option>
-                            <option value="30">30 fps (Standard)</option>
-                            <option value="60" selected>60 fps (Smooth) - Default</option>
-                            <option value="120">120 fps (Ultra Smooth)</option>
-                        </select>
-                    </div>
-
                     <div>
-                        <label
-                            style="display: block; font-size: 10px; color: #999; margin-bottom: 6px; text-transform: uppercase;">Time
-                            Slice</label>
-                        <select id="video-timeslice" class="settings-input"
-                            style="width: 100%; padding: 10px; font-size: 11px; background: #1a1a1c; border: 1px solid #444; color: #ddd; border-radius: 6px; transition: all 0.3s;">
-                            <option value="500">500ms (Low Latency)</option>
-                            <option value="1000" selected>1000ms (Balanced)</option>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span class="input-hint">Target Bitrate</span>
+                            <span id="bitrate-value"
+                                style="font-size: 10px; color: var(--walkman-accent); font-weight: bold; font-family: 'Courier New', monospace;">4000</span>
+                        </div>
+                        <input type="range" id="video-bitrate" min="1000" max="20000" step="1000" class="video-slider"
+                            style="width: 100%; accent-color: var(--walkman-accent);">
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <span class="input-hint" style="margin-bottom: 4px; display: block;">Time Slice</span>
+                        <select id="video-timeslice" class="settings-input">
+                            <option value="500">500ms (Fast)</option>
+                            <option value="1000">1000ms (Standard)</option>
                             <option value="2000">2000ms (Stable)</option>
                         </select>
                     </div>
                 </div>
 
-                <!-- Audio Card -->
-                <div
-                    style="background: #252528; border-radius: 8px; padding: 15px; margin-bottom: 20px; border: 1px solid #3a3a3d; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
-                    <div style="display: flex; align-items: center; margin-bottom: 15px;">
-                        <div
-                            style="width: 4px; height: 16px; background: #76ff03; margin-right: 10px; border-radius: 2px;">
+                <!-- Audio Core -->
+                <div class="settings-card">
+                    <label class="settings-label">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                        </svg>
+                        Acoustic Core
+                    </label>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 4px; margin-bottom: 12px; border: 1px solid #333;">
+                        <span style="font-size: 11px; color: #ddd;">Capture System Audio</span>
+                        <input type="checkbox" id="system-audio-enabled"
+                            style="accent-color: var(--walkman-accent); transform: scale(1.1);">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div>
+                            <span class="input-hint" style="margin-bottom: 4px; display: block;">Sample Rate</span>
+                            <select id="audio-sample-rate" class="settings-input">
+                                <option value="44100">44.1 kHz</option>
+                                <option value="48000">48.0 kHz</option>
+                            </select>
                         </div>
-                        <h3
-                            style="margin: 0; color: #76ff03; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">
-                            Audio Configuration
-                        </h3>
-                    </div>
-
-                    <div style="margin-bottom: 15px;">
-                        <label
-                            style="display: block; font-size: 10px; color: #999; margin-bottom: 6px; text-transform: uppercase;">Sample
-                            Rate</label>
-                        <select id="audio-sample-rate" class="settings-input"
-                            style="width: 100%; padding: 10px; font-size: 11px; background: #1a1a1c; border: 1px solid #444; color: #ddd; border-radius: 6px; transition: all 0.3s;">
-                            <option value="44100">44.1 kHz (CD Quality)</option>
-                            <option value="48000">48 kHz (Studio Quality)</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label
-                            style="display: block; font-size: 10px; color: #999; margin-bottom: 6px; text-transform: uppercase;">Buffer
-                            Size</label>
-                        <select id="audio-buffer-size" class="settings-input"
-                            style="width: 100%; padding: 10px; font-size: 11px; background: #1a1a1c; border: 1px solid #444; color: #ddd; border-radius: 6px; transition: all 0.3s;">
-                            <option value="2048">2048 (Low Latency)</option>
-                            <option value="4096" selected>4096 (Balanced)</option>
-                            <option value="8192">8192 (High Quality)</option>
-                        </select>
+                        <div>
+                            <span class="input-hint" style="margin-bottom: 4px; display: block;">Buffer</span>
+                            <select id="audio-buffer-size" class="settings-input">
+                                <option value="2048">Fast</option>
+                                <option value="4096">Stable</option>
+                                <option value="8192">Secure</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Buttons -->
-                <div style="display: flex; gap: 10px; justify-content: space-between; margin-top: 25px;">
-                    <button id="reset-settings" class="retro-btn delete"
-                        style="padding: 12px 20px; font-size: 10px; border-radius: 6px;">RESET</button>
-                    <div style="display: flex; gap: 10px;">
-                        <button id="cancel-settings" class="retro-btn"
-                            style="padding: 12px 24px; border-radius: 6px;">CANCEL</button>
-                        <button id="save-settings" class="retro-btn primary"
-                            style="padding: 12px 28px; border-radius: 6px;">SAVE</button>
-                    </div>
+                <!-- Actions -->
+                <div style="display: flex; gap: 10px; margin-top: 5px;">
+                    <button id="reset-settings" class="retro-btn" style="flex: 1; height: 38px;">RESET</button>
+                    <button id="cancel-settings" class="retro-btn" style="flex: 1; height: 38px;">CANCEL</button>
+                    <button id="save-settings" class="retro-btn primary"
+                        style="flex: 2; height: 38px; font-size: 11px; letter-spacing: 1px;">SAVE INITIALS</button>
                 </div>
             </div>
         </div>

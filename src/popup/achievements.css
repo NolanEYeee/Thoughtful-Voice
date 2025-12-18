@@ -1,0 +1,299 @@
+/* Achievement Badge Trigger in Header */
+.achievement-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: linear-gradient(180deg, #2a2a2d 0%, #151517 100%);
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid #444;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    position: relative;
+    overflow: hidden;
+    white-space: nowrap;
+    height: 20px;
+}
+
+.achievement-badge:hover {
+    border-color: #ff6b00;
+    box-shadow: 0 0 12px rgba(255, 107, 0, 0.4);
+    transform: translateY(-1px);
+}
+
+.badge-text {
+    font-family: 'Consolas', monospace;
+    font-size: 8.5px;
+    color: #c0b8a0;
+    /* Match tape color for a more cohesive look */
+    font-weight: bold;
+    letter-spacing: 0.3px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Modal Container (Overlay) with Pop Animation Support */
+#achievement-modal.modal-container {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 200;
+    backdrop-filter: blur(5px);
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+/* Retro Orange Scrollbar */
+#achievement-modal.modal-container::-webkit-scrollbar {
+    width: 5px;
+}
+
+#achievement-modal.modal-container::-webkit-scrollbar-track {
+    background: #0a0a0c;
+}
+
+#achievement-modal.modal-container::-webkit-scrollbar-thumb {
+    background: #ff6b00;
+    /* Use orange accent */
+    border-radius: 10px;
+}
+
+#achievement-modal.modal-container::-webkit-scrollbar-thumb:hover {
+    background: #ff8c00;
+}
+
+#achievement-modal.modal-container.active {
+    display: block;
+    animation: modalFadeIn 0.15s ease-out forwards;
+}
+
+#achievement-modal.modal-container.hiding {
+    display: block;
+    animation: modalFadeOut 0.15s ease-in forwards;
+}
+
+/* Pop-out Content Animation */
+.achievement-content-wrapper {
+    background: #121214 !important;
+    border: 1px solid #333 !important;
+    box-shadow: 0 50px 100px rgba(0, 0, 0, 0.95) !important;
+    opacity: 0;
+    transform: scale(0.6) translateY(30px);
+}
+
+#achievement-modal.modal-container.active .achievement-content-wrapper {
+    animation: contentPopIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+#achievement-modal.modal-container.hiding .achievement-content-wrapper {
+    animation: contentPopOut 0.1s ease-in forwards;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes modalFadeOut {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes contentPopIn {
+    from {
+        opacity: 0;
+        transform: scale(0.6) translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes contentPopOut {
+    from {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: scale(0.8) translateY(20px);
+    }
+}
+
+.achievement-hero {
+    background: #0a0a0c !important;
+    border-bottom: 2px solid #222;
+    height: 180px !important;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Walkman Style Vents / Grill */
+.achievement-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        radial-gradient(circle, #222 1px, transparent 1px),
+        linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.5));
+    background-size: 6px 6px, 100% 100%;
+    opacity: 0.4;
+}
+
+.studio-badge-large {
+    z-index: 2;
+    background: radial-gradient(circle at 30% 30%, #fff 0%, #aaa 50%, #444 100%) !important;
+    border: 4px solid #fff !important;
+    box-shadow:
+        0 10px 40px rgba(0, 0, 0, 0.7),
+        inset 0 2px 10px rgba(0, 0, 0, 0.5),
+        0 0 30px rgba(255, 107, 0, 0.3) !important;
+    animation: badgeFloat 4s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Cleaned up badge - removed the noisy texture */
+
+@keyframes badgeFloat {
+
+    0%,
+    100% {
+        transform: scale(1) translateY(0);
+    }
+
+    50% {
+        transform: scale(1.05) translateY(-10px);
+    }
+}
+
+/* Stats Section Bug Fix: Robust Grid */
+.stats-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+    margin-bottom: 20px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.stat-item {
+    background: #1a1a1c !important;
+    border: 1px solid #2a2a2d !important;
+    padding: 12px 8px !important;
+    border-radius: 6px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+}
+
+.stat-label {
+    font-size: 8px !important;
+    color: #c0b8a0 !important;
+    /* Beige/Cream highlight */
+    text-transform: uppercase !important;
+    letter-spacing: 1.5px !important;
+    margin-bottom: 6px !important;
+    opacity: 0.8;
+}
+
+.stat-value {
+    font-family: 'Courier New', monospace !important;
+    font-size: 15px !important;
+    color: #eee !important;
+    /* Neutral off-white for data */
+    font-weight: bold !important;
+    text-shadow: 0 0 10px rgba(192, 184, 160, 0.2) !important;
+}
+
+/* Enhanced Milestones */
+.milestone-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    padding: 12px !important;
+    border-radius: 8px !important;
+    margin-bottom: 8px !important;
+    opacity: 0.85;
+    transition: all 0.3s ease;
+}
+
+.milestone-item:hover {
+    opacity: 0.8;
+}
+
+.milestone-item.unlocked {
+    opacity: 1;
+    border-color: rgba(192, 184, 160, 0.2) !important;
+    background: rgba(192, 184, 160, 0.03) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+.milestone-icon {
+    width: 24px !important;
+    height: 24px !important;
+    background: #1a1a1c !important;
+    border-radius: 4px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: #444;
+    border: 1px solid #333;
+}
+
+.unlocked .milestone-icon {
+    background: #c0b8a0 !important;
+    color: #111 !important;
+    box-shadow: 0 0 15px rgba(192, 184, 160, 0.2) !important;
+    border-color: #eee;
+}
+
+.milestone-name {
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    color: #999;
+    /* Brighter for readability when locked */
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.unlocked .milestone-name {
+    color: #c0b8a0;
+}
+
+.milestone-requirement {
+    font-size: 9px !important;
+    color: #555;
+    /* Slightly brighter than #333 */
+}
+
+.unlocked .milestone-requirement {
+    color: #888;
+}
