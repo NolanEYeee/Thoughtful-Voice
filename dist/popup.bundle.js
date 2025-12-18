@@ -17,13 +17,26 @@
   var require_popup = __commonJS({
     "src/popup/popup.js"() {
       init_storage();
+      var initialDataPromise = chrome.storage.local.get(["recordings", "settings"]);
       var isShiftPressed = false;
       var allRecordings = [];
       var displayedCount = 0;
-      var INITIAL_LOAD = 3;
+      var INITIAL_LOAD = 1;
       var loadMoreCount = 7;
       var isLoading = false;
       var hasMoreToLoad = false;
+      var revealObserver = new IntersectionObserver((entries) => {
+        requestAnimationFrame(() => {
+          entries.forEach((entry, index) => {
+            if (entry.isIntersecting) {
+              setTimeout(() => {
+                entry.target.classList.add("revealed");
+              }, index * 60);
+              revealObserver.unobserve(entry.target);
+            }
+          });
+        });
+      }, { threshold: 0.05, rootMargin: "0px 0px 50px 0px" });
       function updateShiftKeyFeedback() {
         const deleteButtons = document.querySelectorAll(".retro-btn.delete");
         deleteButtons.forEach((btn) => {
@@ -105,26 +118,40 @@
         });
       }
       async function loadRecordings() {
-        const result = await chrome.storage.local.get(["recordings", "settings"]);
+        const result = await initialDataPromise;
         const recordings = result.recordings || [];
         const settings = result.settings || {};
-        const maxToKeep = settings.maxRecordings || 10;
-        loadMoreCount = Math.max(1, maxToKeep - INITIAL_LOAD);
-        const list = document.getElementById("list");
-        list.innerHTML = "";
-        if (recordings.length === 0) {
-          list.innerHTML = '<div style="text-align: center; color: #666; padding: 40px; font-family: monospace;">[NO TAPES FOUND]</div>';
-          return;
-        }
         recordings.sort((a, b) => b.timestamp - a.timestamp);
         allRecordings = recordings;
         displayedCount = 0;
-        const initialCount = Math.min(INITIAL_LOAD, recordings.length);
-        hasMoreToLoad = recordings.length > initialCount;
-        await renderBatch(0, initialCount);
-        setupScrollListener();
+        const list = document.getElementById("list");
+        list.innerHTML = "";
+        const priorityCount = Math.min(1, recordings.length);
+        if (priorityCount > 0) {
+          await renderBatch(0, priorityCount, 0);
+        } else {
+          list.innerHTML = '<div style="text-align: center; color: #666; padding: 40px; font-family: monospace;">[NO TAPES FOUND]</div>';
+          return;
+        }
+        requestAnimationFrame(() => {
+          const maxToKeep = settings.maxRecordings || 10;
+          loadMoreCount = Math.max(1, maxToKeep - 5);
+          const deferMethod = window.requestIdleCallback || ((cb) => setTimeout(cb, 150));
+          deferMethod(() => {
+            isLoading = true;
+            const fillCount = Math.min(4, recordings.length - priorityCount);
+            if (fillCount > 0) {
+              renderBatch(priorityCount, fillCount, 120).then(() => {
+                isLoading = false;
+              });
+            } else {
+              isLoading = false;
+            }
+          });
+          setupScrollListener();
+        });
       }
-      async function renderBatch(startIndex, count) {
+      async function renderBatch(startIndex, count, customDelay = 30) {
         const list = document.getElementById("list");
         const endIndex = Math.min(startIndex + count, allRecordings.length);
         for (let i = startIndex; i < endIndex; i++) {
@@ -138,13 +165,29 @@
             groupContainer.id = `group-${dateKey.replace(/\//g, "-")}`;
             list.appendChild(groupContainer);
           }
-          const el = createRecordingElement(item, i);
+          const el = createRecordingElement(item, i, true);
           groupContainer.appendChild(el);
-          attachListenersToElement(el, allRecordings);
+          if (startIndex === 0 && i === 0) {
+            el.classList.add("revealed");
+          } else {
+            revealObserver.observe(el);
+          }
+          const mediaElem = el.querySelector("audio, video");
+          const downloadBtn = el.querySelector("a.retro-btn[download]");
+          const injectData = () => {
+            if (el.dataset.mediaLoaded === "true") return;
+            if (mediaElem) mediaElem.src = item.audioData;
+            if (downloadBtn) downloadBtn.href = item.audioData;
+            el.dataset.mediaLoaded = "true";
+          };
+          el.addEventListener("mouseenter", injectData, { once: true });
+          const backgroundLoadDelay = 500 + i * 150;
+          setTimeout(injectData, backgroundLoadDelay);
+          attachListenersToElement(el, allRecordings, injectData);
           displayedCount = i + 1;
           hasMoreToLoad = displayedCount < allRecordings.length;
-          if (i < endIndex - 1) {
-            await new Promise((resolve) => setTimeout(resolve, 100));
+          if (i < endIndex - 1 && customDelay > 0) {
+            await new Promise((resolve) => setTimeout(resolve, customDelay));
           }
         }
       }
@@ -168,18 +211,19 @@
         if (!hasMoreToLoad || isLoading) return;
         isLoading = true;
         const countToLoad = Math.min(loadMoreCount, allRecordings.length - displayedCount);
-        await renderBatch(displayedCount, countToLoad);
+        await renderBatch(displayedCount, countToLoad, 100);
         isLoading = false;
       }
-      function createRecordingElement(rec, index) {
+      function createRecordingElement(rec, index, lazyMedia = false) {
         const isVideo = rec.type === "video";
         const date = new Date(rec.timestamp);
+        const mediaSrc = lazyMedia ? "" : rec.audioData;
         const dateStr = date.toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" });
         const timeStr = date.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
-        const dateTimeStr = `${dateStr} ${timeStr}`;
         const div = document.createElement("div");
         if (isVideo) {
           div.className = "crt-card";
+          div.dataset.id = rec.timestamp;
           const siteName = (rec.site || "VIDEO").toUpperCase();
           const siteLabel = rec.url ? `<a href="${rec.url}" target="_blank" class="site-link" title="Open ${siteName} chat">\u{1F4F9} ${siteName}</a>` : `<span>\u{1F4F9} ${siteName}</span>`;
           div.innerHTML = `
@@ -189,7 +233,7 @@
             </div>
             <div class="crt-screen">
                 <div class="crt-overlay"></div>
-                <video controls src="${rec.audioData}" preload="metadata"></video>
+                <video controls src="${mediaSrc}" preload="metadata"></video>
             </div>
             <div class="crt-controls">
                 <div class="time-info">
@@ -197,12 +241,12 @@
                     <span class="time-display duration">${rec.durationString || "00:00"}</span>
                 </div>
                 <div class="control-group">
-                    <a class="retro-btn" href="${rec.audioData}" download="video_${dateStr.replace("/", "")}_${timeStr.replace(":", "")}.webm" title="Download">
+                    <a class="retro-btn" href="${mediaSrc}" download="video_${dateStr.replace("/", "")}_${timeStr.replace(":", "")}.webm" title="Download">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/>
                         </svg>
                     </a>
-                    <button class="retro-btn delete" data-index="${index}" title="Delete">
+                    <button class="retro-btn delete" data-id="${rec.timestamp}" title="Delete">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
                         </svg>
@@ -212,6 +256,7 @@
         `;
         } else {
           div.className = "tape-card";
+          div.dataset.id = rec.timestamp;
           const audioId = `audio-${index}`;
           const siteName = (rec.site || "AUDIO").toUpperCase();
           const siteLabel = rec.url ? `<a href="${rec.url}" target="_blank" class="site-link" title="Open ${siteName} chat">\u{1F399}\uFE0F ${siteName}</a>` : `\u{1F399}\uFE0F ${siteName}`;
@@ -227,7 +272,7 @@
                  <div class="reel"></div>
             </div>
             <div class="tape-controls">
-                <audio id="${audioId}" src="${rec.audioData}" style="display:none;"></audio>
+                <audio id="${audioId}" src="${mediaSrc}" style="display:none;"></audio>
                 <div class="time-info">
                     <span class="time-display">${timeStr}</span>
                     <span class="time-display duration">${rec.durationString || "00:00"}</span>
@@ -243,7 +288,7 @@
                             <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/>
                         </svg>
                     </a>
-                    <button class="retro-btn delete" data-index="${index}" title="Delete">
+                    <button class="retro-btn delete" data-id="${rec.timestamp}" title="Delete">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
                         </svg>
@@ -254,22 +299,60 @@
         }
         return div;
       }
-      function attachListenersToElement(element, recordings) {
+      function attachListenersToElement(element, recordings, injectDataFallback) {
         const deleteBtn = element.querySelector(".retro-btn.delete");
         if (deleteBtn) {
           deleteBtn.title = "Delete (Hold Shift for quick delete)";
           deleteBtn.onclick = async (e) => {
-            const idx = parseInt(deleteBtn.dataset.index);
-            if (isNaN(idx)) return;
+            const timestamp = parseInt(deleteBtn.dataset.id);
+            if (isNaN(timestamp)) return;
             const performDelete = async () => {
               const card = deleteBtn.closest(".tape-card, .crt-card");
+              const isVideoCard = card?.classList.contains("crt-card");
+              const group = card?.parentElement;
+              const isLastInGroup = group && group.querySelectorAll(".tape-card, .crt-card").length === 1;
               if (card) {
+                const height = card.offsetHeight;
+                card.style.maxHeight = height + "px";
+                card.style.transition = "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)";
+                if (isLastInGroup) {
+                  group.style.transition = "margin-bottom 0.5s cubic-bezier(0.4, 0, 0.2, 1)";
+                }
+                void card.offsetHeight;
                 card.classList.add("recording-deleting");
-                await new Promise((resolve) => setTimeout(resolve, 300));
+                const collapseDelay = isVideoCard ? 150 : 0;
+                setTimeout(() => {
+                  card.style.maxHeight = "0px";
+                  card.style.marginBottom = "0px";
+                  card.style.marginTop = "0px";
+                  card.style.paddingTop = "0px";
+                  card.style.paddingBottom = "0px";
+                  card.style.opacity = "0";
+                  if (isLastInGroup) {
+                    group.style.marginBottom = "0px";
+                  }
+                }, collapseDelay);
+                await new Promise((resolve) => setTimeout(resolve, 600));
               }
-              recordings.splice(idx, 1);
-              await chrome.storage.local.set({ recordings });
-              loadRecordings();
+              if (timestamp) {
+                const foundIndex = allRecordings.findIndex((r) => r.timestamp === timestamp);
+                if (foundIndex !== -1) {
+                  allRecordings.splice(foundIndex, 1);
+                  await chrome.storage.local.set({ recordings: allRecordings });
+                }
+              }
+              if (card) {
+                card.remove();
+                if (group && group.classList.contains("recording-group") && group.querySelectorAll(".tape-card, .crt-card").length === 0) {
+                  group.remove();
+                }
+              }
+              displayedCount = Math.max(0, displayedCount - 1);
+              hasMoreToLoad = displayedCount < allRecordings.length;
+              const list = document.getElementById("list");
+              if (allRecordings.length === 0 && list) {
+                list.innerHTML = '<div style="text-align: center; color: #666; padding: 40px; font-family: monospace;">[NO TAPES FOUND]</div>';
+              }
             };
             if (e.shiftKey) {
               await performDelete();
@@ -281,6 +364,7 @@
         const playBtn = element.querySelector(".play-btn");
         if (playBtn) {
           playBtn.onclick = (e) => {
+            if (injectDataFallback) injectDataFallback();
             const audioId = playBtn.dataset.id;
             const winId = playBtn.dataset.win;
             const audio = document.getElementById(audioId);
@@ -312,9 +396,12 @@
         }
         updateShiftKeyFeedback();
       }
-      document.addEventListener("DOMContentLoaded", async () => {
-        await loadRecordings();
-        setupSettings();
+      document.addEventListener("DOMContentLoaded", () => {
+        loadRecordings().then(() => {
+          requestAnimationFrame(() => {
+            setupSettings();
+          });
+        });
       });
       async function setupSettings() {
         const settingsBtn = document.getElementById("settings-btn");
@@ -401,6 +488,7 @@
           if (recordings.length > maxRecordings) {
             const trimmedRecordings = recordings.slice(0, maxRecordings);
             await chrome.storage.local.set({ recordings: trimmedRecordings });
+            allRecordings = trimmedRecordings;
             loadRecordings();
           }
         }
@@ -444,8 +532,22 @@
           clearAllBtn.onclick = () => {
             showConfirmModal("\u26A0\uFE0F Delete ALL recordings? This cannot be undone!", () => {
               showConfirmModal("Are you absolutely sure? All recordings will be permanently deleted!", async () => {
+                const list = document.getElementById("list");
+                if (list) {
+                  list.style.transition = "opacity 0.5s ease-out, transform 0.5s ease-out";
+                  list.style.opacity = "0";
+                  list.style.transform = "translateY(20px)";
+                  await new Promise((r) => setTimeout(r, 500));
+                }
                 await chrome.storage.local.set({ recordings: [] });
-                loadRecordings();
+                allRecordings = [];
+                displayedCount = 0;
+                hasMoreToLoad = false;
+                if (list) {
+                  list.innerHTML = '<div style="text-align: center; color: #666; padding: 40px; font-family: monospace;">[NO TAPES FOUND]</div>';
+                  list.style.opacity = "1";
+                  list.style.transform = "translateY(0)";
+                }
                 closeModal(modal);
               });
             });
