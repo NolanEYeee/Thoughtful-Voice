@@ -78,21 +78,22 @@
             <div class="achievement-content-wrapper" style="margin: 0 auto; max-width: 360px; border-radius: 12px; overflow: hidden; position: relative;">
                 <!-- Hero Section -->
                 <div class="achievement-hero">
-                    <!-- Retro Studio Badge -->
-                    <div class="studio-badge-large" style="width: 100px; height: 100px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; background: radial-gradient(circle at 30% 30%, #fff 0%, #aaa 50%, #444 100%) !important; border: 4px solid #fff !important; box-shadow: 0 0 40px rgba(255,107,0,0.4), inset 0 2px 10px rgba(0,0,0,0.5) !important;">
-                        <!-- Center Icon (Mic) -->
-                        <div style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.6)); margin-bottom: 5px;">
-                            <svg width="50" height="50" viewBox="0 0 24 24" fill="#111">
-                                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-                            </svg>
+                    <!-- Premium Cyber-Knob Badge -->
+                    <a href="https://github.com/NolanEYeee/Thoughtful-Voice" target="_blank" class="studio-badge-large" style="width: 100px; height: 100px; border-radius: 50%;">
+                        <div class="lens-chamber"></div>
+                        <div class="lens-reflection"></div>
+                        
+                        <!-- Center Icon -->
+                        <div class="badge-icon-container">
+                            <div class="badge-icon-glow"></div>
+                            <img src="../../icons/Thoughtful_Voice_icon.png" class="app-icon-badge" />
                         </div>
                         
                         <!-- Studio Label -->
-                        <div style="position: absolute; bottom: 10px; background: #ff6b00; color: #111; font-size: 8px; font-weight: 900; padding: 2px 8px; border-radius: 3px; text-transform: uppercase; letter-spacing: 1.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.5);">
+                        <div class="studio-tag">
                             STUDIO
                         </div>
-                    </div>
+                    </a>
 
                     <div class="achievement-rank-title" style="margin-top: 15px; color: #ff6b00; font-family: 'Arial Black', sans-serif; font-size: 18px; letter-spacing: 4px; text-shadow: 0 0 20px rgba(255,107,0,0.4);">
                         ${rank.name}

@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Thoughtful Voice](icons/icon128.png)
+![Thoughtful Voice](icons/Thoughtful_Voice_icon.png)
 
 **为 Gemini 和 ChatGPT 提供口述錄音和屏幕录制功能**
 

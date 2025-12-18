@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Thoughtful Voice](icons/icon128.png)
+![Thoughtful Voice](icons/Thoughtful_Voice_icon.png)
 
 **Voice and screen recording for Gemini and ChatGPT**
 

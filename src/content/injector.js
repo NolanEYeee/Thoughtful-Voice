@@ -18,6 +18,19 @@ export class Injector {
         this.isMicMuted = false;
         this.audioRecordingStartUrl = null;
         this.videoRecordingStartUrl = null;
+
+        // Icons - Apple Style SVGs
+        this.icons = {
+            mic: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`,
+            micMuted: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 10v2a3 3 0 0 0 3 3v0"></path><path d="M15 10.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`,
+            screen: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>`,
+            pause: `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>`,
+            play: `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>`,
+            stop: `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"></rect></svg>`,
+            loading: `<svg class="thoughtful-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>`,
+            dot: `<span class="record-dot"></span>`,
+            none: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>`
+        };
     }
 
     createButton() {
@@ -71,10 +84,10 @@ export class Injector {
     createPauseButton() {
         const btn = document.createElement('button');
         btn.id = 'ai-pause-btn';
-        btn.innerHTML = '⏸';
+        btn.innerHTML = this.icons.pause;
         btn.className = 'ai-voice-btn pause-btn';
         btn.title = 'Pause';
-        btn.style.display = 'none';
+        btn.classList.add('hidden');
 
         btn.onclick = () => {
             if (this.isRecording) {
@@ -95,7 +108,7 @@ export class Injector {
 
         const started = await this.recorder.start((time) => {
             if (this.button) {
-                this.button.innerHTML = `🔴 ${time}`;
+                this.button.innerHTML = `${this.icons.dot} ${time}`;
             }
         });
 
@@ -103,12 +116,12 @@ export class Injector {
             this.isRecording = true;
             this.isRecordingPaused = false;
             this.button.classList.add('recording');
-            this.button.innerHTML = '🔴 00:00';
+            this.button.innerHTML = `${this.icons.dot} 00:00`;
             this.button.title = 'Stop recording';
 
             // Show pause button, hide screen button
             this.showPauseButton();
-            if (this.screenButton) this.screenButton.style.display = 'none';
+            if (this.screenButton) this.screenButton.classList.add('hidden');
         }
 
         return startUrl;
@@ -121,7 +134,7 @@ export class Injector {
             if (resumed) {
                 this.isRecordingPaused = false;
                 this.button.classList.remove('paused');
-                this.pauseButton.innerHTML = '⏸';
+                this.pauseButton.innerHTML = this.icons.pause;
                 this.pauseButton.title = 'Pause';
             }
         } else {
@@ -130,7 +143,7 @@ export class Injector {
             if (paused) {
                 this.isRecordingPaused = true;
                 this.button.classList.add('paused');
-                this.pauseButton.innerHTML = '▶';
+                this.pauseButton.innerHTML = this.icons.play;
                 this.pauseButton.title = 'Resume';
             }
         }
@@ -140,7 +153,7 @@ export class Injector {
         this.isRecording = false;
         this.isRecordingPaused = false;
         this.button.classList.remove('recording', 'paused');
-        this.button.innerHTML = '⏳';
+        this.button.innerHTML = this.icons.loading;
         this.button.title = 'Processing...';
 
         this.hidePauseButton();
@@ -149,7 +162,7 @@ export class Injector {
 
         this.button.innerHTML = '🎙️';
         this.button.title = 'Record audio';
-        if (this.screenButton) this.screenButton.style.display = '';
+        if (this.screenButton) this.screenButton.classList.remove('hidden');
 
         if (result) {
             console.log("Audio recorded:", result);
@@ -171,7 +184,7 @@ export class Injector {
             this.isScreenPaused = false;
             this.isMicMuted = false;
             this.screenButton.classList.remove('screen-recording', 'paused');
-            this.screenButton.innerHTML = '⏳';
+            this.screenButton.innerHTML = this.icons.loading;
             this.screenButton.title = 'Processing...';
 
             this.hidePauseButton();
@@ -190,7 +203,7 @@ export class Injector {
         const started = await this.screenRecorder.start(
             (time) => {
                 if (this.screenButton) {
-                    this.screenButton.innerHTML = `🔴 ${time}`;
+                    this.screenButton.innerHTML = `${this.icons.dot} ${time}`;
                 }
             },
             (isMuted) => {
@@ -204,7 +217,7 @@ export class Injector {
             this.isScreenPaused = false;
             this.isMicMuted = false;
             this.screenButton.classList.add('screen-recording');
-            this.screenButton.innerHTML = '🔴 00:00';
+            this.screenButton.innerHTML = `${this.icons.dot} 00:00`;
             this.screenButton.title = 'Stop recording';
 
             // Show pause button, update audio button to mic control
@@ -225,7 +238,7 @@ export class Injector {
             if (resumed) {
                 this.isScreenPaused = false;
                 this.screenButton.classList.remove('paused');
-                this.pauseButton.innerHTML = '⏸';
+                this.pauseButton.innerHTML = this.icons.pause;
                 this.pauseButton.title = 'Pause';
                 // Update mic button to show active state
                 this.updateMicButtonState();
@@ -237,7 +250,7 @@ export class Injector {
             if (paused) {
                 this.isScreenPaused = true;
                 this.screenButton.classList.add('paused');
-                this.pauseButton.innerHTML = '▶';
+                this.pauseButton.innerHTML = this.icons.play;
                 this.pauseButton.title = 'Resume';
                 // Update mic button to show paused state
                 this.updateMicButtonState();
@@ -250,7 +263,7 @@ export class Injector {
         this.isScreenPaused = false;
         this.isMicMuted = false;
         this.screenButton.classList.remove('screen-recording', 'paused');
-        this.screenButton.innerHTML = '⏳';
+        this.screenButton.innerHTML = this.icons.loading;
         this.screenButton.title = 'Processing...';
 
         this.hidePauseButton();
@@ -271,15 +284,15 @@ export class Injector {
 
     showPauseButton() {
         if (this.pauseButton) {
-            this.pauseButton.style.display = '';
-            this.pauseButton.innerHTML = '⏸';
+            this.pauseButton.classList.remove('hidden');
+            this.pauseButton.innerHTML = this.icons.pause;
             this.pauseButton.title = 'Pause';
         }
     }
 
     hidePauseButton() {
         if (this.pauseButton) {
-            this.pauseButton.style.display = 'none';
+            this.pauseButton.classList.add('hidden');
         }
     }
 
@@ -302,26 +315,26 @@ export class Injector {
 
             // When paused, show paused state for mic button too
             if (this.isScreenPaused) {
-                this.button.innerHTML = '⏸️';
+                this.button.innerHTML = this.icons.pause;
                 this.button.classList.remove('mic-muted', 'mic-active', 'mic-unavailable');
                 this.button.classList.add('mic-paused');
                 this.button.title = 'Recording paused';
             } else if (this.screenRecorder.hasMic) {
                 this.button.classList.remove('mic-paused');
                 if (this.isMicMuted) {
-                    this.button.innerHTML = '🔇';
+                    this.button.innerHTML = this.icons.micMuted;
                     this.button.classList.add('mic-muted');
                     this.button.classList.remove('mic-active');
                     this.button.title = 'Mic OFF - Click to unmute';
                 } else {
-                    this.button.innerHTML = '🎙️';
+                    this.button.innerHTML = this.icons.mic;
                     this.button.classList.add('mic-active');
                     this.button.classList.remove('mic-muted');
                     this.button.title = 'Mic ON - Click to mute';
                 }
             } else {
                 this.button.classList.remove('mic-paused');
-                this.button.innerHTML = '🚫';
+                this.button.innerHTML = this.icons.none;
                 this.button.classList.add('mic-unavailable');
                 this.button.title = 'No microphone';
             }
