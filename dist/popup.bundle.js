@@ -18,6 +18,12 @@
     "src/popup/popup.js"() {
       init_storage();
       var isShiftPressed = false;
+      var allRecordings = [];
+      var displayedCount = 0;
+      var INITIAL_LOAD = 3;
+      var loadMoreCount = 7;
+      var isLoading = false;
+      var hasMoreToLoad = false;
       function updateShiftKeyFeedback() {
         const deleteButtons = document.querySelectorAll(".retro-btn.delete");
         deleteButtons.forEach((btn) => {
@@ -99,8 +105,11 @@
         });
       }
       async function loadRecordings() {
-        const result = await chrome.storage.local.get(["recordings"]);
+        const result = await chrome.storage.local.get(["recordings", "settings"]);
         const recordings = result.recordings || [];
+        const settings = result.settings || {};
+        const maxToKeep = settings.maxRecordings || 10;
+        loadMoreCount = Math.max(1, maxToKeep - INITIAL_LOAD);
         const list = document.getElementById("list");
         list.innerHTML = "";
         if (recordings.length === 0) {
@@ -108,30 +117,59 @@
           return;
         }
         recordings.sort((a, b) => b.timestamp - a.timestamp);
-        const groups = {};
-        recordings.forEach((rec, originalIndex) => {
-          const date = new Date(rec.timestamp);
+        allRecordings = recordings;
+        displayedCount = 0;
+        const initialCount = Math.min(INITIAL_LOAD, recordings.length);
+        hasMoreToLoad = recordings.length > initialCount;
+        await renderBatch(0, initialCount);
+        setupScrollListener();
+      }
+      async function renderBatch(startIndex, count) {
+        const list = document.getElementById("list");
+        const endIndex = Math.min(startIndex + count, allRecordings.length);
+        for (let i = startIndex; i < endIndex; i++) {
+          const item = allRecordings[i];
+          const date = new Date(item.timestamp);
           const dateKey = date.toLocaleDateString();
-          if (!groups[dateKey]) {
-            groups[dateKey] = {
-              dateObj: date,
-              items: []
-            };
+          let groupContainer = document.getElementById(`group-${dateKey.replace(/\//g, "-")}`);
+          if (!groupContainer) {
+            groupContainer = document.createElement("div");
+            groupContainer.className = "recording-group";
+            groupContainer.id = `group-${dateKey.replace(/\//g, "-")}`;
+            list.appendChild(groupContainer);
           }
-          groups[dateKey].items.push({ ...rec, originalIndex });
-        });
-        Object.keys(groups).forEach((dateKey) => {
-          const group = groups[dateKey];
-          const groupContainer = document.createElement("div");
-          groupContainer.className = "recording-group";
-          groupContainer.id = `group-${dateKey.replace(/\//g, "-")}`;
-          group.items.forEach((item) => {
-            const el = createRecordingElement(item, item.originalIndex);
-            groupContainer.appendChild(el);
-          });
-          list.appendChild(groupContainer);
-        });
-        attachListeners(recordings);
+          const el = createRecordingElement(item, i);
+          groupContainer.appendChild(el);
+          attachListenersToElement(el, allRecordings);
+          displayedCount = i + 1;
+          hasMoreToLoad = displayedCount < allRecordings.length;
+          if (i < endIndex - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          }
+        }
+      }
+      function setupScrollListener() {
+        const scrollContainer = document.querySelector(".content-scroll");
+        if (!scrollContainer) return;
+        scrollContainer.removeEventListener("scroll", handleScroll);
+        scrollContainer.addEventListener("scroll", handleScroll);
+      }
+      function handleScroll(e) {
+        const scrollContainer = e.target;
+        const scrollTop = scrollContainer.scrollTop;
+        const scrollHeight = scrollContainer.scrollHeight;
+        const clientHeight = scrollContainer.clientHeight;
+        const distanceToBottom = scrollHeight - scrollTop - clientHeight;
+        if (distanceToBottom < 100 && hasMoreToLoad && !isLoading) {
+          loadMoreRecordings();
+        }
+      }
+      async function loadMoreRecordings() {
+        if (!hasMoreToLoad || isLoading) return;
+        isLoading = true;
+        const countToLoad = Math.min(loadMoreCount, allRecordings.length - displayedCount);
+        await renderBatch(displayedCount, countToLoad);
+        isLoading = false;
       }
       function createRecordingElement(rec, index) {
         const isVideo = rec.type === "video";
@@ -216,16 +254,15 @@
         }
         return div;
       }
-      function attachListeners(recordings) {
-        document.querySelectorAll(".retro-btn.delete").forEach((btn) => {
-          btn.title = "Delete (Hold Shift for quick delete)";
-          btn.onclick = async (e) => {
-            const button = e.target.closest(".retro-btn.delete");
-            if (!button) return;
-            const idx = parseInt(button.dataset.index);
+      function attachListenersToElement(element, recordings) {
+        const deleteBtn = element.querySelector(".retro-btn.delete");
+        if (deleteBtn) {
+          deleteBtn.title = "Delete (Hold Shift for quick delete)";
+          deleteBtn.onclick = async (e) => {
+            const idx = parseInt(deleteBtn.dataset.index);
             if (isNaN(idx)) return;
             const performDelete = async () => {
-              const card = button.closest(".tape-card, .crt-card");
+              const card = deleteBtn.closest(".tape-card, .crt-card");
               if (card) {
                 card.classList.add("recording-deleting");
                 await new Promise((resolve) => setTimeout(resolve, 300));
@@ -240,12 +277,12 @@
               showConfirmModal("Eject and destroy this tape?", performDelete);
             }
           };
-        });
-        updateShiftKeyFeedback();
-        document.querySelectorAll(".play-btn").forEach((btn) => {
-          btn.onclick = (e) => {
-            const audioId = btn.dataset.id;
-            const winId = btn.dataset.win;
+        }
+        const playBtn = element.querySelector(".play-btn");
+        if (playBtn) {
+          playBtn.onclick = (e) => {
+            const audioId = playBtn.dataset.id;
+            const winId = playBtn.dataset.win;
             const audio = document.getElementById(audioId);
             const tapeWindow = document.getElementById(winId);
             if (audio.paused) {
@@ -261,18 +298,19 @@
               });
               audio.play();
               tapeWindow.classList.add("playing");
-              btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+              playBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
             } else {
               audio.pause();
               tapeWindow.classList.remove("playing");
-              btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+              playBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
             }
             audio.onended = () => {
               tapeWindow.classList.remove("playing");
-              btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+              playBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
             };
           };
-        });
+        }
+        updateShiftKeyFeedback();
       }
       document.addEventListener("DOMContentLoaded", async () => {
         await loadRecordings();
@@ -295,6 +333,15 @@
         const videoTimeslice = document.getElementById("video-timeslice");
         const audioBufferSize = document.getElementById("audio-buffer-size");
         const systemAudioEnabled = document.getElementById("system-audio-enabled");
+        if (maxRecordingsInput) {
+          maxRecordingsInput.oninput = () => {
+            if (maxRecordingsInput.value > 25) {
+              maxRecordingsInput.value = 25;
+            } else if (maxRecordingsInput.value < 1 && maxRecordingsInput.value !== "") {
+              maxRecordingsInput.value = 1;
+            }
+          };
+        }
         async function loadSettings() {
           const result = await chrome.storage.local.get(["settings"]);
           const settings = result.settings || {};
@@ -326,9 +373,11 @@
           if (systemAudioEnabled) systemAudioEnabled.checked = merged.audio.systemAudioEnabled !== false;
         }
         async function saveSettings() {
+          let maxVal = parseInt(maxRecordingsInput?.value) || 10;
+          if (maxVal > 25) maxVal = 25;
           const settings = {
             promptText: promptInput.value,
-            maxRecordings: parseInt(maxRecordingsInput?.value) || 10,
+            maxRecordings: maxVal,
             video: {
               codec: videoCodec.value,
               resolution: videoResolution.value,
@@ -342,6 +391,7 @@
               systemAudioEnabled: systemAudioEnabled?.checked !== false
             }
           };
+          loadMoreCount = Math.max(1, settings.maxRecordings - INITIAL_LOAD);
           await chrome.storage.local.set({ settings });
           await applyMaxRecordingsLimit(settings.maxRecordings);
         }

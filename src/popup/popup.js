@@ -3,6 +3,15 @@ import { StorageHelper } from '../content/storage.js';
 // Track Shift key state globally for quick-delete feature
 let isShiftPressed = false;
 
+// Lazy Loading State Management
+let allRecordings = [];         // All recordings from storage
+let displayedCount = 0;          // Number of recordings currently displayed
+const INITIAL_LOAD = 3;          // Initial batch size
+let loadMoreCount = 7;           // Subsequent batch size (calculated from settings)
+let isLoading = false;           // Prevent multiple simultaneous loads
+let hasMoreToLoad = false;       // Track if there are more recordings to load
+
+
 // Update Shift key visual feedback on delete buttons
 function updateShiftKeyFeedback() {
     const deleteButtons = document.querySelectorAll('.retro-btn.delete');
@@ -106,8 +115,13 @@ function showConfirmModal(message, onConfirm, onCancel) {
 }
 
 async function loadRecordings() {
-    const result = await chrome.storage.local.get(['recordings']);
+    const result = await chrome.storage.local.get(['recordings', 'settings']);
     const recordings = result.recordings || [];
+    const settings = result.settings || {};
+
+    // Update loadMoreCount based on settings (Max - Initial)
+    const maxToKeep = settings.maxRecordings || 10;
+    loadMoreCount = Math.max(1, maxToKeep - INITIAL_LOAD);
 
     const list = document.getElementById('list');
     list.innerHTML = '';
@@ -117,44 +131,104 @@ async function loadRecordings() {
         return;
     }
 
-    // Group by Date
-    // Sort descending first
+    // Sort descending (newest first)
     recordings.sort((a, b) => b.timestamp - a.timestamp);
 
-    const groups = {};
-    recordings.forEach((rec, originalIndex) => {
-        const date = new Date(rec.timestamp);
+    // Store all recordings globally
+    allRecordings = recordings;
+    displayedCount = 0;
+
+    // Determine initial load count
+    const initialCount = Math.min(INITIAL_LOAD, recordings.length);
+    hasMoreToLoad = recordings.length > initialCount;
+
+    // Render initial batch sequentially
+    await renderBatch(0, initialCount);
+
+    // Set up scroll listener for lazy loading
+    setupScrollListener();
+}
+
+async function renderBatch(startIndex, count) {
+    const list = document.getElementById('list');
+    const endIndex = Math.min(startIndex + count, allRecordings.length);
+
+    for (let i = startIndex; i < endIndex; i++) {
+        const item = allRecordings[i];
+        const date = new Date(item.timestamp);
         const dateKey = date.toLocaleDateString();
 
-        if (!groups[dateKey]) {
-            groups[dateKey] = {
-                dateObj: date,
-                items: []
-            };
+        // Check if group container already exists
+        let groupContainer = document.getElementById(`group-${dateKey.replace(/\//g, '-')}`);
+
+        if (!groupContainer) {
+            // Create new group container
+            groupContainer = document.createElement('div');
+            groupContainer.className = 'recording-group';
+            groupContainer.id = `group-${dateKey.replace(/\//g, '-')}`;
+            list.appendChild(groupContainer);
         }
-        groups[dateKey].items.push({ ...rec, originalIndex });
-    });
 
-    // Render Groups (simplified - no date badges)
-    Object.keys(groups).forEach(dateKey => {
-        const group = groups[dateKey];
+        // Create the element
+        const el = createRecordingElement(item, i);
+        groupContainer.appendChild(el);
 
-        // Create container in list for this date group
-        const groupContainer = document.createElement('div');
-        groupContainer.className = 'recording-group';
-        groupContainer.id = `group-${dateKey.replace(/\//g, '-')}`;
+        // Attach listeners to this specific element
+        attachListenersToElement(el, allRecordings);
 
-        // Render items for this group
-        group.items.forEach(item => {
-            const el = createRecordingElement(item, item.originalIndex);
-            groupContainer.appendChild(el);
-        });
+        // Update displayed count
+        displayedCount = i + 1;
 
-        list.appendChild(groupContainer);
-    });
+        // Update hasMoreToLoad flag
+        hasMoreToLoad = displayedCount < allRecordings.length;
 
-    attachListeners(recordings);
+        // Small delay for the staggered "one by one" effect
+        if (i < endIndex - 1) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+    }
 }
+
+
+
+function setupScrollListener() {
+    const scrollContainer = document.querySelector('.content-scroll');
+    if (!scrollContainer) return;
+
+    // Remove existing listener if any
+    scrollContainer.removeEventListener('scroll', handleScroll);
+
+    // Add scroll listener
+    scrollContainer.addEventListener('scroll', handleScroll);
+}
+
+function handleScroll(e) {
+    const scrollContainer = e.target;
+
+    // Calculate if user is near bottom (within 100px)
+    const scrollTop = scrollContainer.scrollTop;
+    const scrollHeight = scrollContainer.scrollHeight;
+    const clientHeight = scrollContainer.clientHeight;
+    const distanceToBottom = scrollHeight - scrollTop - clientHeight;
+
+    // Load more if near bottom and not already loading
+    if (distanceToBottom < 100 && hasMoreToLoad && !isLoading) {
+        loadMoreRecordings();
+    }
+}
+
+async function loadMoreRecordings() {
+    if (!hasMoreToLoad || isLoading) return;
+
+    isLoading = true;
+
+    // Render next batch sequentially
+    const countToLoad = Math.min(loadMoreCount, allRecordings.length - displayedCount);
+    await renderBatch(displayedCount, countToLoad);
+
+    isLoading = false;
+}
+
 
 function createRecordingElement(rec, index) {
     const isVideo = rec.type === 'video';
@@ -256,62 +330,45 @@ function createRecordingElement(rec, index) {
     return div;
 }
 
-function attachListeners(recordings) {
-    // Delete Handlers - Use closest() to handle clicks on SVG inside button
-    document.querySelectorAll('.retro-btn.delete').forEach(btn => {
-        // Set initial title
-        btn.title = 'Delete (Hold Shift for quick delete)';
-
-        btn.onclick = async (e) => {
-            // Use closest to get the button element, even if click was on SVG inside
-            const button = e.target.closest('.retro-btn.delete');
-            if (!button) return;
-
-            const idx = parseInt(button.dataset.index);
+function attachListenersToElement(element, recordings) {
+    // Delete Handler
+    const deleteBtn = element.querySelector('.retro-btn.delete');
+    if (deleteBtn) {
+        deleteBtn.title = 'Delete (Hold Shift for quick delete)';
+        deleteBtn.onclick = async (e) => {
+            const idx = parseInt(deleteBtn.dataset.index);
             if (isNaN(idx)) return;
 
-            // Helper function to perform the actual deletion
             const performDelete = async () => {
-                // Find the card element (parent of parent of button)
-                const card = button.closest('.tape-card, .crt-card');
-
+                const card = deleteBtn.closest('.tape-card, .crt-card');
                 if (card) {
-                    // Add deleting animation class
                     card.classList.add('recording-deleting');
-
-                    // Wait for animation to complete
                     await new Promise(resolve => setTimeout(resolve, 300));
                 }
-
-                // Now actually delete
                 recordings.splice(idx, 1);
                 await chrome.storage.local.set({ recordings });
                 loadRecordings();
             };
 
-            // If Shift is held, delete immediately without confirmation
             if (e.shiftKey) {
                 await performDelete();
             } else {
-                // Show confirmation modal
                 showConfirmModal('Eject and destroy this tape?', performDelete);
             }
         };
-    });
+    }
 
-    // Update shift key feedback after attaching listeners
-    updateShiftKeyFeedback();
-
-    // Audio Play Handlers (Custom Spin Animation)
-    document.querySelectorAll('.play-btn').forEach(btn => {
-        btn.onclick = (e) => {
-            const audioId = btn.dataset.id;
-            const winId = btn.dataset.win;
+    // Audio Play Handler
+    const playBtn = element.querySelector('.play-btn');
+    if (playBtn) {
+        playBtn.onclick = (e) => {
+            const audioId = playBtn.dataset.id;
+            const winId = playBtn.dataset.win;
             const audio = document.getElementById(audioId);
             const tapeWindow = document.getElementById(winId);
 
             if (audio.paused) {
-                // Stop all others first
+                // Stop all others
                 document.querySelectorAll('audio').forEach(a => {
                     if (a !== audio) {
                         a.pause();
@@ -325,18 +382,28 @@ function attachListeners(recordings) {
 
                 audio.play();
                 tapeWindow.classList.add('playing');
-                btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+                playBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
             } else {
                 audio.pause();
                 tapeWindow.classList.remove('playing');
-                btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+                playBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
             }
 
             audio.onended = () => {
                 tapeWindow.classList.remove('playing');
-                btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+                playBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
             };
         };
+    }
+
+    // Initial shift key check
+    updateShiftKeyFeedback();
+}
+
+function attachListeners(recordings) {
+    // Legacy support or fallback
+    document.querySelectorAll('.tape-card, .crt-card').forEach(el => {
+        attachListenersToElement(el, recordings);
     });
 }
 
@@ -366,6 +433,17 @@ async function setupSettings() {
     const videoTimeslice = document.getElementById('video-timeslice');
     const audioBufferSize = document.getElementById('audio-buffer-size');
     const systemAudioEnabled = document.getElementById('system-audio-enabled');
+
+    // Real-time validation for max recordings (forced limit: 25)
+    if (maxRecordingsInput) {
+        maxRecordingsInput.oninput = () => {
+            if (maxRecordingsInput.value > 25) {
+                maxRecordingsInput.value = 25;
+            } else if (maxRecordingsInput.value < 1 && maxRecordingsInput.value !== "") {
+                maxRecordingsInput.value = 1;
+            }
+        };
+    }
 
     async function loadSettings() {
         const result = await chrome.storage.local.get(['settings']);
@@ -402,9 +480,13 @@ async function setupSettings() {
     }
 
     async function saveSettings() {
+        // Enforce max 25 limit
+        let maxVal = parseInt(maxRecordingsInput?.value) || 10;
+        if (maxVal > 25) maxVal = 25;
+
         const settings = {
             promptText: promptInput.value,
-            maxRecordings: parseInt(maxRecordingsInput?.value) || 10,
+            maxRecordings: maxVal,
             video: {
                 codec: videoCodec.value,
                 resolution: videoResolution.value,
@@ -418,6 +500,10 @@ async function setupSettings() {
                 systemAudioEnabled: systemAudioEnabled?.checked !== false
             }
         };
+
+        // Sync with UI scale
+        loadMoreCount = Math.max(1, settings.maxRecordings - INITIAL_LOAD);
+
         await chrome.storage.local.set({ settings });
 
         // Apply max recordings limit immediately
