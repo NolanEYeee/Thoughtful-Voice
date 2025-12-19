@@ -11,6 +11,7 @@
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://github.com/NolanEYeee/Thoughtful-Voice)
 [![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg?style=for-the-badge)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-1.0-blue.svg?style=for-the-badge)](https://github.com/NolanEYeee/Thoughtful-Voice/releases)
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/nolaneyeee)
 
 [功能特性](#-功能特性) • [平台支持](#-平台支持) • [安装指南](#-安装指南) • [使用场景](#-使用场景) • [开发指南](#-开发指南)
 
@@ -30,16 +31,25 @@ AI 语音输入和实时屏幕共享都有局限性：
 
 ## 📸 截图展示
 
-### 主界面 - 复古随身听设计
+### 主界面 - 复古随身听
 <div align="center">
-  <img src="docs/screenshots/popup-interface.png" alt="弹窗界面" width="400"/>
-  <p><i>复古磁带，与 CRT 显示器</i></p>
+  <table>
+    <tr>
+      <td width="50%">
+        <img src="docs/screenshots/empty_state_video.gif" alt="Empty State" width="100%">
+      </td>
+      <td width="50%">
+        <img src="docs/screenshots/popup-interface.gif" alt="Main Interface" width="100%">
+      </td>
+    </tr>
+  </table>
+  <p><i>左：无记录状态 | 右：复古磁带界面</i></p>
 </div>
 
 ### 实时录制
 <div align="center">
-  <img src="docs/screenshots/recording-demo.png" alt="录制演示" width="600"/>
-  <p><i>在 AI Chat 中无缝集成的录制按钮</i></p>
+  <img src="docs/screenshots/recording-demo.gif" alt="录制演示" width="600"/>
+  <p><i>录制中可随时<b>暂停/恢复</b>，支持在录制语音（或录屏）过程中随时<b>开启/关闭静音</b></i></p>
 </div>
 
 ## ✨ 功能特性
@@ -50,15 +60,19 @@ AI 语音输入和实时屏幕共享都有局限性：
 | 📹 屏幕录制 | 最高 4K@120FPS，可调比特率，自动修正时长元数据 |
 | 🎨 复古界面 | 80 年代随身听风格，磁带/CRT 设计，按日期平台浏览 |
 | ⚙️ 自定义设置 | 视频/音频质量参数，默认提示词，自动保存偏好 |
+| 🔍 智能溯源 | 自动追踪录制来源与对话 URL，点击标识即可一键跳转回 AI 聊天现场 |
 
 ## 🌐 平台支持
 
 | 平台 | 域名 | 状态 |
 |------|------|------|
 | Gemini ⭐ | gemini.google.com | ✅ 支持（推荐） |
-| AI Studio ⭐ | aistudio.google.com | ✅ 支持 |
+| AI Studio ⭐ | aistudio.google.com | ✅ 支持（推荐） |
 | ChatGPT | chatgpt.com, chat.openai.com | ✅ 支持 |
 | Perplexity | perplexity.ai | ⚠️ 仅 UI (站点故障) |
+| Perplexity Comet | - | ❌ 不支持 (首页无法修改) |
+| Claude | claude.ai | ❌ 不支持 (无法上传音视频) |
+| Grok | x.com/i/grok grok.com | ❌ 不支持 (无法上传音视频) |
 
 **⭐ 推荐 Gemini**：Gemini 原生支持超長上下文，多模态输入（音频+视频），且上下文非常大方，难以达到限制。
 
@@ -137,25 +151,6 @@ AI 语音输入和实时屏幕共享都有局限性：
 - **API**：MediaRecorder API、Chrome Extension API
 - **存储**：Chrome Storage API
 
-### 项目结构
-
-```
-Thoughtful-Voice/
-├── src/
-│   ├── content/           # 注入到网页的内容脚本
-│   │   ├── strategies/    # 平台特定注入策略
-│   │   ├── main.js        # 主内容脚本
-│   │   └── injector.js    # 按钮注入逻辑
-│   ├── popup/             # 扩展弹窗 UI
-│   │   └── popup.html     # 复古随身听界面
-│   ├── styles/            # CSS 样式
-│   └── utils/             # 辅助工具
-├── dist/                  # 构建文件（自动生成）
-├── icons/                 # 扩展图标
-├── manifest.json          # Chrome 扩展清单
-└── build.js               # 构建配置
-```
-
 ### 从源码构建
 
 ```bash
@@ -181,9 +176,9 @@ node build.js
 ## 🐛 已知问题
 
 - **WebM 时长**：使用 `fix-webm-duration` 库自动修复
-- **平台变化**：AI 平台可能会更新其 UI；我們會保持扩展同步更新
+- **平台变化**：AI 平台可能会更新其 UI；我們會尽量保持扩展同步更新
 - **Perplexity 上传问题**：截至 2025/12/19，Perplexity 官方站点存在无法上传音频和视频文件的故障（非插件问题）。插件已支持按钮注入，但站点可能无法处理文件。
-- **Grok 支持**：由于 Grok 官方网站目前完全不支持任何音频或视频文件的上传，因此该平台目前无法适配。
+- **Grok / Claude 支持**：由于 Grok / Claude 官方网站目前完全不支持任何音频或视频文件的上传，因此该平台目前无法适配。
 
 ## 🗺️ 发展路线图
 

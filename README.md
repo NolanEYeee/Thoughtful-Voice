@@ -11,6 +11,7 @@ Record your voice or screen and submit directly to AI - no transcription errors,
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://github.com/NolanEYeee/Thoughtful-Voice)
 [![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg?style=for-the-badge)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-1.0-blue.svg?style=for-the-badge)](https://github.com/NolanEYeee/Thoughtful-Voice/releases)
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/nolaneyeee)
 
 [Features](#-features) • [Platforms](#-platform-support) • [Installation](#-installation) • [Use Cases](#-use-cases) • [Development](#-development)
 
@@ -29,16 +30,25 @@ This extension lets you record audio and screen content, then submit it as a com
 
 ## 📸 Screenshots
 
-### Main Interface - Retro Walkman Design
+### Main Interface - Retro Walkman
 <div align="center">
-  <img src="docs/screenshots/popup-interface.png" alt="Popup Interface" width="400"/>
-  <p><i>Vintage tape and CRT monitor</i></p>
+  <table>
+    <tr>
+      <td width="50%">
+        <img src="docs/screenshots/empty_state_video.gif" alt="Empty State" width="100%">
+      </td>
+      <td width="50%">
+        <img src="docs/screenshots/popup-interface.gif" alt="Main Interface" width="100%">
+      </td>
+    </tr>
+  </table>
+  <p><i>Left: Empty State Page | Right: Retro Interface</i></p>
 </div>
 
 ### In-Action Recording
 <div align="center">
-  <img src="docs/screenshots/recording-demo.png" alt="Recording Demo" width="600"/>
-  <p><i>Seamlessly integrated recording buttons in AI Chat</i></p>
+  <img src="docs/screenshots/recording-demo.gif" alt="Recording Demo" width="600"/>
+  <p><i><b>Pause/Resume</b> anytime; <b>Mute/Unmute</b> microphone on-the-fly during voice or screen recording</i></p>
 </div>
 
 ## ✨ Features
@@ -49,6 +59,7 @@ This extension lets you record audio and screen content, then submit it as a com
 | 📹 Screen Recording | Up to 4K@120FPS, adjustable bitrate, auto-fix duration metadata |
 | 🎨 Retro UI | 80s Walkman style, cassette/CRT design, browse by date & platform |
 | ⚙️ Customization | Video/audio quality settings, default prompts, auto-save preferences |
+| 🔍 Provenance | Auto-track recording origins; one-click jump back to specific AI chat windows |
 
 ## 🌐 Platform Support
 
@@ -58,6 +69,9 @@ This extension lets you record audio and screen content, then submit it as a com
 | AI Studio ⭐ | aistudio.google.com | ✅ Supported (Recommended) |
 | ChatGPT | chatgpt.com, chat.openai.com | ✅ Supported |
 | Perplexity | perplexity.ai | ⚠️ UI Only (Site Issue) |
+| Perplexity Comet | comet.perplexity.ai | ❌ Unsupported (Home page immutable) |
+| Claude | claude.ai | ❌ Unsupported (No audio/video upload) |
+| Grok | x.com/i/grok grok.com | ❌ Unsupported (No audio/video upload) |
 
 **⭐ Recommended for Gemini & AI Studio**: Gemini natively supports ultra-long contexts, multimodal input (audio + video), and is very generous with context, making it difficult to reach limits.
 
@@ -134,25 +148,6 @@ Explain a workflow by demonstrating it. Like explaining to a colleague, but the 
 - **APIs**: MediaRecorder API, Chrome Extension API
 - **Storage**: Chrome Storage API
 
-### Project Structure
-
-```
-Thoughtful-Voice/
-├── src/
-│   ├── content/           # Content scripts injected into web pages
-│   │   ├── strategies/    # Platform-specific injection strategies
-│   │   ├── main.js        # Main content script
-│   │   └── injector.js    # Button injection logic
-│   ├── popup/             # Extension popup UI
-│   │   └── popup.html     # Retro Walkman interface
-│   ├── styles/            # CSS styles
-│   └── utils/             # Helper utilities
-├── dist/                  # Built files (generated)
-├── icons/                 # Extension icons
-├── manifest.json          # Chrome extension manifest
-└── build.js               # Build configuration
-```
-
 ### Building from Source
 
 ```bash
@@ -180,7 +175,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 - **WebM Duration**: Fixed automatically using `fix-webm-duration` library
 - **Platform Changes**: AI platforms may update their UI; we'll keep the extension current
 - **Perplexity Uploads**: As of 2025/12/19, Perplexity has site-side issues preventing audio/video uploads. The extension supports button injection, but the site may fail to process files.
-- **Grok Support**: Grok currently does not support audio or video file uploads on its website, so it cannot be supported at this time.
+- **Grok / Claude Support**: Grok / Claude currently does not support audio or video file uploads on its website, so it cannot be supported at this time.
 
 ## 🗺️ Roadmap
 

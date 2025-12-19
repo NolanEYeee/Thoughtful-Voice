@@ -7,6 +7,13 @@ export class AchievementSystem {
             lifetimeVideoMs: 0,
             totalRecordings: 0
         };
+        this.milestones = [
+            { id: 'first', name: 'Sound Engineer', req: '1st Recording Uploaded', check: (s) => s.totalRecordings >= 1 },
+            { id: 'audio', name: 'Analog Lover', req: '100 Minutes Audio Record', check: (s) => s.lifetimeAudioMs >= 6000000 },
+            { id: 'video', name: 'Cinematographer', req: '100 Minutes Video Record', check: (s) => s.lifetimeVideoMs >= 6000000 },
+            { id: 'veteran', name: 'Studio Veteran', req: '500 Minutes Total Usage', check: (s) => (s.lifetimeAudioMs + s.lifetimeVideoMs) >= 30000000 },
+            { id: 'legend', name: 'Legendary Producer', req: '24 Hours Total Studio Time', check: (s) => (s.lifetimeAudioMs + s.lifetimeVideoMs) >= 86400000 }
+        ];
         this.init();
     }
 
@@ -21,7 +28,11 @@ export class AchievementSystem {
     async loadStats() {
         const result = await chrome.storage.local.get(['stats', 'recordings']);
         if (result.stats) {
-            this.stats = result.stats;
+            this.stats = {
+                lifetimeAudioMs: result.stats.lifetimeAudioMs || 0,
+                lifetimeVideoMs: result.stats.lifetimeVideoMs || 0,
+                totalRecordings: result.stats.totalRecordings || 0
+            };
         } else if (result.recordings && result.recordings.length > 0) {
             // Migration: calculate from existing recordings
             let audioMs = 0;
@@ -50,9 +61,9 @@ export class AchievementSystem {
 
     calculateRank() {
         const totalMinutes = (this.stats.lifetimeAudioMs + this.stats.lifetimeVideoMs) / 60000;
-        if (totalMinutes > 60) return { name: 'PRO-ENGINEER', level: 4 };
-        if (totalMinutes > 15) return { name: 'STUDIO-MASTER', level: 3 };
-        if (totalMinutes > 5) return { name: 'SOUND-ARTIST', level: 2 };
+        if (totalMinutes >= 1440) return { name: 'PRO-ENGINEER', level: 4 }; // 24 Hours
+        if (totalMinutes >= 300) return { name: 'STUDIO-MASTER', level: 3 };  // 5 Hours
+        if (totalMinutes >= 60) return { name: 'SOUND-ARTIST', level: 2 };   // 1 Hour
         return { name: 'JUNIOR-OP', level: 1 };
     }
 
@@ -61,7 +72,7 @@ export class AchievementSystem {
 
         this.modal = document.createElement('div');
         this.modal.id = 'achievement-modal';
-        this.modal.className = 'modal-container'; // Styled in achievements.css
+        this.modal.className = 'modal-container';
 
         const rank = this.calculateRank();
         const audioTime = this.formatTime(this.stats.lifetimeAudioMs);
@@ -120,10 +131,7 @@ export class AchievementSystem {
                         </div>
                         
                         <div class="achievement-list">
-                            ${this.renderMilestone('First Session', 'Initial recording saved', this.stats.totalRecordings >= 1)}
-                            ${this.renderMilestone('Analog Lover', '10 min audio captured', this.stats.lifetimeAudioMs >= 600000)}
-                            ${this.renderMilestone('Cinematographer', '10 min video recorded', this.stats.lifetimeVideoMs >= 600000)}
-                            ${this.renderMilestone('Studio Veteran', '60 min total studio time', (this.stats.lifetimeAudioMs + this.stats.lifetimeVideoMs) >= 3600000)}
+                            ${this.renderMilestones()}
                         </div>
                     </div>
 
@@ -138,20 +146,23 @@ export class AchievementSystem {
         this.modal.onclick = (e) => { if (e.target === this.modal) this.hide(); };
     }
 
-    renderMilestone(name, req, unlocked) {
-        return `
-            <div class="milestone-item ${unlocked ? 'unlocked' : ''}">
-                <div class="milestone-icon">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                        ${unlocked ? '<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>' : '<path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6z"/>'}
-                    </svg>
+    renderMilestones() {
+        return this.milestones.map(m => {
+            const unlocked = m.check(this.stats);
+            return `
+                <div class="milestone-item ${unlocked ? 'unlocked' : ''}">
+                    <div class="milestone-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            ${unlocked ? '<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>' : '<path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6z"/>'}
+                        </svg>
+                    </div>
+                    <div class="milestone-info">
+                        <div class="milestone-name">${m.name}</div>
+                        <div class="milestone-requirement">${m.req}</div>
+                    </div>
                 </div>
-                <div class="milestone-info">
-                    <div class="milestone-name">${name}</div>
-                    <div class="milestone-requirement">${req}</div>
-                </div>
-            </div>
-        `;
+            `;
+        }).join('');
     }
 
     formatTime(ms) {
@@ -188,8 +199,6 @@ export class AchievementSystem {
     }
 
     updateModalContent() {
-        // Just recreate the modal or update elements - for simplicity, we'll re-run createModal 
-        // but a better way is to update specific elements. Let's just update the innerHTML for now.
         const rank = this.calculateRank();
         const audioTime = this.formatTime(this.stats.lifetimeAudioMs);
         const videoTime = this.formatTime(this.stats.lifetimeVideoMs);
@@ -205,12 +214,7 @@ export class AchievementSystem {
         // Re-render milestones
         const list = this.modal.querySelector('.achievement-list');
         if (list) {
-            list.innerHTML = `
-                ${this.renderMilestone('Sound Engineer', '1st Recording Uploaded', this.stats.totalRecordings >= 1)}
-                ${this.renderMilestone('Analog Lover', '10 Minutes Audio Record', this.stats.lifetimeAudioMs >= 600000)}
-                ${this.renderMilestone('Cinematographer', '10 Minutes Video Record', this.stats.lifetimeVideoMs >= 600000)}
-                ${this.renderMilestone('Studio Veteran', '60 Minutes Total Usage', (this.stats.lifetimeAudioMs + this.stats.lifetimeVideoMs) >= 3600000)}
-            `;
+            list.innerHTML = this.renderMilestones();
         }
 
         this.updateBadge();

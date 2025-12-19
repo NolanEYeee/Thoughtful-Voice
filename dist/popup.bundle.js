@@ -773,15 +773,18 @@
                 <div class="particle" style="top: 40%; left: 50%; animation-delay: -8s;"></div>
             </div>
 
-            <!-- Floating TV (Upper Left) -->
+            <!-- 1. RETRO TV -->
             <div class="floating-tv">
                 <div class="tv-antenna">
                     <div class="antenna-rod"></div>
                     <div class="antenna-rod"></div>
                 </div>
                 <div class="tv-screen">
-                    <div class="tv-content">NO SIGNAL</div>
+                    <div class="tv-static"></div>
                     <div class="tv-scanlines"></div>
+                    <div class="tv-scan-beam"></div>
+                    <div class="tv-content">NO SIGNAL</div>
+                    <div class="tv-reflection"></div>
                 </div>
                 <div class="tv-knob-panel">
                     <div class="tv-knob"></div>
@@ -816,13 +819,13 @@
                     <div class="vu-bar"></div>
                     <div class="vu-bar"></div>
                 </div>
-                <div class="tape-window">
+                <div class="void-window">
                     <div class="reel-container">
-                        <div class="reel"></div>
-                        <div class="reel"></div>
+                        <div class="void-reel"></div>
+                        <div class="void-reel"></div>
                     </div>
                 </div>
-                <div class="deck-label">AUTO-REC</div>
+                <div class="void-label">AUTO-REC</div>
             </a>
 
             <!-- Status -->
