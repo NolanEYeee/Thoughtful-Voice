@@ -170,6 +170,8 @@
             padding: 20px;
             box-sizing: border-box;
             background: #1a1a1c;
+            perspective: 1000px;
+            perspective-origin: center top;
         }
 
         /* Retro Orange Scrollbar */
@@ -217,8 +219,8 @@
 
             /* Reveal State Initialization */
             opacity: 0;
-            transform: translateY(15px) translateZ(0);
-            transition: opacity 0.4s ease-out, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform: translateY(20px) translateZ(0);
+            transition: opacity 0.4s ease-out;
         }
 
         .tape-card:hover {
@@ -231,24 +233,7 @@
                 inset 0 -1px 0 rgba(0, 0, 0, 0.3);
         }
 
-        /* Decorative Screws */
-        .tape-card::before,
-        .tape-card::after {
-            content: '+';
-            position: absolute;
-            top: 5px;
-            color: #999;
-            font-size: 10px;
-            font-family: monospace;
-        }
 
-        .tape-card::before {
-            left: 5px;
-        }
-
-        .tape-card::after {
-            right: 5px;
-        }
 
         .tape-label {
             background: #f4f0e6;
@@ -487,14 +472,27 @@
 
             /* Reveal State Initialization */
             opacity: 0;
-            transform: translateY(15px) translateZ(0);
-            transition: opacity 0.4s ease-out, transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            transform: translateY(20px) translateZ(0);
+            transition: opacity 0.4s ease-out;
+        }
+
+        @keyframes waterfallReveal {
+            0% {
+                opacity: 0;
+                transform: translateY(30px) scale(0.96) rotateX(-5deg);
+                filter: blur(4px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1) rotateX(0);
+                filter: blur(0);
+            }
         }
 
         .tape-card.revealed,
         .crt-card.revealed {
-            opacity: 1 !important;
-            transform: translateY(0) translateZ(0) !important;
+            animation: waterfallReveal 0.6s cubic-bezier(0.2, 0.8, 0.2, 1.05) forwards !important;
         }
 
         .crt-card:hover {
@@ -936,8 +934,9 @@
             overflow: hidden !important;
             min-height: 0 !important;
             border: 0 !important;
-            /* Forces total collapse */
             box-shadow: none !important;
+            /* Added smooth timing for the height collapse which is managed by JS */
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }
 
         .recording-deleting:hover {
@@ -945,74 +944,178 @@
             box-shadow: none !important;
         }
 
-        /* Audio Card: Sleek Slide & Dissolve */
+        /* Audio Card: Eject then Fly Away */
         .tape-card.recording-deleting {
-            animation: tapeSlideDissolve 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            animation: tapeEjectVanish 0.6s cubic-bezier(0.45, 0.05, 0.55, 0.95) forwards;
+            transform-origin: center left;
         }
 
-        /* Video Card: Screen Off then Frame Collapse */
+        /* Video Card: Reality Warp then Collapse */
         .crt-card.recording-deleting {
-            /* Collapse starts slightly after screen starts to dim */
-            animation: cardCollapse 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.1s forwards;
+            animation: crtCardVanish 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
 
         .crt-card.recording-deleting .crt-screen {
             animation: crtOff 0.4s ease-out forwards;
         }
 
-        @keyframes tapeSlideDissolve {
+        /* Mechanical Deconstruction for Tape Card */
+        .tape-card.recording-deleting {
+            animation: tapeShatterBase 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            background: none !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .tape-card.recording-deleting .tape-label {
+            animation: labelFlyAway 0.6s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+            transform-origin: top right;
+        }
+
+        .tape-card.recording-deleting .tape-window {
+            animation: windowImplode 0.65s cubic-bezier(0.5, -0.5, 0.4, 1.5) forwards;
+            background: #ff6b00 !important;
+            /* Flash of heat */
+            z-index: 5;
+        }
+
+        .tape-card.recording-deleting .reel:first-child {
+            animation: reelFlyOutLeft 0.7s cubic-bezier(0.2, 1.2, 0.5, 1.5) forwards;
+        }
+
+        .tape-card.recording-deleting .reel:last-child {
+            animation: reelFlyOutRight 0.7s cubic-bezier(0.2, 1.2, 0.5, 1.5) forwards;
+        }
+
+        .tape-card.recording-deleting .tape-controls {
+            animation: controlsFall 0.5s ease-in forwards;
+        }
+
+        @keyframes tapeShatterBase {
             0% {
-                transform: translateX(0) scale(1);
+                transform: scale(1);
                 opacity: 1;
-                filter: blur(0);
+            }
+
+            10% {
+                transform: scale(1.05);
+                filter: contrast(2) brightness(1.5);
             }
 
             100% {
-                transform: translateX(100px) scale(0.9);
+                transform: scale(0.95);
                 opacity: 0;
-                filter: blur(4px);
+            }
+        }
+
+        @keyframes labelFlyAway {
+            to {
+                transform: translate(50px, -100px) rotate(45deg) scale(0.5);
+                opacity: 0;
+                filter: blur(5px);
+            }
+        }
+
+        @keyframes windowImplode {
+            0% {
+                transform: scale(1);
+            }
+
+            30% {
+                transform: scale(1.2) rotate(5deg);
+                filter: brightness(3);
+            }
+
+            100% {
+                transform: scale(0) rotate(-20deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes reelFlyOutLeft {
+            to {
+                transform: translate(-150px, -50px) rotate(-720deg) scale(2);
+                opacity: 0;
+                filter: blur(10px) brightness(2);
+            }
+        }
+
+        @keyframes reelFlyOutRight {
+            to {
+                transform: translate(150px, 40px) rotate(720deg) scale(1.5);
+                opacity: 0;
+                filter: blur(10px) brightness(2);
+            }
+        }
+
+        @keyframes controlsFall {
+            to {
+                transform: translateY(150px) rotate(-10deg);
+                opacity: 0;
+                filter: grayscale(1);
+            }
+        }
+
+        /* Keep frantic spin during the fly-out */
+        .tape-card.recording-deleting .reel {
+            animation: franticSpin 0.15s linear infinite !important;
+        }
+
+        @keyframes franticSpin {
+            to {
+                transform: rotate(720deg);
             }
         }
 
         @keyframes crtOff {
             0% {
                 transform: scale(1, 1);
-                filter: brightness(1);
+                filter: brightness(1) contrast(1);
                 opacity: 1;
             }
 
-            40% {
-                transform: scale(1, 0.05);
-                filter: brightness(2);
+            20% {
+                transform: scale(1.1, 0.01);
+                filter: brightness(5) contrast(2);
                 opacity: 1;
             }
 
-            80% {
-                transform: scale(0, 0.05);
-                filter: brightness(4);
+            50% {
+                transform: scale(0.1, 0.01);
+                filter: brightness(10);
                 opacity: 0.8;
             }
 
             100% {
                 transform: scale(0, 0);
-                filter: brightness(10);
+                filter: brightness(20);
                 opacity: 0;
             }
         }
 
-        @keyframes cardCollapse {
+        @keyframes crtCardVanish {
             0% {
+                transform: scale(1) rotateX(0);
+                opacity: 1;
+                filter: blur(0);
+            }
+
+            30% {
+                transform: scale(1.02) rotateX(-5deg);
                 opacity: 1;
             }
 
             100% {
+                transform: scale(0.8) rotateX(20deg) translateY(-20px);
                 opacity: 0;
+                filter: blur(12px);
             }
         }
 
         /* Scroll reveal transitions are handled by .revealed class */
     </style>
     <link rel="stylesheet" href="achievements.css">
+    <link rel="stylesheet" href="empty-state.css">
 </head>
 
 <body>

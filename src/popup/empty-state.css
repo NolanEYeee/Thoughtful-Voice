@@ -1,0 +1,520 @@
+/* 
+   VOID DECK - SCATTERED CONSTELLATION
+   Three media artifacts floating in elegant isolation across the void.
+   Each element breathes and exists in its own space.
+*/
+
+.empty-deck {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 520px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* --- FLOATING ELEMENTS (Absolute Positioned for Freedom) --- */
+
+/* 1. RETRO TV - Upper Left Corner */
+.floating-tv {
+    position: absolute;
+    top: 80px;
+    left: 30px;
+    width: 100px;
+    height: 80px;
+    background: linear-gradient(145deg, #2a2a2d, #1a1a1c);
+    border: 2px solid #333;
+    border-radius: 8px;
+    box-shadow:
+        0 15px 40px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    animation: floatTv 6s ease-in-out infinite;
+    z-index: 10;
+}
+
+.tv-screen {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    right: 20px;
+    bottom: 6px;
+    background: #000;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid #222;
+}
+
+.tv-scanlines {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(0deg,
+            transparent 0px,
+            transparent 2px,
+            rgba(255, 255, 255, 0.02) 2px,
+            rgba(255, 255, 255, 0.02) 4px);
+    animation: scanMove 0.5s linear infinite;
+    pointer-events: none;
+}
+
+.tv-content {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 7px;
+    color: rgba(255, 255, 255, 0.2);
+    font-family: monospace;
+    letter-spacing: 1px;
+    animation: channelFlicker 4s infinite;
+}
+
+.tv-knob-panel {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.tv-knob {
+    width: 8px;
+    height: 8px;
+    background: #444;
+    border-radius: 50%;
+    border: 1px solid #555;
+}
+
+/* TV Antenna */
+.tv-antenna {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 15px;
+}
+
+.antenna-rod {
+    width: 2px;
+    height: 20px;
+    background: linear-gradient(180deg, #666, #333);
+    transform-origin: bottom center;
+}
+
+.antenna-rod:first-child {
+    transform: rotate(-20deg);
+}
+
+.antenna-rod:last-child {
+    transform: rotate(20deg);
+}
+
+/* 2. CAMERA LENS - Upper Right Corner */
+.floating-camera {
+    position: absolute;
+    top: 100px;
+    right: 40px;
+    width: 70px;
+    height: 70px;
+    z-index: 10;
+    animation: floatCam 7s ease-in-out infinite;
+    animation-delay: -2s;
+}
+
+.camera-body {
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 50% 50%, #2a2a2d, #1a1a1c);
+    border: 2px solid #444;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+        0 10px 30px rgba(0, 0, 0, 0.5),
+        inset 0 2px 4px rgba(255, 255, 255, 0.05);
+    position: relative;
+}
+
+.lens-outer {
+    width: 50px;
+    height: 50px;
+    background: conic-gradient(from 0deg, #222, #444, #222, #444, #222);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: lensRotate 20s linear infinite;
+}
+
+.lens-inner {
+    width: 35px;
+    height: 35px;
+    background: radial-gradient(circle at 30% 30%, rgba(100, 150, 255, 0.15), #000 60%);
+    border-radius: 50%;
+    border: 2px solid #333;
+    position: relative;
+}
+
+.lens-flare {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 8px;
+    height: 8px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.4), transparent);
+    border-radius: 50%;
+}
+
+.rec-indicator {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 6px;
+    height: 6px;
+    background: #ff3b30;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #ff3b30;
+    animation: recBlink 1.5s infinite;
+}
+
+/* 3. MASTER DECK - Center Stage */
+.master-deck {
+    position: relative;
+    width: 180px;
+    height: 120px;
+    background: linear-gradient(180deg, #2e2e31, #1c1c1e);
+    border: 2px solid #444;
+    border-radius: 8px;
+    box-shadow:
+        0 30px 60px rgba(0, 0, 0, 0.7),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 20;
+    cursor: pointer;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease;
+    animation: floatDeck 8s ease-in-out infinite;
+    margin-top: 40px;
+}
+
+.master-deck:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow:
+        0 40px 80px rgba(0, 0, 0, 0.8),
+        0 0 30px rgba(255, 107, 0, 0.15);
+    border-color: #ff6b00;
+}
+
+/* VU Meter */
+.vu-strip {
+    width: 150px;
+    height: 12px;
+    margin-top: 12px;
+    background: #0a0a0a;
+    border-radius: 3px;
+    border: 1px solid #333;
+    display: flex;
+    gap: 2px;
+    padding: 2px 4px;
+    overflow: hidden;
+}
+
+.vu-bar {
+    flex: 1;
+    background: #333;
+    border-radius: 1px;
+    animation: vuPulse 0.6s ease-in-out infinite;
+}
+
+.vu-bar:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.vu-bar:nth-child(2) {
+    animation-delay: 0.08s;
+}
+
+.vu-bar:nth-child(3) {
+    animation-delay: 0.04s;
+}
+
+.vu-bar:nth-child(4) {
+    animation-delay: 0.12s;
+}
+
+.vu-bar:nth-child(5) {
+    animation-delay: 0.06s;
+}
+
+.vu-bar:nth-child(6) {
+    animation-delay: 0.1s;
+}
+
+.vu-bar:nth-child(7) {
+    animation-delay: 0.02s;
+}
+
+.vu-bar:nth-child(8) {
+    animation-delay: 0.14s;
+}
+
+/* Tape Window */
+.tape-window {
+    width: 140px;
+    height: 60px;
+    margin-top: 10px;
+    background: #050505;
+    border: 2px solid #333;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.9);
+}
+
+.reel-container {
+    display: flex;
+    gap: 35px;
+}
+
+.reel {
+    width: 32px;
+    height: 32px;
+    border: 2px solid #555;
+    border-radius: 50%;
+    position: relative;
+    animation: reelSpin 2.5s linear infinite;
+    background: radial-gradient(circle, #222 30%, transparent 70%);
+}
+
+.reel::before {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    border: 1px dashed #444;
+    border-radius: 50%;
+}
+
+.reel::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    background: #333;
+    border-radius: 50%;
+    border: 1px solid #555;
+}
+
+.deck-label {
+    margin-top: 8px;
+    font-size: 8px;
+    color: #666;
+    letter-spacing: 2px;
+    font-family: monospace;
+}
+
+/* --- ATMOSPHERIC DECORATIONS --- */
+
+/* Grid Lines in Background */
+.bg-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255, 107, 0, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 107, 0, 0.02) 1px, transparent 1px);
+    background-size: 30px 30px;
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+/* Floating Particles */
+.particle-field {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.particle {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    animation: drift 12s linear infinite;
+}
+
+/* Status Text */
+.status-block {
+    margin-top: 30px;
+    text-align: center;
+    z-index: 30;
+}
+
+.status-main {
+    font-size: 14px;
+    letter-spacing: 4px;
+    color: #777;
+    font-family: 'Courier New', monospace;
+}
+
+.status-sub {
+    font-size: 9px;
+    color: #444;
+    margin-top: 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* Footer */
+.footer-note {
+    position: absolute;
+    bottom: 15px;
+    font-size: 8px;
+    color: #333;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* --- ANIMATIONS --- */
+@keyframes floatTv {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(-2deg);
+    }
+
+    50% {
+        transform: translateY(-10px) rotate(1deg);
+    }
+}
+
+@keyframes floatCam {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(3deg);
+    }
+
+    50% {
+        transform: translateY(-12px) rotate(-2deg);
+    }
+}
+
+@keyframes floatDeck {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+@keyframes scanMove {
+    from {
+        transform: translateY(0);
+    }
+
+    to {
+        transform: translateY(4px);
+    }
+}
+
+@keyframes channelFlicker {
+
+    0%,
+    90%,
+    100% {
+        opacity: 1;
+    }
+
+    92% {
+        opacity: 0.3;
+    }
+
+    95% {
+        opacity: 0.8;
+    }
+}
+
+@keyframes lensRotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes recBlink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.2;
+    }
+}
+
+@keyframes reelSpin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes vuPulse {
+
+    0%,
+    100% {
+        height: 40%;
+        background: #444;
+    }
+
+    50% {
+        height: 100%;
+        background: linear-gradient(180deg, #ff6b00, #ff8533);
+        box-shadow: 0 0 5px rgba(255, 107, 0, 0.4);
+    }
+}
+
+@keyframes drift {
+    0% {
+        transform: translate(0, 0);
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 0.5;
+    }
+
+    90% {
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: translate(50px, -100px);
+        opacity: 0;
+    }
+}

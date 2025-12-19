@@ -57,6 +57,7 @@ This extension lets you record audio and screen content, then submit it as a com
 | Gemini ⭐ | gemini.google.com | ✅ Supported (Recommended) |
 | AI Studio ⭐ | aistudio.google.com | ✅ Supported (Recommended) |
 | ChatGPT | chatgpt.com, chat.openai.com | ✅ Supported |
+| Perplexity | perplexity.ai | ⚠️ UI Only (Site Issue) |
 
 **⭐ Recommended for Gemini & AI Studio**: Gemini natively supports ultra-long contexts, multimodal input (audio + video), and is very generous with context, making it difficult to reach limits.
 
@@ -178,6 +179,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 - **WebM Duration**: Fixed automatically using `fix-webm-duration` library
 - **Platform Changes**: AI platforms may update their UI; we'll keep the extension current
+- **Perplexity Uploads**: As of 2025/12/19, Perplexity has site-side issues preventing audio/video uploads. The extension supports button injection, but the site may fail to process files.
+- **Grok Support**: Grok currently does not support audio or video file uploads on its website, so it cannot be supported at this time.
 
 ## 🗺️ Roadmap
 

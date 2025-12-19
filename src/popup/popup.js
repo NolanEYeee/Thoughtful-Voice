@@ -19,10 +19,11 @@ const revealObserver = new IntersectionObserver((entries) => {
     requestAnimationFrame(() => {
         entries.forEach((entry, index) => {
             if (entry.isIntersecting) {
-                // Progressive reveal delay
+                // Progressive reveal delay - optimized for a "waterfall" feel
+                // index here is the element index in the current intersection batch
                 setTimeout(() => {
                     entry.target.classList.add('revealed');
-                }, index * 60);
+                }, index * 80);
                 revealObserver.unobserve(entry.target);
             }
         });
@@ -154,7 +155,7 @@ async function loadRecordings() {
         // Immediate render of the first item to fill the shell
         await renderBatch(0, priorityCount, 0);
     } else {
-        list.innerHTML = '<div style="text-align: center; color: #666; padding: 40px; font-family: monospace;">[NO TAPES FOUND]</div>';
+        list.innerHTML = getEmptyStateHTML();
         return;
     }
 
@@ -255,17 +256,23 @@ function setupScrollListener() {
 }
 
 function handleScroll(e) {
-    const scrollContainer = e.target;
+    checkAndLoadMore();
+}
 
-    // Calculate if user is near bottom (within 100px)
+async function checkAndLoadMore() {
+    const scrollContainer = document.querySelector('.content-scroll');
+    if (!scrollContainer || isLoading || !hasMoreToLoad) return;
+
+    // Calculate if user is near bottom (within 150px to be more proactive)
     const scrollTop = scrollContainer.scrollTop;
     const scrollHeight = scrollContainer.scrollHeight;
     const clientHeight = scrollContainer.clientHeight;
+
+    // If distance to bottom is small OR if content is shorter than container
     const distanceToBottom = scrollHeight - scrollTop - clientHeight;
 
-    // Load more if near bottom and not already loading
-    if (distanceToBottom < 100 && hasMoreToLoad && !isLoading) {
-        loadMoreRecordings();
+    if (distanceToBottom < 150 || scrollHeight <= clientHeight) {
+        await loadMoreRecordings();
     }
 }
 
@@ -412,23 +419,21 @@ function attachListenersToElement(element, recordings, injectDataFallback) {
                     card.classList.add('recording-deleting');
 
                     // 3. Smoothly collapse the physical space
-                    // For video, we wait slightly so the screen can "turn off" first
-                    const collapseDelay = isVideoCard ? 150 : 0;
-                    setTimeout(() => {
-                        card.style.maxHeight = '0px';
-                        card.style.marginBottom = '0px';
-                        card.style.marginTop = '0px';
-                        card.style.paddingTop = '0px';
-                        card.style.paddingBottom = '0px';
-                        card.style.opacity = '0';
+                    // We trigger this immediately so the cards below start moving up
+                    // in sync with the vanishing effect for a more "liquid" feel.
+                    card.style.maxHeight = '0px';
+                    card.style.marginBottom = '0px';
+                    card.style.marginTop = '0px';
+                    card.style.paddingTop = '0px';
+                    card.style.paddingBottom = '0px';
+                    card.style.opacity = '0';
 
-                        if (isLastInGroup) {
-                            group.style.marginBottom = '0px';
-                        }
-                    }, collapseDelay);
+                    if (isLastInGroup) {
+                        group.style.marginBottom = '0px';
+                    }
 
-                    // Wait for the animation to finish
-                    await new Promise(resolve => setTimeout(resolve, 600));
+                    // Wait for the animation to finish (matching the 0.6s CSS duration)
+                    await new Promise(resolve => setTimeout(resolve, 650));
                 }
 
                 // Remove from local array and storage using timestamp
@@ -456,7 +461,13 @@ function attachListenersToElement(element, recordings, injectDataFallback) {
                 // Show empty message if nothing left
                 const list = document.getElementById('list');
                 if (allRecordings.length === 0 && list) {
-                    list.innerHTML = '<div style="text-align: center; color: #666; padding: 40px; font-family: monospace;">[NO TAPES FOUND]</div>';
+                    list.innerHTML = getEmptyStateHTML();
+                } else if (hasMoreToLoad) {
+                    // Critical Bug Fix: After deletion, check if we need to load more 
+                    // to fill the gap left by the deleted card
+                    requestAnimationFrame(() => {
+                        checkAndLoadMore();
+                    });
                 }
             };
 
@@ -692,7 +703,7 @@ async function setupSettings() {
                     displayedCount = 0;
                     hasMoreToLoad = false;
                     if (list) {
-                        list.innerHTML = '<div style="text-align: center; color: #666; padding: 40px; font-family: monospace;">[NO TAPES FOUND]</div>';
+                        list.innerHTML = getEmptyStateHTML();
                         list.style.opacity = '1';
                         list.style.transform = 'translateY(0)';
                     }
@@ -703,5 +714,80 @@ async function setupSettings() {
     }
 
     window.onclick = (e) => { if (e.target == modal) closeModal(modal); };
+}
+
+function getEmptyStateHTML() {
+    return `
+        <div class="empty-deck">
+            <!-- Subtle Grid Background -->
+            <div class="bg-grid"></div>
+
+            <!-- Floating Particles -->
+            <div class="particle-field">
+                <div class="particle" style="top: 20%; left: 15%; animation-delay: 0s;"></div>
+                <div class="particle" style="top: 60%; left: 75%; animation-delay: -4s;"></div>
+                <div class="particle" style="top: 40%; left: 50%; animation-delay: -8s;"></div>
+            </div>
+
+            <!-- Floating TV (Upper Left) -->
+            <div class="floating-tv">
+                <div class="tv-antenna">
+                    <div class="antenna-rod"></div>
+                    <div class="antenna-rod"></div>
+                </div>
+                <div class="tv-screen">
+                    <div class="tv-content">NO SIGNAL</div>
+                    <div class="tv-scanlines"></div>
+                </div>
+                <div class="tv-knob-panel">
+                    <div class="tv-knob"></div>
+                    <div class="tv-knob"></div>
+                </div>
+            </div>
+
+            <!-- Floating Camera (Upper Right) -->
+            <div class="floating-camera">
+                <div class="camera-body">
+                    <div class="rec-indicator"></div>
+                    <div class="lens-outer">
+                        <div class="lens-inner">
+                            <div class="lens-flare"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Central Master Deck -->
+            <a href="https://github.com/NolanEYeee/Thoughtful-Voice" target="_blank" class="master-deck" style="text-decoration: none;">
+                <div class="vu-strip">
+                    <div class="vu-bar"></div>
+                    <div class="vu-bar"></div>
+                    <div class="vu-bar"></div>
+                    <div class="vu-bar"></div>
+                    <div class="vu-bar"></div>
+                    <div class="vu-bar"></div>
+                    <div class="vu-bar"></div>
+                    <div class="vu-bar"></div>
+                </div>
+                <div class="tape-window">
+                    <div class="reel-container">
+                        <div class="reel"></div>
+                        <div class="reel"></div>
+                    </div>
+                </div>
+                <div class="deck-label">AUTO-REC</div>
+            </a>
+
+            <!-- Status -->
+            <div class="status-block">
+                <div class="status-main">SEARCHING FREQUENCY...</div>
+                <div class="status-sub">Listening on secure channels</div>
+            </div>
+
+            <div class="footer-note">
+                Capture sensors active on Gemini, ChatGPT...
+            </div>
+        </div>
+    `;
 }
 

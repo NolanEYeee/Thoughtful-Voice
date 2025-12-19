@@ -56,8 +56,9 @@ AI 语音输入和实时屏幕共享都有局限性：
 | 平台 | 域名 | 状态 |
 |------|------|------|
 | Gemini ⭐ | gemini.google.com | ✅ 支持（推荐） |
+| AI Studio ⭐ | aistudio.google.com | ✅ 支持 |
 | ChatGPT | chatgpt.com, chat.openai.com | ✅ 支持 |
-| AI Studio | aistudio.google.com | ✅ 支持 |
+| Perplexity | perplexity.ai | ⚠️ 仅 UI (站点故障) |
 
 **⭐ 推荐 Gemini**：Gemini 原生支持超長上下文，多模态输入（音频+视频），且上下文非常大方，难以达到限制。
 
@@ -180,7 +181,9 @@ node build.js
 ## 🐛 已知问题
 
 - **WebM 时长**：使用 `fix-webm-duration` 库自动修复
-- **平台变化**：AI 平台可能会更新其 UI；我们会保持扩展同步更新
+- **平台变化**：AI 平台可能会更新其 UI；我們會保持扩展同步更新
+- **Perplexity 上传问题**：截至 2025/12/19，Perplexity 官方站点存在无法上传音频和视频文件的故障（非插件问题）。插件已支持按钮注入，但站点可能无法处理文件。
+- **Grok 支持**：由于 Grok 官方网站目前完全不支持任何音频或视频文件的上传，因此该平台目前无法适配。
 
 ## 🗺️ 发展路线图
 

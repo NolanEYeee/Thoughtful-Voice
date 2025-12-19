@@ -229,7 +229,7 @@
             if (entry.isIntersecting) {
               setTimeout(() => {
                 entry.target.classList.add("revealed");
-              }, index * 60);
+              }, index * 80);
               revealObserver.unobserve(entry.target);
             }
           });
@@ -335,7 +335,7 @@
         if (priorityCount > 0) {
           await renderBatch(0, priorityCount, 0);
         } else {
-          list.innerHTML = '<div style="text-align: center; color: #666; padding: 40px; font-family: monospace;">[NO TAPES FOUND]</div>';
+          list.innerHTML = getEmptyStateHTML();
           return;
         }
         requestAnimationFrame(() => {
@@ -403,13 +403,17 @@
         scrollContainer.addEventListener("scroll", handleScroll);
       }
       function handleScroll(e) {
-        const scrollContainer = e.target;
+        checkAndLoadMore();
+      }
+      async function checkAndLoadMore() {
+        const scrollContainer = document.querySelector(".content-scroll");
+        if (!scrollContainer || isLoading || !hasMoreToLoad) return;
         const scrollTop = scrollContainer.scrollTop;
         const scrollHeight = scrollContainer.scrollHeight;
         const clientHeight = scrollContainer.clientHeight;
         const distanceToBottom = scrollHeight - scrollTop - clientHeight;
-        if (distanceToBottom < 100 && hasMoreToLoad && !isLoading) {
-          loadMoreRecordings();
+        if (distanceToBottom < 150 || scrollHeight <= clientHeight) {
+          await loadMoreRecordings();
         }
       }
       async function loadMoreRecordings() {
@@ -525,19 +529,16 @@
                 }
                 void card.offsetHeight;
                 card.classList.add("recording-deleting");
-                const collapseDelay = isVideoCard ? 150 : 0;
-                setTimeout(() => {
-                  card.style.maxHeight = "0px";
-                  card.style.marginBottom = "0px";
-                  card.style.marginTop = "0px";
-                  card.style.paddingTop = "0px";
-                  card.style.paddingBottom = "0px";
-                  card.style.opacity = "0";
-                  if (isLastInGroup) {
-                    group.style.marginBottom = "0px";
-                  }
-                }, collapseDelay);
-                await new Promise((resolve) => setTimeout(resolve, 600));
+                card.style.maxHeight = "0px";
+                card.style.marginBottom = "0px";
+                card.style.marginTop = "0px";
+                card.style.paddingTop = "0px";
+                card.style.paddingBottom = "0px";
+                card.style.opacity = "0";
+                if (isLastInGroup) {
+                  group.style.marginBottom = "0px";
+                }
+                await new Promise((resolve) => setTimeout(resolve, 650));
               }
               if (timestamp) {
                 const foundIndex = allRecordings.findIndex((r) => r.timestamp === timestamp);
@@ -556,7 +557,11 @@
               hasMoreToLoad = displayedCount < allRecordings.length;
               const list = document.getElementById("list");
               if (allRecordings.length === 0 && list) {
-                list.innerHTML = '<div style="text-align: center; color: #666; padding: 40px; font-family: monospace;">[NO TAPES FOUND]</div>';
+                list.innerHTML = getEmptyStateHTML();
+              } else if (hasMoreToLoad) {
+                requestAnimationFrame(() => {
+                  checkAndLoadMore();
+                });
               }
             };
             if (e.shiftKey) {
@@ -742,7 +747,7 @@
                 displayedCount = 0;
                 hasMoreToLoad = false;
                 if (list) {
-                  list.innerHTML = '<div style="text-align: center; color: #666; padding: 40px; font-family: monospace;">[NO TAPES FOUND]</div>';
+                  list.innerHTML = getEmptyStateHTML();
                   list.style.opacity = "1";
                   list.style.transform = "translateY(0)";
                 }
@@ -754,6 +759,80 @@
         window.onclick = (e) => {
           if (e.target == modal) closeModal(modal);
         };
+      }
+      function getEmptyStateHTML() {
+        return `
+        <div class="empty-deck">
+            <!-- Subtle Grid Background -->
+            <div class="bg-grid"></div>
+
+            <!-- Floating Particles -->
+            <div class="particle-field">
+                <div class="particle" style="top: 20%; left: 15%; animation-delay: 0s;"></div>
+                <div class="particle" style="top: 60%; left: 75%; animation-delay: -4s;"></div>
+                <div class="particle" style="top: 40%; left: 50%; animation-delay: -8s;"></div>
+            </div>
+
+            <!-- Floating TV (Upper Left) -->
+            <div class="floating-tv">
+                <div class="tv-antenna">
+                    <div class="antenna-rod"></div>
+                    <div class="antenna-rod"></div>
+                </div>
+                <div class="tv-screen">
+                    <div class="tv-content">NO SIGNAL</div>
+                    <div class="tv-scanlines"></div>
+                </div>
+                <div class="tv-knob-panel">
+                    <div class="tv-knob"></div>
+                    <div class="tv-knob"></div>
+                </div>
+            </div>
+
+            <!-- Floating Camera (Upper Right) -->
+            <div class="floating-camera">
+                <div class="camera-body">
+                    <div class="rec-indicator"></div>
+                    <div class="lens-outer">
+                        <div class="lens-inner">
+                            <div class="lens-flare"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Central Master Deck -->
+            <a href="https://github.com/NolanEYeee/Thoughtful-Voice" target="_blank" class="master-deck" style="text-decoration: none;">
+                <div class="vu-strip">
+                    <div class="vu-bar"></div>
+                    <div class="vu-bar"></div>
+                    <div class="vu-bar"></div>
+                    <div class="vu-bar"></div>
+                    <div class="vu-bar"></div>
+                    <div class="vu-bar"></div>
+                    <div class="vu-bar"></div>
+                    <div class="vu-bar"></div>
+                </div>
+                <div class="tape-window">
+                    <div class="reel-container">
+                        <div class="reel"></div>
+                        <div class="reel"></div>
+                    </div>
+                </div>
+                <div class="deck-label">AUTO-REC</div>
+            </a>
+
+            <!-- Status -->
+            <div class="status-block">
+                <div class="status-main">SEARCHING FREQUENCY...</div>
+                <div class="status-sub">Listening on secure channels</div>
+            </div>
+
+            <div class="footer-note">
+                Capture sensors active on Gemini, ChatGPT...
+            </div>
+        </div>
+    `;
       }
     }
   });
