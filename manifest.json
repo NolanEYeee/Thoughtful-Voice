@@ -13,7 +13,9 @@
         "https://chatgpt.com/*",
         "https://chat.openai.com/*",
         "https://gemini.google.com/*",
-        "https://aistudio.google.com/*"
+        "https://aistudio.google.com/*",
+        "https://www.perplexity.ai/*",
+        "https://perplexity.ai/*"
     ],
     "content_scripts": [
         {
@@ -21,7 +23,9 @@
                 "https://chatgpt.com/*",
                 "https://chat.openai.com/*",
                 "https://gemini.google.com/*",
-                "https://aistudio.google.com/*"
+                "https://aistudio.google.com/*",
+                "https://www.perplexity.ai/*",
+                "https://perplexity.ai/*"
             ],
             "js": [
                 "dist/content.bundle.js"

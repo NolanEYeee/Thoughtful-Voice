@@ -2125,6 +2125,76 @@
     }
   });
 
+  // src/content/strategies/perplexity.js
+  var PerplexityStrategy;
+  var init_perplexity = __esm({
+    "src/content/strategies/perplexity.js"() {
+      init_base_strategy();
+      PerplexityStrategy = class extends BaseStrategy {
+        constructor() {
+          super("Perplexity");
+        }
+        // ========== Required Implementations ==========
+        async waitForDOM() {
+          return new Promise((resolve) => {
+            const check = () => {
+              const input = document.getElementById("ask-input") || document.querySelector('[role="textbox"]');
+              const attachButton = document.querySelector('button[aria-label*="Attach"]');
+              if (input && attachButton) {
+                console.log("Thoughtful Voice: Perplexity DOM ready (found input and attach button)");
+                resolve();
+              } else if (input && document.readyState === "complete") {
+                console.log("Thoughtful Voice: Perplexity input found but toolbar search continuing...");
+                resolve();
+              } else {
+                setTimeout(check, 500);
+              }
+            };
+            check();
+          });
+        }
+        getInjectionTarget() {
+          console.log("Thoughtful Voice: Looking for Perplexity injection target...");
+          const input = this.getInputElement();
+          if (!input) return null;
+          const container = input.closest('div.bg-raised, div.border, .rounded-2xl, [class*="SearchBox"]');
+          const rightGroup = container?.querySelector(".justify-self-end.col-start-3, .col-start-3.justify-self-end") || document.querySelector(".justify-self-end.col-start-3, .col-start-3.justify-self-end") || document.querySelector('button[aria-label*="Attach"]')?.parentElement;
+          if (rightGroup) {
+            console.log("Thoughtful Voice: Found Perplexity right group, injecting at the start");
+            let wrapper = rightGroup.querySelector("#thoughtful-voice-perplexity-wrapper");
+            if (!wrapper) {
+              wrapper = document.createElement("div");
+              wrapper.id = "thoughtful-voice-perplexity-wrapper";
+              wrapper.className = "flex items-center gap-1.5 mr-1";
+              wrapper.style.display = "contents";
+              rightGroup.prepend(wrapper);
+            }
+            return {
+              container: wrapper,
+              insertBefore: null
+            };
+          }
+          console.warn("Thoughtful Voice: No injection target found for Perplexity");
+          return null;
+        }
+        getInputElement() {
+          return document.getElementById("ask-input") || document.querySelector('[role="textbox"]');
+        }
+        // ========== Optional Overrides ==========
+        getUploadStrategies() {
+          return ["paste", "dragAndDrop"];
+        }
+        getDropZone() {
+          const inputEl = this.getInputElement();
+          if (inputEl) {
+            return inputEl.closest(".bg-raised, .border") || inputEl;
+          }
+          return document.body;
+        }
+      };
+    }
+  });
+
   // src/content/strategies/index.js
   function getStrategyForHost(hostname) {
     for (const { pattern, Strategy, name } of STRATEGIES) {
@@ -2142,6 +2212,7 @@
       init_gemini();
       init_chatgpt();
       init_ai_studio();
+      init_perplexity();
       STRATEGIES = [
         {
           pattern: /gemini\.google\.com/,
@@ -2157,6 +2228,11 @@
           pattern: /aistudio\.google\.com/,
           Strategy: AIStudioStrategy,
           name: "AI Studio"
+        },
+        {
+          pattern: /perplexity\.ai/,
+          Strategy: PerplexityStrategy,
+          name: "Perplexity"
         }
         // ========== Add new platforms below ==========
         // Example:

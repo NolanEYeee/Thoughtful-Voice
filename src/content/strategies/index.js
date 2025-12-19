@@ -12,6 +12,7 @@
 import { GeminiStrategy } from './gemini.js';
 import { ChatGPTStrategy } from './chatgpt.js';
 import { AIStudioStrategy } from './ai-studio.js';
+import { PerplexityStrategy } from './perplexity.js';
 
 /**
  * Strategy configuration array
@@ -35,6 +36,11 @@ const STRATEGIES = [
         pattern: /aistudio\.google\.com/,
         Strategy: AIStudioStrategy,
         name: 'AI Studio'
+    },
+    {
+        pattern: /perplexity\.ai/,
+        Strategy: PerplexityStrategy,
+        name: 'Perplexity'
     },
     // ========== Add new platforms below ==========
     // Example:
