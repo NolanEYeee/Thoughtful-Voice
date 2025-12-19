@@ -786,10 +786,10 @@ function getEmptyStateHTML() {
                 <div class="status-main">[ DECK EMPTY ]</div>
                 <div class="status-sub">Start recording to fill the archive</div>
                 <div class="platform-pills">
-                    <span class="platform-pill">Gemini</span>
-                    <span class="platform-pill">ChatGPT</span>
-                    <span class="platform-pill">Claude</span>
-                    <span class="platform-pill">Perplexity</span>
+                    <a href="https://gemini.google.com/" target="_blank" class="platform-pill">Gemini</a>
+                    <a href="https://aistudio.google.com/" target="_blank" class="platform-pill">AI Studio</a>
+                    <a href="https://chatgpt.com/" target="_blank" class="platform-pill">ChatGPT</a>
+                    <a href="https://www.perplexity.ai/" target="_blank" class="platform-pill">Perplexity</a>
                 </div>
             </div>
 
