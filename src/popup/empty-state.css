@@ -10,10 +10,11 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    min-height: 520px;
-    padding: 20px;
+    min-height: 450px;
+    padding: 40px 20px 40px 20px;
     position: relative;
     overflow: hidden;
+    box-sizing: border-box;
 }
 
 /* --- FLOATING ELEMENTS (Absolute Positioned for Freedom) --- */
@@ -21,8 +22,8 @@
 /* 1. RETRO TV - Upper Left Corner */
 .floating-tv {
     position: absolute;
-    top: 80px;
-    left: 30px;
+    top: 90px;
+    left: 45px;
     width: 100px;
     height: 80px;
     background: linear-gradient(145deg, #2a2a2d, #1a1a1c);
@@ -32,7 +33,7 @@
         0 15px 40px rgba(0, 0, 0, 0.6),
         inset 0 1px 0 rgba(255, 255, 255, 0.05);
     animation: floatTv 6s ease-in-out infinite;
-    z-index: 10;
+    z-index: 5;
 }
 
 .tv-screen {
@@ -115,14 +116,14 @@
     transform: rotate(20deg);
 }
 
-/* 2. CAMERA LENS - Upper Right Corner */
+/* 2. CLASSIC FILM CAMERA - Upper Right */
 .floating-camera {
     position: absolute;
     top: 100px;
-    right: 40px;
-    width: 70px;
-    height: 70px;
-    z-index: 10;
+    right: 45px;
+    width: 110px;
+    height: 75px;
+    z-index: 5;
     animation: floatCam 7s ease-in-out infinite;
     animation-delay: -2s;
 }
@@ -130,52 +131,120 @@
 .camera-body {
     width: 100%;
     height: 100%;
-    background: radial-gradient(circle at 50% 50%, #2a2a2d, #1a1a1c);
+    background: linear-gradient(180deg, #2a2a2d, #1c1c1e);
+    border: 2px solid #3a3a3d;
+    border-radius: 6px;
+    position: relative;
+    box-shadow:
+        0 12px 30px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Flash Unit on Top */
+.camera-flash {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 10px;
+    background: linear-gradient(180deg, #444, #2a2a2d);
+    border: 1px solid #555;
+    border-radius: 3px 3px 0 0;
+}
+
+/* Viewfinder */
+.camera-viewfinder {
+    position: absolute;
+    top: 5px;
+    right: 10px;
+    width: 20px;
+    height: 12px;
+    background: #111;
+    border: 1px solid #444;
+    border-radius: 2px;
+}
+
+.camera-viewfinder::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    background: linear-gradient(135deg, rgba(100, 150, 200, 0.1), transparent);
+    border-radius: 1px;
+}
+
+/* The Lens Barrel (Protruding) */
+.lens-barrel {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(90deg, #1a1a1c, #333, #1a1a1c);
     border: 2px solid #444;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow:
-        0 10px 30px rgba(0, 0, 0, 0.5),
-        inset 0 2px 4px rgba(255, 255, 255, 0.05);
-    position: relative;
+        -3px 0 10px rgba(0, 0, 0, 0.5),
+        inset 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
-.lens-outer {
-    width: 50px;
-    height: 50px;
-    background: conic-gradient(from 0deg, #222, #444, #222, #444, #222);
+.lens-ring {
+    width: 40px;
+    height: 40px;
+    background: conic-gradient(from 0deg, #222, #444, #222, #444, #222, #444, #222);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    animation: lensRotate 20s linear infinite;
+    animation: lensRotate 15s linear infinite;
 }
 
-.lens-inner {
-    width: 35px;
-    height: 35px;
-    background: radial-gradient(circle at 30% 30%, rgba(100, 150, 255, 0.15), #000 60%);
+.lens-glass {
+    width: 28px;
+    height: 28px;
+    background: radial-gradient(circle at 35% 35%, rgba(80, 120, 200, 0.2), #000 50%, #111 100%);
     border-radius: 50%;
-    border: 2px solid #333;
+    border: 1px solid #333;
     position: relative;
+    overflow: hidden;
 }
 
-.lens-flare {
+.lens-glass::before {
+    content: '';
     position: absolute;
-    top: 8px;
-    left: 8px;
+    top: 4px;
+    left: 4px;
     width: 8px;
     height: 8px;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.4), transparent);
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.5), transparent);
     border-radius: 50%;
 }
 
+/* Handgrip Texture */
+.camera-grip {
+    position: absolute;
+    right: 8px;
+    top: 20px;
+    bottom: 8px;
+    width: 18px;
+    background: repeating-linear-gradient(0deg,
+            #222 0px,
+            #222 2px,
+            #333 2px,
+            #333 4px);
+    border-radius: 3px;
+    border: 1px solid #444;
+}
+
+/* REC Indicator */
 .rec-indicator {
     position: absolute;
-    top: 5px;
-    right: 5px;
+    top: 8px;
+    left: 70px;
     width: 6px;
     height: 6px;
     background: #ff3b30;
@@ -198,11 +267,11 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    z-index: 20;
+    z-index: 10;
     cursor: pointer;
     transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease;
     animation: floatDeck 8s ease-in-out infinite;
-    margin-top: 40px;
+    margin-top: 100px;
 }
 
 .master-deck:hover {
@@ -358,34 +427,62 @@
 
 /* Status Text */
 .status-block {
-    margin-top: 30px;
+    margin-top: 45px;
     text-align: center;
     z-index: 30;
 }
 
 .status-main {
-    font-size: 14px;
-    letter-spacing: 4px;
-    color: #777;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: #666;
     font-family: 'Courier New', monospace;
 }
 
 .status-sub {
-    font-size: 9px;
-    color: #444;
-    margin-top: 8px;
+    font-size: 10px;
+    color: #555;
+    margin-top: 10px;
+    letter-spacing: 1px;
+}
+
+/* Platform Pills */
+.platform-pills {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+}
+
+.platform-pill {
+    font-size: 8px;
+    color: #888;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid #333;
+    padding: 4px 10px;
+    border-radius: 12px;
     letter-spacing: 1px;
     text-transform: uppercase;
 }
 
-/* Footer */
-.footer-note {
-    position: absolute;
-    bottom: 15px;
-    font-size: 8px;
-    color: #333;
-    letter-spacing: 1px;
-    text-transform: uppercase;
+/* Cable Connectors */
+.cable-deco {
+    display: flex;
+    gap: 6px;
+}
+
+.cable-plug {
+    width: 8px;
+    height: 8px;
+    background: #333;
+    border-radius: 50%;
+    border: 1px solid #444;
+}
+
+.cable-plug.active {
+    background: #ff6b00;
+    box-shadow: 0 0 6px rgba(255, 107, 0, 0.4);
 }
 
 /* --- ANIMATIONS --- */

@@ -792,12 +792,15 @@
             <!-- Floating Camera (Upper Right) -->
             <div class="floating-camera">
                 <div class="camera-body">
-                    <div class="rec-indicator"></div>
-                    <div class="lens-outer">
-                        <div class="lens-inner">
-                            <div class="lens-flare"></div>
+                    <div class="camera-flash"></div>
+                    <div class="camera-viewfinder"></div>
+                    <div class="lens-barrel">
+                        <div class="lens-ring">
+                            <div class="lens-glass"></div>
                         </div>
                     </div>
+                    <div class="camera-grip"></div>
+                    <div class="rec-indicator"></div>
                 </div>
             </div>
 
@@ -824,13 +827,16 @@
 
             <!-- Status -->
             <div class="status-block">
-                <div class="status-main">SEARCHING FREQUENCY...</div>
-                <div class="status-sub">Listening on secure channels</div>
+                <div class="status-main">[ DECK EMPTY ]</div>
+                <div class="status-sub">Start recording to fill the archive</div>
+                <div class="platform-pills">
+                    <span class="platform-pill">Gemini</span>
+                    <span class="platform-pill">ChatGPT</span>
+                    <span class="platform-pill">Claude</span>
+                    <span class="platform-pill">Perplexity</span>
+                </div>
             </div>
 
-            <div class="footer-note">
-                Capture sensors active on Gemini, ChatGPT...
-            </div>
         </div>
     `;
       }
