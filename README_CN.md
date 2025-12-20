@@ -49,10 +49,22 @@ AI 語音輸入和實時屏幕共享都有局限性：
 </div>
 
 ### 实时录制
+
+插件提供 **两套 UI 风格**：
+
+#### 🎨 默认风格
 <div align="center">
-  <img src="docs/screenshots/recording-demo.gif" alt="录制演示" width="600"/>
-  <p><i>录制中可随时<b>暂停/恢复</b>，支持在录制语音（或录屏）过程中随时<b>开启/关闭静音</b></i></p>
+  <img src="docs/screenshots/recording-demo-new-button.gif" alt="复古风格录制" width="600"/>
+  <p><i>更好看的风格 - 80年代随身听造型</i></p>
 </div>
+
+#### ⚡ 精简风格
+<div align="center">
+  <img src="docs/screenshots/recording-demo.gif" alt="精简风格录制" width="600"/>
+  <p><i>简洁按钮设计，轻量高效</i></p>
+</div>
+
+**共同功能**：两种 UI 均支持录制中随时**暂停/恢复**，以及在录制语音（或录屏）过程中随时**开启/关闭静音**
 
 ## ✨ 功能特性
 
@@ -71,7 +83,7 @@ AI 語音輸入和實時屏幕共享都有局限性：
 | Gemini ⭐ | gemini.google.com | ✅ 支持（推荐） |
 | AI Studio ⭐ | aistudio.google.com | ✅ 支持（推荐） |
 | ChatGPT | chatgpt.com, chat.openai.com | ✅ 支持 |
-| Perplexity | perplexity.ai | ⚠️ 仅 UI (站点故障) |
+| Perplexity | perplexity.ai | ⚠️ 仅 UI (网站故障，不是我的锅) |
 | Perplexity Comet | - | ❌ 不支持 (首页无法修改) |
 | Claude | claude.ai | ❌ 不支持 (无法上传音视频) |
 | Grok | x.com/i/grok grok.com | ❌ 不支持 (无法上传音视频) |

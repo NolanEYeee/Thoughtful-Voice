@@ -48,10 +48,22 @@ This extension lets you record audio and screen content, then submit it as a com
 </div>
 
 ### In-Action Recording
+
+The extension offers **two UI styles**:
+
+#### 🎨 Default Style
 <div align="center">
-  <img src="docs/screenshots/recording-demo.gif" alt="Recording Demo" width="600"/>
-  <p><i><b>Pause/Resume</b> anytime; <b>Mute/Unmute</b> microphone on-the-fly during voice or screen recording</i></p>
+  <img src="docs/screenshots/recording-demo-new-button.gif" alt="Default Style Recording" width="600"/>
+  <p><i>Better looking style - 80s Walkman vibes</i></p>
 </div>
+
+#### ⚡ Minimalist Style
+<div align="center">
+  <img src="docs/screenshots/recording-demo.gif" alt="Minimalist Style Recording" width="600"/>
+  <p><i>Simple button design, lightweight and efficient</i></p>
+</div>
+
+**Shared Features**: Both UIs support **Pause/Resume** anytime and **Mute/Unmute** microphone on-the-fly during voice or screen recording
 
 ## ✨ Features
 
@@ -70,7 +82,7 @@ This extension lets you record audio and screen content, then submit it as a com
 | Gemini ⭐ | gemini.google.com | ✅ Supported (Recommended) |
 | AI Studio ⭐ | aistudio.google.com | ✅ Supported (Recommended) |
 | ChatGPT | chatgpt.com, chat.openai.com | ✅ Supported |
-| Perplexity | perplexity.ai | ⚠️ UI Only (Site Issue) |
+| Perplexity | perplexity.ai | ⚠️ UI Only (Site Issuem, not my problem huh) |
 | Perplexity Comet | - | ❌ Unsupported (Home page immutable) |
 | Claude | claude.ai | ❌ Unsupported (No audio/video upload) |
 | Grok | x.com/i/grok grok.com | ❌ Unsupported (No audio/video upload) |
