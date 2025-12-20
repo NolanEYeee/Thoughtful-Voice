@@ -2333,14 +2333,25 @@
         }
         getInjectionTarget() {
           console.log("Thoughtful Voice: Looking for ChatGPT injection target...");
-          const attachButton = document.querySelector('button[aria-label="Attach files"]');
+          const attachButton = document.querySelector('button[aria-label="Attach files"]') || document.querySelector('button[aria-label="Add photos"]') || Array.from(document.querySelectorAll("button")).find((b) => b.innerText.includes("Attach"));
           if (attachButton?.parentElement) {
-            console.log("Thoughtful Voice: Found attach files button");
+            console.log("Thoughtful Voice: Found attach button, aria-label:", attachButton.getAttribute("aria-label"));
             return {
               container: attachButton.parentElement,
               insertBefore: attachButton
-              // Insert before the + button
+              // Insert before the attach button
             };
+          }
+          const buttonRow = document.querySelector(".flex.min-w-fit.items-center");
+          if (buttonRow) {
+            const firstButton = buttonRow.querySelector("button");
+            if (firstButton) {
+              console.log("Thoughtful Voice: Found button row container");
+              return {
+                container: buttonRow,
+                insertBefore: firstButton
+              };
+            }
           }
           const textarea = document.getElementById("prompt-textarea");
           if (textarea) {

@@ -31,18 +31,33 @@ export class ChatGPTStrategy extends BaseStrategy {
     getInjectionTarget() {
         console.log("Thoughtful Voice: Looking for ChatGPT injection target...");
 
-        // Priority 1: Next to the attachment button (+ button)
-        // It often has an aria-label "Attach files" or similar
-        const attachButton = document.querySelector('button[aria-label="Attach files"]');
+        // Priority 1: Find the attachment button by various aria-labels
+        const attachButton = document.querySelector('button[aria-label="Attach files"]')
+            || document.querySelector('button[aria-label="Add photos"]')
+            || Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Attach'));
+
         if (attachButton?.parentElement) {
-            console.log("Thoughtful Voice: Found attach files button");
+            console.log("Thoughtful Voice: Found attach button, aria-label:", attachButton.getAttribute('aria-label'));
             return {
                 container: attachButton.parentElement,
-                insertBefore: attachButton // Insert before the + button
+                insertBefore: attachButton // Insert before the attach button
             };
         }
 
-        // Priority 2: Try to find the textarea and its wrapper
+        // Priority 2: Try to find the button row container directly
+        const buttonRow = document.querySelector('.flex.min-w-fit.items-center');
+        if (buttonRow) {
+            const firstButton = buttonRow.querySelector('button');
+            if (firstButton) {
+                console.log("Thoughtful Voice: Found button row container");
+                return {
+                    container: buttonRow,
+                    insertBefore: firstButton
+                };
+            }
+        }
+
+        // Priority 3: Try to find the textarea and its wrapper
         const textarea = document.getElementById('prompt-textarea');
         if (textarea) {
             // Look for the flex container that holds the buttons
