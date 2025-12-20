@@ -479,20 +479,28 @@
         @keyframes waterfallReveal {
             0% {
                 opacity: 0;
-                transform: translateY(30px) scale(0.96) rotateX(-5deg);
-                filter: blur(4px);
+                transform: perspective(1000px) translateY(40px) scale(0.97) rotateX(-6deg);
+                filter: blur(8px);
             }
 
+            /* 唯一的頂點：完成過衝 */
+            35% {
+                opacity: 1;
+                transform: perspective(1000px) translateY(-4px) scale(1.005) rotateX(2deg);
+                filter: blur(0);
+            }
+
+            /* 直接進入最終穩定態，無二次震盪 */
             100% {
                 opacity: 1;
-                transform: translateY(0) scale(1) rotateX(0);
+                transform: perspective(1000px) translateY(0) scale(1) rotateX(0);
                 filter: blur(0);
             }
         }
 
         .tape-card.revealed,
         .crt-card.revealed {
-            animation: waterfallReveal 0.6s cubic-bezier(0.2, 0.8, 0.2, 1.05) forwards !important;
+            animation: waterfallReveal 0.6s cubic-bezier(0.2, 1, 0.4, 1) forwards !important;
         }
 
         .crt-card:hover {
