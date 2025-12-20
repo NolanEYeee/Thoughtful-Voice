@@ -566,3 +566,58 @@
         color: #DDD;
     }
 }
+
+/* ==========================================================================
+   AI STUDIO SPECIFIC OVERRIDES
+   Simple approach: Sidecar expands to the LEFT of buttons (no button movement)
+   ========================================================================== */
+
+/* Ensure proper z-index stacking */
+.site-aistudio .audio-module {
+    z-index: 30;
+}
+
+.site-aistudio .screen-module {
+    z-index: 20;
+}
+
+/* Audio sidecar - expand to the LEFT */
+.site-aistudio .audio-module .audio-sidecar {
+    left: auto;
+    right: 100%;
+    margin-right: 8px;
+    padding-left: 16px;
+    padding-right: 10px;
+    border-radius: 6px;
+    z-index: 15;
+}
+
+.site-aistudio .audio-module.recording .audio-sidecar {
+    width: 180px;
+}
+
+/* Screen sidecar - expand to the LEFT, but position it to not overlap audio module */
+.site-aistudio .screen-module .screen-sidecar {
+    left: auto;
+    right: 100%;
+    margin-right: 8px;
+    padding-left: 14px;
+    padding-right: 10px;
+    border-radius: 6px;
+    z-index: 10;
+}
+
+.site-aistudio .screen-module.recording .screen-sidecar {
+    width: 140px;
+}
+
+/* Override the default margin-left push behavior for AI Studio */
+.site-aistudio .audio-module.recording~.screen-module {
+    margin-left: 0;
+}
+
+/* When screen is recording, move audio module left to make room for screen sidecar */
+.site-aistudio .audio-module.disabled {
+    transform: translateX(-150px);
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}

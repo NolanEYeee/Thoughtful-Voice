@@ -1653,6 +1653,17 @@
           }
           document.body.classList.remove("ui-style-simple", "ui-style-aesthetic");
           document.body.classList.add(`ui-style-${this.uiStyle}`);
+          const hostname = window.location.hostname;
+          document.body.classList.remove("site-chatgpt", "site-gemini", "site-aistudio", "site-perplexity");
+          if (hostname.includes("chatgpt.com") || hostname.includes("chat.openai.com")) {
+            document.body.classList.add("site-chatgpt");
+          } else if (hostname.includes("aistudio.google.com")) {
+            document.body.classList.add("site-aistudio");
+          } else if (hostname.includes("gemini.google.com")) {
+            document.body.classList.add("site-gemini");
+          } else if (hostname.includes("perplexity.ai")) {
+            document.body.classList.add("site-perplexity");
+          }
           if (!this.button) this.createButton();
           if (!this.screenButton) this.createScreenRecordButton();
           if (!this.pauseButton) this.createPauseButton();
