@@ -129,7 +129,7 @@ export class Injector {
                         </div>
                     </div>
                     <div class="pause-overlay">
-                        <div class="pause-text">FREEZE</div>
+                        <div class="pause-text"></div>
                     </div>
                 </div>
             </div>
@@ -208,7 +208,7 @@ export class Injector {
                             </div>
                         </div>
                         <div class="pause-overlay">
-                            <div class="pause-text">FREEZE</div>
+                            <div class="pause-text"></div>
                         </div>
                     </div>
                 </div>
