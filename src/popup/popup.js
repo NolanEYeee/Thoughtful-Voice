@@ -156,7 +156,6 @@ async function loadRecordings() {
         await renderBatch(0, priorityCount, 0);
     } else {
         list.innerHTML = getEmptyStateHTML();
-        return;
     }
 
     // Stage 2: Background Tasks - Defer the rest to maintain high frame rate
@@ -169,12 +168,21 @@ async function loadRecordings() {
 
         deferMethod(() => {
             // Initialize secondary systems here
-            if (window.initSecondarySystems) window.initSecondarySystems();
+            if (typeof window.initSecondarySystems === 'function') {
+                try {
+                    window.initSecondarySystems();
+                } catch (err) {
+                    console.error('Failed to initialize secondary systems:', err);
+                }
+            }
 
             isLoading = true;
-            const fillCount = Math.min(4, recordings.length - priorityCount);
+            const fillCount = Math.max(0, recordings.length - priorityCount);
             if (fillCount > 0) {
-                renderBatch(priorityCount, fillCount, 120).then(() => {
+                renderBatch(priorityCount, Math.min(fillCount, 4), 120).then(() => {
+                    isLoading = false;
+                }).catch(err => {
+                    console.error('Batch render error:', err);
                     isLoading = false;
                 });
             } else {
@@ -543,16 +551,20 @@ function attachListeners(recordings) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Stage 1: Absolute Priority - Load data and show first item
-    loadRecordings();
-
-    // Define secondary systems initialization to be called when main thread is ready
+    // Define secondary systems initialization BEFORE loadRecordings to be absolutely safe
     window.initSecondarySystems = () => {
-        // Initialize achievements
-        const achievements = new AchievementSystem();
-        setupSettings();
+        try {
+            // Initialize achievements
+            new AchievementSystem();
+            setupSettings();
+        } catch (err) {
+            console.error('Secondary systems init error:', err);
+        }
         delete window.initSecondarySystems;
     };
+
+    // Stage 1: Absolute Priority - Load data and show first item
+    loadRecordings();
 });
 
 // Settings Logic (Preserved but styled)
@@ -686,19 +698,35 @@ async function setupSettings() {
         }, 300); // Wait for contentPopOut and modalFadeOut
     }
 
-    if (settingsBtn) settingsBtn.onclick = async () => { await loadSettings(); openModal(modal); };
-    if (cancelBtn) cancelBtn.onclick = () => { closeModal(modal); };
-    if (saveBtn) saveBtn.onclick = async () => { await saveSettings(); closeModal(modal); };
-    if (resetBtn) resetBtn.onclick = async () => {
-        showConfirmModal('Reset all settings to defaults?', async () => {
-            await chrome.storage.local.remove(['settings']);
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', async () => {
             await loadSettings();
+            openModal(modal);
         });
-    };
+    }
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+            closeModal(modal);
+        });
+    }
+    if (saveBtn) {
+        saveBtn.addEventListener('click', async () => {
+            await saveSettings();
+            closeModal(modal);
+        });
+    }
+    if (resetBtn) {
+        resetBtn.addEventListener('click', async () => {
+            showConfirmModal('Reset all settings to defaults?', async () => {
+                await chrome.storage.local.remove(['settings']);
+                await loadSettings();
+            });
+        });
+    }
 
     // Clear all recordings button
     if (clearAllBtn) {
-        clearAllBtn.onclick = () => {
+        clearAllBtn.addEventListener('click', () => {
             showConfirmModal('⚠️ Delete ALL recordings? This cannot be undone!', () => {
                 // Second confirmation
                 showConfirmModal('Are you absolutely sure? All recordings will be permanently deleted!', async () => {
@@ -721,10 +749,12 @@ async function setupSettings() {
                     closeModal(modal);
                 });
             });
-        };
+        });
     }
 
-    window.onclick = (e) => { if (e.target == modal) closeModal(modal); };
+    modal.addEventListener('click', (e) => {
+        if (e.target == modal) closeModal(modal);
+    });
 }
 
 function getEmptyStateHTML() {

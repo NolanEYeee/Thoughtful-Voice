@@ -147,10 +147,13 @@
             </div>
         `;
           document.body.appendChild(this.modal);
-          this.modal.querySelector("#close-achievements").onclick = () => this.hide();
-          this.modal.onclick = (e) => {
+          const closeBtn = this.modal.querySelector("#close-achievements");
+          if (closeBtn) {
+            closeBtn.addEventListener("click", () => this.hide());
+          }
+          this.modal.addEventListener("click", (e) => {
             if (e.target === this.modal) this.hide();
-          };
+          });
         }
         renderMilestones() {
           return this.milestones.map((m) => {
@@ -181,7 +184,7 @@
         attachTrigger() {
           const trigger = document.getElementById("achievement-trigger");
           if (trigger) {
-            trigger.onclick = () => this.show();
+            trigger.addEventListener("click", () => this.show());
           }
         }
         async show() {
@@ -342,18 +345,26 @@
           await renderBatch(0, priorityCount, 0);
         } else {
           list.innerHTML = getEmptyStateHTML();
-          return;
         }
         requestAnimationFrame(() => {
           const maxToKeep = settings.maxRecordings || 10;
           loadMoreCount = Math.max(1, maxToKeep - 5);
           const deferMethod = window.requestIdleCallback || ((cb) => setTimeout(cb, 200));
           deferMethod(() => {
-            if (window.initSecondarySystems) window.initSecondarySystems();
+            if (typeof window.initSecondarySystems === "function") {
+              try {
+                window.initSecondarySystems();
+              } catch (err) {
+                console.error("Failed to initialize secondary systems:", err);
+              }
+            }
             isLoading = true;
-            const fillCount = Math.min(4, recordings.length - priorityCount);
+            const fillCount = Math.max(0, recordings.length - priorityCount);
             if (fillCount > 0) {
-              renderBatch(priorityCount, fillCount, 120).then(() => {
+              renderBatch(priorityCount, Math.min(fillCount, 4), 120).then(() => {
+                isLoading = false;
+              }).catch((err) => {
+                console.error("Batch render error:", err);
                 isLoading = false;
               });
             } else {
@@ -618,12 +629,16 @@
         updateShiftKeyFeedback();
       }
       document.addEventListener("DOMContentLoaded", () => {
-        loadRecordings();
         window.initSecondarySystems = () => {
-          const achievements = new AchievementSystem();
-          setupSettings();
+          try {
+            new AchievementSystem();
+            setupSettings();
+          } catch (err) {
+            console.error("Secondary systems init error:", err);
+          }
           delete window.initSecondarySystems;
         };
+        loadRecordings();
       });
       async function setupSettings() {
         const settingsBtn = document.getElementById("settings-btn");
@@ -725,25 +740,33 @@
             modal2.classList.remove("hiding");
           }, 300);
         }
-        if (settingsBtn) settingsBtn.onclick = async () => {
-          await loadSettings();
-          openModal(modal);
-        };
-        if (cancelBtn) cancelBtn.onclick = () => {
-          closeModal(modal);
-        };
-        if (saveBtn) saveBtn.onclick = async () => {
-          await saveSettings();
-          closeModal(modal);
-        };
-        if (resetBtn) resetBtn.onclick = async () => {
-          showConfirmModal("Reset all settings to defaults?", async () => {
-            await chrome.storage.local.remove(["settings"]);
+        if (settingsBtn) {
+          settingsBtn.addEventListener("click", async () => {
             await loadSettings();
+            openModal(modal);
           });
-        };
+        }
+        if (cancelBtn) {
+          cancelBtn.addEventListener("click", () => {
+            closeModal(modal);
+          });
+        }
+        if (saveBtn) {
+          saveBtn.addEventListener("click", async () => {
+            await saveSettings();
+            closeModal(modal);
+          });
+        }
+        if (resetBtn) {
+          resetBtn.addEventListener("click", async () => {
+            showConfirmModal("Reset all settings to defaults?", async () => {
+              await chrome.storage.local.remove(["settings"]);
+              await loadSettings();
+            });
+          });
+        }
         if (clearAllBtn) {
-          clearAllBtn.onclick = () => {
+          clearAllBtn.addEventListener("click", () => {
             showConfirmModal("\u26A0\uFE0F Delete ALL recordings? This cannot be undone!", () => {
               showConfirmModal("Are you absolutely sure? All recordings will be permanently deleted!", async () => {
                 const list = document.getElementById("list");
@@ -765,11 +788,11 @@
                 closeModal(modal);
               });
             });
-          };
+          });
         }
-        window.onclick = (e) => {
+        modal.addEventListener("click", (e) => {
           if (e.target == modal) closeModal(modal);
-        };
+        });
       }
       function getEmptyStateHTML() {
         return `

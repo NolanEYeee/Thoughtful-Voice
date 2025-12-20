@@ -142,8 +142,14 @@ export class AchievementSystem {
 
         document.body.appendChild(this.modal);
 
-        this.modal.querySelector('#close-achievements').onclick = () => this.hide();
-        this.modal.onclick = (e) => { if (e.target === this.modal) this.hide(); };
+        const closeBtn = this.modal.querySelector('#close-achievements');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => this.hide());
+        }
+
+        this.modal.addEventListener('click', (e) => {
+            if (e.target === this.modal) this.hide();
+        });
     }
 
     renderMilestones() {
@@ -178,7 +184,7 @@ export class AchievementSystem {
     attachTrigger() {
         const trigger = document.getElementById('achievement-trigger');
         if (trigger) {
-            trigger.onclick = () => this.show();
+            trigger.addEventListener('click', () => this.show());
         }
     }
 
