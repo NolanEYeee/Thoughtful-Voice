@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Thoughtful Voice](icons/icon128.png)
+![Thoughtful Voice Banner](docs/screenshots/Thoughtful_Voice_promotional_banner_narrow.jpg)
 
 **为 Gemini 和 ChatGPT 提供口述錄音和屏幕录制功能**
 
@@ -20,14 +20,16 @@
 </div>
 
 
-## 🎯 关于 Thoughtful Voice - 深思熟虑的语音模式
+## 🎯 关于 Thoughtful Voice - 深思熟慮的語音模式
 
-AI 语音输入和实时屏幕共享都有局限性：
-- 即便 AI 语音输入也会识别错误，需要手动修正
-- 实时屏幕共享会打断你的讲解思路
-- 复杂任务用文字很难描述清楚
+<img src="icons/icon128.png" align="right" width="120" style="margin-left: 20px;">
 
-这个插件讓你先錄製口述錄音和屏幕內容，然後作為完整的包提交。AI 处理的是你的原始语音和视频，保持完整上下文，不会被打断。
+AI 語音輸入和實時屏幕共享都有局限性：
+- 即便 AI 語音輸入也會識別錯誤，需要手動修正
+- 實時屏幕共享會打斷你的講解思路
+- 複雜任務用文字很難描述清楚
+
+這個插件讓你先錄製口述錄音和屏幕內容，然後作為完整的包提交。AI 處理的是你的原始語音和視頻，保持完整上下文，不會被打斷。
 
 ## 📸 截图展示
 
@@ -191,14 +193,15 @@ node build.js
 
 本项目采用 **知识共享署名-非商业性使用-相同方式共享 4.0 国际许可协议** (CC BY-NC-SA 4.0)。
 
-你可以自由使用、分享和修改这个扩展，但**仅限于非商业用途**。详见 [LICENSE](LICENSE) 文件。
+你可以自由使用、分享和修改这个扩展，但**仅限于非商业用途**。详见 [LICENSE](LICENSE) 文件（内含关于企业内部使用的商业使用补充说明）。
 
 ## 📧 联系方式
 
 **开发者**：NolanEYeee
 
 - GitHub: [@NolanEYeee](https://github.com/NolanEYeee)
-- 项目链接：[https://github.com/NolanEYeee/Thoughtful-Voice](https://github.com/NolanEYeee/Thoughtful-Voice)
+- Twitter/X: [@owoNonlan](https://x.com/owoNonlan)
+- 項目鏈結：[https://github.com/NolanEYeee/Thoughtful-Voice](https://github.com/NolanEYeee/Thoughtful-Voice)
 
 <div align="center">
 

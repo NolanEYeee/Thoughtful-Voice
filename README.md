@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Thoughtful Voice](icons/icon128.png)
+![Thoughtful Voice Banner](docs/screenshots/Thoughtful_Voice_promotional_banner_narrow.jpg)
 
 **Voice and screen recording for Gemini and ChatGPT**
 
@@ -20,6 +20,8 @@ English | [简体中文](README_CN.md)
 </div>
 
 ## 🎯 About Thoughtful Voice
+
+<img src="icons/icon128.png" align="right" width="120" style="margin-left: 20px;">
 
 AI voice typing and real-time screen sharing have limitations:
 - Voice typing produces transcription errors that need manual correction
@@ -69,7 +71,7 @@ This extension lets you record audio and screen content, then submit it as a com
 | AI Studio ⭐ | aistudio.google.com | ✅ Supported (Recommended) |
 | ChatGPT | chatgpt.com, chat.openai.com | ✅ Supported |
 | Perplexity | perplexity.ai | ⚠️ UI Only (Site Issue) |
-| Perplexity Comet | comet.perplexity.ai | ❌ Unsupported (Home page immutable) |
+| Perplexity Comet | - | ❌ Unsupported (Home page immutable) |
 | Claude | claude.ai | ❌ Unsupported (No audio/video upload) |
 | Grok | x.com/i/grok grok.com | ❌ Unsupported (No audio/video upload) |
 
@@ -188,13 +190,14 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 This project is licensed under the **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License**. 
 
-You are free to use, share, and modify this extension for **non-commercial purposes only**. See the [LICENSE](LICENSE) file for complete details.
+You are free to use, share, and modify this extension for **non-commercial purposes only**. See the [LICENSE](LICENSE) file for complete details (including a clarification on internal organizational use).
 
 ## 📧 Contact
 
 **Developer**: NolanEYeee
 
 - GitHub: [@NolanEYeee](https://github.com/NolanEYeee)
+- Twitter/X: [@owoNonlan](https://x.com/owoNonlan)
 - Project Link: [https://github.com/NolanEYeee/Thoughtful-Voice](https://github.com/NolanEYeee/Thoughtful-Voice)
 
 <div align="center">
