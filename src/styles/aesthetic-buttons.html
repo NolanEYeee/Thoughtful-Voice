@@ -1,0 +1,621 @@
+< !DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Master Prototype V12: Unified Engineering Grid</title><style>@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Share+Tech+Mono&display=swap');
+
+:root {
+    --body-bg: #F0F2F5;
+    --ceramic-pure: #FDFDFD;
+    --ceramic-gradient: linear-gradient(135deg, #FFFFFF 0%, #F5F5F7 100%);
+    --titanium: #D4D4D8;
+    --active-orange: #FF5A00;
+    --danger-red: #FF3B30;
+    --phosphor-green: #39FF14;
+    --panel-bg: #E8E8EB;
+}
+
+body {
+    background-color: var(--body-bg);
+    background-image: radial-gradient(#D0D0D5 1px, transparent 1px);
+    background-size: 20px 20px;
+    font-family: 'Chakra Petch', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    gap: 60px;
+    overflow: hidden;
+}
+
+.deck-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 20px;
+}
+
+.module-wrapper {
+    display: flex;
+    align-items: center;
+    position: relative;
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 🎙️ AUDIO MODULE */
+.audio-main {
+    width: 72px;
+    height: 72px;
+    position: relative;
+    z-index: 20;
+    cursor: pointer;
+}
+
+.reel-chassis {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--ceramic-pure);
+    background-image: var(--ceramic-gradient);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), inset 0 2px 5px #FFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.reel-housing {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: conic-gradient(#BCBCC2 0deg, #FDFDFD 90deg, #BCBCC2 180deg, #FDFDFD 270deg, #BCBCC2 360deg);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tape-mechanism {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    position: relative;
+    background: radial-gradient(circle at center, #333 10%, transparent 11%), conic-gradient(from 0deg, transparent 0deg 40deg, #888 40deg, #FFF 50deg, #888 60deg, transparent 60deg 120deg, #888 120deg, #FFF 130deg, #888 140deg, transparent 140deg 240deg, #888 240deg, #FFF 250deg, #888 260deg, transparent 260deg);
+    background-color: #222;
+}
+
+.bearing-ruby {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #FF8A80, #D32F2F);
+}
+
+.audio-sidecar {
+    height: 50px;
+    width: 0;
+    opacity: 0;
+    background: var(--panel-bg);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    margin-left: -35px;
+    padding-left: 40px;
+    z-index: 10;
+    border: 1px solid #FFF;
+    box-shadow: 5px 8px 15px rgba(0, 0, 0, 0.08);
+}
+
+.recording.audio-module .audio-sidecar {
+    width: 195px;
+    opacity: 1;
+}
+
+.led-timer {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 18px;
+    color: #222;
+    background: #D1D1D4;
+    padding: 2px 7px;
+    border-radius: 4px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-right: 12px;
+}
+
+.waveform-v12 {
+    flex: 1;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    margin-right: 14px;
+}
+
+.wave-bar-v12 {
+    width: 3px;
+    height: 4px;
+    background: #555;
+    border-radius: 1.5px;
+    transition: all 0.1s ease;
+}
+
+/* 📺 SCREEN MODULE */
+.screen-main {
+    width: 72px;
+    height: 60px;
+    position: relative;
+    z-index: 20;
+    cursor: pointer;
+    margin-top: 8px;
+}
+
+.antenna-system {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+}
+
+.antenna {
+    width: 2.5px;
+    height: 12px;
+    background: #8E8E93;
+    border-bottom: 2px solid #555;
+    border-radius: 1px;
+}
+
+.antenna.left {
+    transform: rotate(-25deg);
+}
+
+.antenna.right {
+    transform: rotate(25deg);
+}
+
+
+
+.monitor-chassis {
+    position: absolute;
+    inset: 0;
+    background: var(--ceramic-pure);
+    background-image: var(--ceramic-gradient);
+    border-radius: 10px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), inset 0 1px 0 #FFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #D1D1D6;
+}
+
+.crt-glass {
+    width: 54px;
+    height: 40px;
+    background: #4A4A4A;
+    border-radius: 5px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.4);
+}
+
+/* V11 GREEN GRID IDLE */
+.grid-system {
+    position: absolute;
+    inset: 0;
+    background-color: #4A4A4A;
+    background-image: linear-gradient(rgba(0, 255, 65, 0.25) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 65, 0.25) 1px, transparent 1px);
+    background-size: 10px 10px;
+    background-position: center center;
+    opacity: 0;
+    transition: opacity 0.4s;
+    z-index: 1;
+}
+
+.idle.screen-module .grid-system {
+    opacity: 1;
+}
+
+.grid-sweep {
+    position: absolute;
+    top: -20%;
+    left: 0;
+    width: 100%;
+    height: 40%;
+    background: linear-gradient(to bottom, transparent, rgba(0, 255, 65, 0.2), transparent);
+    z-index: 2;
+    pointer-events: none;
+}
+
+.grid-markers {
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(0, 255, 65, 0.2);
+    margin: 4px;
+    pointer-events: none;
+    z-index: 3;
+}
+
+.grid-markers::before {
+    content: 'SCAN';
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    font-size: 5px;
+    color: var(--phosphor-green);
+    opacity: 0.5;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+/* Recording Mode */
+.viewfinder {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    padding: 4px;
+    background: rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    z-index: 5;
+}
+
+.crt-scanlines {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0.1) 50%, rgba(0, 0, 0, 0.3) 50%);
+    background-size: 100% 2px;
+    z-index: 8;
+    opacity: 0.25;
+}
+
+.crt-noise {
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity: 0;
+    z-index: 7;
+    mix-blend-mode: screen;
+}
+
+/* Sidecar Logic */
+.screen-sidecar {
+    height: 50px;
+    width: 0;
+    opacity: 0;
+    background: var(--panel-bg);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    margin-left: -35px;
+    padding-left: 45px;
+    z-index: 10;
+    border: 1px solid #FFF;
+    box-shadow: 5px 8px 15px rgba(0, 0, 0, 0.08);
+}
+
+.recording.screen-module .screen-sidecar {
+    width: 175px;
+    opacity: 1;
+}
+
+/* UNIFIED PAUSE OVERLAY (V12 Fix) */
+.pause-overlay {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle, rgba(0, 60, 160, 0.15) 0%, rgba(0, 20, 80, 0.45) 100%);
+    backdrop-filter: blur(4px) saturate(0.6);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    border-radius: inherit;
+}
+
+.pause-text {
+    color: #FFF;
+    font-weight: 800;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+    transform: translateY(12px);
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.paused .pause-overlay {
+    opacity: 1;
+}
+
+.paused .pause-text {
+    transform: translateY(0);
+}
+
+.action-ctrl {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: #FDFDFD;
+    border: 1px solid #D1D1D6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: #444;
+}
+
+.action-ctrl:active {
+    transform: scale(0.9);
+    background: #E6E6E6;
+}
+
+.mute-btn.active {
+    color: var(--danger-red);
+    border-color: var(--danger-red);
+    background: rgba(255, 42, 42, 0.05);
+}
+
+/* ANIMATIONS */
+@keyframes superSlowSpin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes turboSpin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes ledBreathRed {
+
+    0%,
+    100% {
+        opacity: 0.4;
+        background: var(--danger-red);
+        box-shadow: 0 0 4px var(--danger-red);
+    }
+
+    50% {
+        opacity: 1;
+        background: var(--danger-red);
+        box-shadow: 0 0 10px var(--danger-red);
+    }
+}
+
+@keyframes grid-scroll {
+    0% {
+        background-position: 0 0;
+    }
+
+    100% {
+        background-position: 10px 10px;
+    }
+}
+
+@keyframes grid-sweep {
+    0% {
+        top: -50%;
+    }
+
+    100% {
+        top: 150%;
+    }
+}
+
+@keyframes noise-move {
+    0% {
+        background-position: 0 0;
+    }
+
+    100% {
+        background-position: 40px 40px;
+    }
+}
+
+/* STATES */
+.idle.audio-module .tape-mechanism {
+    animation: superSlowSpin 40s linear infinite;
+}
+
+.idle.screen-module .tally-bulb {
+    animation: ledBreathRed 4s ease-in-out infinite;
+}
+
+.idle.screen-module .grid-system {
+    animation: grid-scroll 2s linear infinite;
+}
+
+.idle.screen-module .grid-sweep {
+    animation: grid-sweep 5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.recording.audio-module .tape-mechanism {
+    animation: turboSpin 0.8s linear infinite;
+}
+
+.recording.audio-module .bearing-ruby {
+    background: var(--active-orange);
+    box-shadow: 0 0 10px var(--active-orange);
+}
+
+.recording.screen-module .grid-system {
+    display: none;
+}
+
+.recording.screen-module .viewfinder {
+    opacity: 1;
+}
+
+.recording.screen-module .crt-noise {
+    opacity: 0.15;
+    animation: noise-move 0.1s steps(2) infinite;
+}
+
+.recording.screen-module .tally-bulb {
+    background: var(--danger-red);
+    box-shadow: 0 0 10px var(--danger-red);
+    animation: none;
+    opacity: 1;
+}
+
+.paused .tape-mechanism {
+    animation-play-state: paused !important;
+}
+
+.disabled {
+    opacity: 0.4;
+    filter: contrast(0.85);
+    pointer-events: none;
+}
+
+.live-dot {
+    width: 5px;
+    height: 5px;
+    background: red;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 3px;
+    animation: ledBreathRed 1s step-end infinite;
+}
+
+</style></head><body><h3 style="color: #889; font-size: 11px; text-transform: uppercase; letter-spacing: 4px;">V12: Unified Engineering Grid</h3><div class="deck-row">< !-- AUDIO MODULE --><div class="module-wrapper audio-module idle" id="audio-container"><div class="audio-main" onclick="toggleRecord('audio')"><div class="reel-chassis"><div class="reel-housing"><div class="tape-mechanism"><div class="bearing-ruby"></div></div></div><div class="pause-overlay"><div class="pause-text">FREEZE</div></div></div></div><div class="audio-sidecar"><div class="led-timer">00:00</div><div class="waveform-v12"><div class="wave-bar-v12"></div><div class="wave-bar-v12"></div><div class="wave-bar-v12)"></svg></div><div class="wave-bar-v12"></div><div class="wave-bar-v12"></div><div class="wave-bar-v12"></div><div class="wave-bar-v12"></div><div class="wave-bar-v12"></div><div class="wave-bar-v12"></div></div><div class="action-ctrl pause-btn" onclick="togglePause('audio', event)"><svg width="14" height="14"
+viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg></div></div></div>< !-- SCREEN MODULE --><div class="module-wrapper screen-module idle" id="screen-container"><div class="screen-main" onclick="toggleRecord('screen')"><div class="antenna-system"><div class="antenna left"></div><div class="antenna right"></div></div><div class="monitor-chassis"><div class="crt-glass"><div class="grid-system"><div class="grid-sweep"></div><div class="grid-markers"></div></div><div class="crt-scanlines"></div><div class="crt-noise"></div><div class="viewfinder"><div style="font-size: 7px; color: var(--phosphor-green); font-weight: 700;"><span class="live-dot"></span>LIVE</div><div style="font-size: 6px; color: #FFF; text-align: right; margin-top: auto; opacity: 0.6;">SYSTEM ACTIVE</div></div><div class="pause-overlay"><div class="pause-text">FREEZE</div></div></div></div></div><div class="screen-sidecar"><div class="led-timer">00:00</div><div class="action-ctrl mute-btn" id="mute-btn" onclick="toggleMute(event)"><svg id="mic-icon"
+width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path></svg></div><div class="action-ctrl pause-btn" onclick="togglePause('screen', event)"><svg width="14" height="14"
+
+viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg></div></div></div></div><script>let states= {
+    audio: {
+        recording: false, paused: false, time: 0, interval: null
+    }
+
+    ,
+    screen: {
+        recording: false, paused: false, time: 0, interval: null, muted: false
+    }
+}
+
+;
+
+const icons= {
+    pause: '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>', play: '<path d="M8 5v14l11-7z"/>'
+}
+
+;
+
+function toggleRecord(type) {
+    const container=document.getElementById(type + '-container');
+    const otherType=type==='audio' ? 'screen': 'audio';
+    const otherContainer=document.getElementById(otherType + '-container');
+    const s=states[type];
+
+    if ( !s.recording) {
+        // EXCLUSION LOGIC (FIXED)
+        if (states[otherType].recording) toggleRecord(otherType);
+        s.recording=true;
+        s.paused=false;
+        s.time=0;
+        container.classList.replace('idle', 'recording');
+        otherContainer.classList.add('disabled');
+        updatePauseIcon(type, false);
+
+        s.interval=setInterval(()=> {
+                if ( !s.paused) {
+                    s.time++; updateTimer(type); if (type==='audio') updateWaveform();
+                }
+            }
+
+            , 100);
+    }
+
+    else {
+        s.recording=false;
+        clearInterval(s.interval);
+        container.classList.replace('recording', 'idle');
+        otherContainer.classList.remove('disabled');
+        container.classList.remove('paused');
+        s.time=0;
+        updateTimer(type);
+    }
+}
+
+function togglePause(type, e) {
+    e.stopPropagation();
+    const container=document.getElementById(type + '-container');
+    const s=states[type];
+    if ( !s.recording) return;
+    s.paused= !s.paused;
+    container.classList.toggle('paused', s.paused);
+    updatePauseIcon(type, s.paused);
+}
+
+function updatePauseIcon(type, isPaused) {
+    const btn=document.getElementById(type + '-container').querySelector('.pause-btn svg');
+    btn.innerHTML=isPaused ? icons.play: icons.pause;
+}
+
+function toggleMute(e) {
+    e.stopPropagation();
+    const btn=document.getElementById('mute-btn');
+    const icon=document.getElementById('mic-icon');
+    states.screen.muted= !states.screen.muted;
+    btn.classList.toggle('active');
+
+    if (states.screen.muted) {
+        icon.innerHTML='<path d="m1 1 22 22M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23M12 19v4M8 23h8"></path>';
+    }
+
+    else {
+        icon.innerHTML='<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>';
+    }
+}
+
+function updateTimer(type) {
+    const s=states[type];
+    const realSeconds=Math.floor(s.time / 10);
+    const min=Math.floor(realSeconds / 60).toString().padStart(2, '0');
+    const sec=(realSeconds % 60).toString().padStart(2, '0');
+
+    document.getElementById(type + '-container').querySelector('.led-timer').innerText=`$ {
+        min
+    }
+
+    :$ {
+        sec
+    }
+
+    `;
+}
+
+function updateWaveform() {
+    const bars=document.querySelectorAll('.wave-bar-v12');
+
+    bars.forEach((bar, i)=> {
+            const height=Math.floor(Math.random() * 24) + 2;
+            bar.style.height=height + 'px';
+            const isCenter=i >=3 && i <=6;
+            bar.style.background=height > 22 ? 'var(--active-orange)' : (isCenter ? '#444' : '#777');
+        });
+}
+
+</script></body></html>

@@ -141,7 +141,11 @@ async function loadRecordings() {
     // Stage 1: Absolute Priority - Data acquisition and first item
     const result = await initialDataPromise;
     const recordings = result.recordings || [];
-    const settings = result.settings || {};
+    const settings = result.settings || { uiStyle: 'aesthetic' };
+
+    // Apply UI Style class to body for CSS targeting
+    document.body.classList.remove('ui-style-simple', 'ui-style-aesthetic');
+    document.body.classList.add(`ui-style-${settings.uiStyle || 'aesthetic'}`);
 
     recordings.sort((a, b) => b.timestamp - a.timestamp);
     allRecordings = recordings;
@@ -581,6 +585,7 @@ async function setupSettings() {
     const videoResolution = document.getElementById('video-resolution');
     const audioSampleRate = document.getElementById('audio-sample-rate');
     const maxRecordingsInput = document.getElementById('max-recordings');
+    const uiStyleSelect = document.getElementById('ui-style');
 
     // Hidden inputs handling to match old logic without breaking
     const videoBitrate = document.getElementById('video-bitrate');
@@ -606,12 +611,14 @@ async function setupSettings() {
         const defaults = {
             promptText: "Please answer based on this audio",
             maxRecordings: 10,
+            uiStyle: 'aesthetic',
             video: { codec: 'vp9', resolution: '1080p', bitrate: 4000, fps: 60, timeslice: 1000 },
             audio: { sampleRate: 44100, bufferSize: 4096, systemAudioEnabled: true }
         };
         const merged = {
             promptText: settings.promptText || defaults.promptText,
             maxRecordings: settings.maxRecordings || defaults.maxRecordings,
+            uiStyle: settings.uiStyle || defaults.uiStyle,
             video: { ...defaults.video, ...(settings.video || {}) },
             audio: { ...defaults.audio, ...(settings.audio || {}) }
         };
@@ -621,6 +628,7 @@ async function setupSettings() {
         if (videoCodec) videoCodec.value = merged.video.codec;
         if (videoResolution) videoResolution.value = merged.video.resolution;
         if (audioSampleRate) audioSampleRate.value = merged.audio.sampleRate;
+        if (uiStyleSelect) uiStyleSelect.value = merged.uiStyle;
 
         // Update bitrate display if exists
         const bitrateValue = document.getElementById('bitrate-value');
@@ -642,6 +650,7 @@ async function setupSettings() {
         const settings = {
             promptText: promptInput.value,
             maxRecordings: maxVal,
+            uiStyle: uiStyleSelect?.value || 'aesthetic',
             video: {
                 codec: videoCodec.value,
                 resolution: videoResolution.value,

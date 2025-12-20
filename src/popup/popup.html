@@ -1127,6 +1127,7 @@
     </style>
     <link rel="stylesheet" href="achievements.css">
     <link rel="stylesheet" href="empty-state.css">
+    <link rel="stylesheet" href="../styles/aesthetic-buttons.css">
 </head>
 
 <body>
@@ -1195,6 +1196,24 @@
 
             <!-- Content -->
             <div class="modal-body">
+
+                <!-- Interface Style -->
+                <div class="settings-card">
+                    <label class="settings-label">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM12 6V4c-4.42 0-8 3.58-8 8s3.58 8 8 8V6z" />
+                        </svg>
+                        Interface Style
+                    </label>
+                    <div style="margin-bottom: 12px;">
+                        <select id="ui-style" class="settings-input">
+                            <option value="aesthetic">Aesthetic (Premium)</option>
+                            <option value="simple">Simple (Performance)</option>
+                        </select>
+                        <span class="input-hint">Switch between high-visual and standard UI</span>
+                    </div>
+                </div>
 
                 <!-- Prompt Section -->
                 <div class="settings-card">

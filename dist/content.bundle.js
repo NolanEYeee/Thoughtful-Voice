@@ -1086,9 +1086,12 @@
           this.screenRecorder = screenRecorder;
           this.handleUpload = handleUpload;
           this.handleVideoUpload = handleVideoUpload;
+          this.uiStyle = "aesthetic";
           this.button = null;
           this.screenButton = null;
           this.pauseButton = null;
+          this.audioModule = null;
+          this.screenModule = null;
           this.isRecording = false;
           this.isRecordingPaused = false;
           this.isScreenRecording = false;
@@ -1096,6 +1099,7 @@
           this.isMicMuted = false;
           this.audioRecordingStartUrl = null;
           this.videoRecordingStartUrl = null;
+          this.waveformInterval = null;
           this.icons = {
             mic: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`,
             micMuted: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 10v2a3 3 0 0 0 3 3v0"></path><path d="M15 10.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`,
@@ -1108,6 +1112,7 @@
             none: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>`
           };
         }
+        // ========== Simple UI Button Creation ==========
         createButton() {
           const btn = document.createElement("button");
           btn.id = "thoughtful-voice-btn";
@@ -1163,6 +1168,134 @@
           this.pauseButton = btn;
           return btn;
         }
+        // ========== Aesthetic UI Module Creation ==========
+        createAudioModule() {
+          const module = document.createElement("div");
+          module.id = "aesthetic-audio-module";
+          module.className = "aesthetic-module audio-module idle";
+          module.innerHTML = `
+            <div class="audio-main">
+                <div class="reel-chassis">
+                    <div class="reel-housing">
+                        <div class="tape-mechanism">
+                            <div class="bearing-ruby"></div>
+                        </div>
+                    </div>
+                    <div class="pause-overlay">
+                        <div class="pause-text">FREEZE</div>
+                    </div>
+                </div>
+            </div>
+            <div class="audio-sidecar">
+                <div class="led-timer">00:00</div>
+                <div class="waveform-v12">
+                    <div class="wave-bar-v12"></div>
+                    <div class="wave-bar-v12"></div>
+                    <div class="wave-bar-v12"></div>
+                    <div class="wave-bar-v12"></div>
+                    <div class="wave-bar-v12"></div>
+                    <div class="wave-bar-v12"></div>
+                    <div class="wave-bar-v12"></div>
+                    <div class="wave-bar-v12"></div>
+                    <div class="wave-bar-v12"></div>
+                </div>
+                <div class="action-ctrl pause-btn-aesthetic">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                    </svg>
+                </div>
+            </div>
+        `;
+          const audioMain = module.querySelector(".audio-main");
+          audioMain.onclick = async () => {
+            if (this.isScreenRecording) {
+              this.toggleMicDuringScreenRecording();
+              return;
+            }
+            if (this.isRecording) {
+              await this.stopRecording();
+            } else {
+              const startUrl = await this.startRecording();
+              this.audioRecordingStartUrl = startUrl;
+            }
+          };
+          const pauseBtn = module.querySelector(".pause-btn-aesthetic");
+          pauseBtn.onclick = (e) => {
+            e.stopPropagation();
+            this.toggleRecordingPause();
+          };
+          this.audioModule = module;
+          return module;
+        }
+        createScreenModule() {
+          const module = document.createElement("div");
+          module.id = "aesthetic-screen-module";
+          module.className = "aesthetic-module screen-module idle";
+          module.innerHTML = `
+            <div class="screen-main">
+                <div class="antenna-system">
+                    <div class="antenna left"></div>
+                    <div class="antenna right"></div>
+                </div>
+                <div class="monitor-chassis">
+                    <div class="crt-glass">
+                        <div class="grid-system">
+                            <div class="grid-sweep"></div>
+                            <div class="grid-markers"></div>
+                        </div>
+                        <div class="crt-scanlines"></div>
+                        <div class="crt-noise"></div>
+                        <div class="viewfinder">
+                            <div style="font-size: 7px; color: var(--phosphor-green); font-weight: 700;">
+                                <span class="live-dot"></span>LIVE
+                            </div>
+                            <div style="font-size: 6px; color: #FFF; text-align: right; margin-top: auto; opacity: 0.6;">
+                                SYSTEM ACTIVE
+                            </div>
+                        </div>
+                        <div class="pause-overlay">
+                            <div class="pause-text">FREEZE</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="screen-sidecar">
+                <div class="led-timer">00:00</div>
+                <div class="action-ctrl mute-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    </svg>
+                </div>
+                <div class="action-ctrl pause-btn-aesthetic">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                    </svg>
+                </div>
+            </div>
+        `;
+          const screenMain = module.querySelector(".screen-main");
+          screenMain.onclick = async () => {
+            if (this.isScreenRecording) {
+              await this.stopScreenRecording();
+            } else {
+              const startUrl = await this.startScreenRecording();
+              this.videoRecordingStartUrl = startUrl;
+            }
+          };
+          const muteBtn = module.querySelector(".mute-btn");
+          muteBtn.onclick = (e) => {
+            e.stopPropagation();
+            this.toggleMicDuringScreenRecording();
+          };
+          const pauseBtn = module.querySelector(".pause-btn-aesthetic");
+          pauseBtn.onclick = (e) => {
+            e.stopPropagation();
+            this.toggleScreenPause();
+          };
+          this.screenModule = module;
+          return module;
+        }
         // ========== Audio Recording ==========
         async startRecording() {
           const startUrl = window.location.href;
@@ -1170,15 +1303,29 @@
             if (this.button) {
               this.button.innerHTML = `${this.icons.dot} ${time}`;
             }
+            if (this.audioModule) {
+              const timer = this.audioModule.querySelector(".led-timer");
+              if (timer) timer.textContent = time;
+            }
           });
           if (started) {
             this.isRecording = true;
             this.isRecordingPaused = false;
-            this.button.classList.add("recording");
-            this.button.innerHTML = `${this.icons.dot} 00:00`;
-            this.button.title = "Stop recording";
+            if (this.button) {
+              this.button.classList.add("recording");
+              this.button.innerHTML = `${this.icons.dot} 00:00`;
+              this.button.title = "Stop recording";
+            }
             this.showPauseButton();
             if (this.screenButton) this.screenButton.classList.add("hidden");
+            if (this.audioModule) {
+              this.audioModule.classList.remove("idle");
+              this.audioModule.classList.add("recording");
+              this.startWaveformAnimation();
+            }
+            if (this.screenModule) {
+              this.screenModule.classList.add("disabled");
+            }
           }
           return startUrl;
         }
@@ -1187,31 +1334,59 @@
             const resumed = this.recorder.resume();
             if (resumed) {
               this.isRecordingPaused = false;
-              this.button.classList.remove("paused");
-              this.pauseButton.innerHTML = this.icons.pause;
-              this.pauseButton.title = "Pause";
+              if (this.button) this.button.classList.remove("paused");
+              if (this.pauseButton) {
+                this.pauseButton.innerHTML = this.icons.pause;
+                this.pauseButton.title = "Pause";
+              }
+              if (this.audioModule) {
+                this.audioModule.classList.remove("paused");
+                this.updateAestheticPauseIcon("audio", false);
+              }
             }
           } else {
             const paused = this.recorder.pause();
             if (paused) {
               this.isRecordingPaused = true;
-              this.button.classList.add("paused");
-              this.pauseButton.innerHTML = this.icons.play;
-              this.pauseButton.title = "Resume";
+              if (this.button) this.button.classList.add("paused");
+              if (this.pauseButton) {
+                this.pauseButton.innerHTML = this.icons.play;
+                this.pauseButton.title = "Resume";
+              }
+              if (this.audioModule) {
+                this.audioModule.classList.add("paused");
+                this.updateAestheticPauseIcon("audio", true);
+              }
             }
           }
         }
         async stopRecording() {
           this.isRecording = false;
           this.isRecordingPaused = false;
-          this.button.classList.remove("recording", "paused");
-          this.button.innerHTML = this.icons.loading;
-          this.button.title = "Processing...";
+          this.stopWaveformAnimation();
+          if (this.button) {
+            this.button.classList.remove("recording", "paused");
+            this.button.innerHTML = this.icons.loading;
+            this.button.title = "Processing...";
+          }
           this.hidePauseButton();
+          if (this.audioModule) {
+            this.audioModule.classList.remove("recording", "paused");
+            this.audioModule.classList.add("idle");
+          }
+          if (this.screenModule) {
+            this.screenModule.classList.remove("disabled");
+          }
           const result = await this.recorder.stop();
-          this.button.innerHTML = "\u{1F399}\uFE0F";
-          this.button.title = "Record audio";
+          if (this.button) {
+            this.button.innerHTML = "\u{1F399}\uFE0F";
+            this.button.title = "Record audio";
+          }
           if (this.screenButton) this.screenButton.classList.remove("hidden");
+          if (this.audioModule) {
+            const timer = this.audioModule.querySelector(".led-timer");
+            if (timer) timer.textContent = "00:00";
+          }
           if (result) {
             console.log("Audio recorded:", result);
             await this.handleUpload(result.blob, result.duration);
@@ -1225,13 +1400,28 @@
             this.isScreenRecording = false;
             this.isScreenPaused = false;
             this.isMicMuted = false;
-            this.screenButton.classList.remove("screen-recording", "paused");
-            this.screenButton.innerHTML = this.icons.loading;
-            this.screenButton.title = "Processing...";
+            if (this.screenButton) {
+              this.screenButton.classList.remove("screen-recording", "paused");
+              this.screenButton.innerHTML = this.icons.loading;
+              this.screenButton.title = "Processing...";
+            }
             this.hidePauseButton();
             this.updateMicButtonState();
-            this.screenButton.innerHTML = "\u{1F4FA}";
-            this.screenButton.title = "Record screen";
+            if (this.screenModule) {
+              this.screenModule.classList.remove("recording", "paused");
+              this.screenModule.classList.add("idle");
+            }
+            if (this.audioModule) {
+              this.audioModule.classList.remove("disabled");
+            }
+            if (this.screenButton) {
+              this.screenButton.innerHTML = "\u{1F4FA}";
+              this.screenButton.title = "Record screen";
+            }
+            if (this.screenModule) {
+              const timer = this.screenModule.querySelector(".led-timer");
+              if (timer) timer.textContent = "00:00";
+            }
             if (result) {
               console.log("Screen recording completed via external stop:", result);
               await this.handleVideoUpload(result);
@@ -1242,21 +1432,36 @@
               if (this.screenButton) {
                 this.screenButton.innerHTML = `${this.icons.dot} ${time}`;
               }
+              if (this.screenModule) {
+                const timer = this.screenModule.querySelector(".led-timer");
+                if (timer) timer.textContent = time;
+              }
             },
             (isMuted) => {
               this.isMicMuted = isMuted;
               this.updateMicButtonState();
+              this.updateAestheticMuteState();
             }
           );
           if (started) {
             this.isScreenRecording = true;
             this.isScreenPaused = false;
             this.isMicMuted = false;
-            this.screenButton.classList.add("screen-recording");
-            this.screenButton.innerHTML = `${this.icons.dot} 00:00`;
-            this.screenButton.title = "Stop recording";
+            if (this.screenButton) {
+              this.screenButton.classList.add("screen-recording");
+              this.screenButton.innerHTML = `${this.icons.dot} 00:00`;
+              this.screenButton.title = "Stop recording";
+            }
             this.showPauseButton();
             this.updateMicButtonState();
+            if (this.screenModule) {
+              this.screenModule.classList.remove("idle");
+              this.screenModule.classList.add("recording");
+            }
+            if (this.audioModule) {
+              this.audioModule.classList.add("disabled");
+            }
+            this.updateAestheticMuteState();
           }
           return startUrl;
         }
@@ -1267,20 +1472,32 @@
             console.log("Screen resume result:", resumed);
             if (resumed) {
               this.isScreenPaused = false;
-              this.screenButton.classList.remove("paused");
-              this.pauseButton.innerHTML = this.icons.pause;
-              this.pauseButton.title = "Pause";
+              if (this.screenButton) this.screenButton.classList.remove("paused");
+              if (this.pauseButton) {
+                this.pauseButton.innerHTML = this.icons.pause;
+                this.pauseButton.title = "Pause";
+              }
               this.updateMicButtonState();
+              if (this.screenModule) {
+                this.screenModule.classList.remove("paused");
+                this.updateAestheticPauseIcon("screen", false);
+              }
             }
           } else {
             const paused = this.screenRecorder.pause();
             console.log("Screen pause result:", paused);
             if (paused) {
               this.isScreenPaused = true;
-              this.screenButton.classList.add("paused");
-              this.pauseButton.innerHTML = this.icons.play;
-              this.pauseButton.title = "Resume";
+              if (this.screenButton) this.screenButton.classList.add("paused");
+              if (this.pauseButton) {
+                this.pauseButton.innerHTML = this.icons.play;
+                this.pauseButton.title = "Resume";
+              }
               this.updateMicButtonState();
+              if (this.screenModule) {
+                this.screenModule.classList.add("paused");
+                this.updateAestheticPauseIcon("screen", true);
+              }
             }
           }
         }
@@ -1288,14 +1505,29 @@
           this.isScreenRecording = false;
           this.isScreenPaused = false;
           this.isMicMuted = false;
-          this.screenButton.classList.remove("screen-recording", "paused");
-          this.screenButton.innerHTML = this.icons.loading;
-          this.screenButton.title = "Processing...";
+          if (this.screenButton) {
+            this.screenButton.classList.remove("screen-recording", "paused");
+            this.screenButton.innerHTML = this.icons.loading;
+            this.screenButton.title = "Processing...";
+          }
           this.hidePauseButton();
           this.updateMicButtonState();
+          if (this.screenModule) {
+            this.screenModule.classList.remove("recording", "paused");
+            this.screenModule.classList.add("idle");
+          }
+          if (this.audioModule) {
+            this.audioModule.classList.remove("disabled");
+          }
           const result = await this.screenRecorder.stop();
-          this.screenButton.innerHTML = "\u{1F4FA}";
-          this.screenButton.title = "Record screen";
+          if (this.screenButton) {
+            this.screenButton.innerHTML = "\u{1F4FA}";
+            this.screenButton.title = "Record screen";
+          }
+          if (this.screenModule) {
+            const timer = this.screenModule.querySelector(".led-timer");
+            if (timer) timer.textContent = "00:00";
+          }
           if (result) {
             console.log("Screen recording completed:", result);
             await this.handleVideoUpload(result);
@@ -1320,6 +1552,7 @@
           const newMuteState = this.screenRecorder.toggleMic();
           this.isMicMuted = newMuteState;
           this.updateMicButtonState();
+          this.updateAestheticMuteState();
         }
         updateMicButtonState() {
           if (!this.button) return;
@@ -1355,11 +1588,76 @@
             this.button.title = "Record audio";
           }
         }
+        // ========== Aesthetic UI Helpers ==========
+        updateAestheticPauseIcon(type, isPaused) {
+          const module = type === "audio" ? this.audioModule : this.screenModule;
+          if (!module) return;
+          const pauseBtn = module.querySelector(".pause-btn-aesthetic");
+          if (pauseBtn) {
+            pauseBtn.innerHTML = isPaused ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+          }
+        }
+        updateAestheticMuteState() {
+          if (!this.screenModule) return;
+          const muteBtn = this.screenModule.querySelector(".mute-btn");
+          if (!muteBtn) return;
+          if (this.isMicMuted) {
+            muteBtn.classList.add("active");
+            muteBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="m1 1 22 22M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
+                <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23M12 19v4M8 23h8"></path>
+            </svg>`;
+          } else {
+            muteBtn.classList.remove("active");
+            muteBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            </svg>`;
+          }
+        }
+        startWaveformAnimation() {
+          if (this.waveformInterval) return;
+          this.waveformInterval = setInterval(() => {
+            if (!this.audioModule || this.isRecordingPaused) return;
+            const bars = this.audioModule.querySelectorAll(".wave-bar-v12");
+            bars.forEach((bar, i) => {
+              const height = Math.floor(Math.random() * 24) + 2;
+              bar.style.height = height + "px";
+              const isCenter = i >= 3 && i <= 6;
+              bar.style.background = height > 22 ? "var(--active-orange)" : isCenter ? "#444" : "#777";
+            });
+          }, 100);
+        }
+        stopWaveformAnimation() {
+          if (this.waveformInterval) {
+            clearInterval(this.waveformInterval);
+            this.waveformInterval = null;
+          }
+          if (this.audioModule) {
+            const bars = this.audioModule.querySelectorAll(".wave-bar-v12");
+            bars.forEach((bar) => {
+              bar.style.height = "4px";
+              bar.style.background = "#555";
+            });
+          }
+        }
         // ========== Injection ==========
-        inject(targetSpec) {
+        async inject(targetSpec) {
+          try {
+            const result = await chrome.storage.local.get(["settings"]);
+            const settings = result.settings || {};
+            this.uiStyle = settings.uiStyle || "aesthetic";
+          } catch (e) {
+            console.warn("Failed to load UI style setting, using default:", e);
+            this.uiStyle = "aesthetic";
+          }
+          document.body.classList.remove("ui-style-simple", "ui-style-aesthetic");
+          document.body.classList.add(`ui-style-${this.uiStyle}`);
           if (!this.button) this.createButton();
           if (!this.screenButton) this.createScreenRecordButton();
           if (!this.pauseButton) this.createPauseButton();
+          if (!this.audioModule) this.createAudioModule();
+          if (!this.screenModule) this.createScreenModule();
           if (document.getElementById("thoughtful-voice-btn")) return;
           let container = null;
           let insertBefore = null;
@@ -1370,40 +1668,45 @@
             insertBefore = targetSpec.insertBefore || null;
           }
           if (container) {
-            if (insertBefore) {
-              try {
-                container.insertBefore(this.button, insertBefore);
-                container.insertBefore(this.screenButton, insertBefore);
-                container.insertBefore(this.pauseButton, insertBefore);
-              } catch (e) {
-                console.warn("Injection failed, falling back to append", e);
-                container.appendChild(this.button);
-                container.appendChild(this.screenButton);
-                container.appendChild(this.pauseButton);
-              }
-            } else {
-              container.appendChild(this.button);
-              container.appendChild(this.screenButton);
-              container.appendChild(this.pauseButton);
-            }
+            const injectElements = (elements) => {
+              elements.forEach((el) => {
+                if (insertBefore) {
+                  try {
+                    container.insertBefore(el, insertBefore);
+                  } catch (e) {
+                    container.appendChild(el);
+                  }
+                } else {
+                  container.appendChild(el);
+                }
+              });
+            };
+            injectElements([
+              this.button,
+              this.screenButton,
+              this.pauseButton,
+              this.audioModule,
+              this.screenModule
+            ]);
           } else {
+            const fixedStyle = (el, right) => {
+              el.style.position = "fixed";
+              el.style.bottom = "100px";
+              el.style.right = right;
+              el.style.zIndex = "9999";
+            };
             document.body.appendChild(this.button);
-            this.button.style.position = "fixed";
-            this.button.style.bottom = "100px";
-            this.button.style.right = "20px";
-            this.button.style.zIndex = "9999";
+            fixedStyle(this.button, "20px");
             document.body.appendChild(this.screenButton);
-            this.screenButton.style.position = "fixed";
-            this.screenButton.style.bottom = "100px";
-            this.screenButton.style.right = "80px";
-            this.screenButton.style.zIndex = "9999";
+            fixedStyle(this.screenButton, "80px");
             document.body.appendChild(this.pauseButton);
-            this.pauseButton.style.position = "fixed";
-            this.pauseButton.style.bottom = "100px";
-            this.pauseButton.style.right = "140px";
-            this.pauseButton.style.zIndex = "9999";
+            fixedStyle(this.pauseButton, "140px");
+            document.body.appendChild(this.audioModule);
+            fixedStyle(this.audioModule, "200px");
+            document.body.appendChild(this.screenModule);
+            fixedStyle(this.screenModule, "300px");
           }
-          console.log("Buttons injected");
+          console.log(`Buttons injected (UI Style: ${this.uiStyle})`);
         }
       };
     }

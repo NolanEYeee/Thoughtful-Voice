@@ -26,6 +26,17 @@
     flex-shrink: 0;
 }
 
+/* UI Style Toggle - Hide simple buttons in aesthetic mode */
+.ui-style-aesthetic .ai-voice-btn {
+    display: none !important;
+}
+
+/* UI Style Toggle - Show simple buttons in simple mode (default) */
+.ui-style-simple .ai-voice-btn {
+    display: flex !important;
+}
+
+
 .ai-voice-btn:hover {
     background-color: rgba(255, 255, 255, 0.95);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
