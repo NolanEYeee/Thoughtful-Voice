@@ -219,7 +219,8 @@
 
             /* Reveal State Initialization */
             opacity: 0;
-            transform: translateY(20px) translateZ(0);
+            transform: translateY(40px) translateZ(0);
+            /* Match 0% keyframe to prevent jump */
             transition: opacity 0.4s ease-out;
         }
 
@@ -472,28 +473,30 @@
 
             /* Reveal State Initialization */
             opacity: 0;
-            transform: translateY(20px) translateZ(0);
+            transform: translateY(40px) translateZ(0);
+            /* Match 0% keyframe to prevent jump */
             transition: opacity 0.4s ease-out;
         }
 
         @keyframes waterfallReveal {
             0% {
                 opacity: 0;
-                transform: perspective(1000px) translateY(40px) scale(0.97) rotateX(-6deg);
-                filter: blur(8px);
+                transform: translateY(40px) scale(0.97) rotateX(-6deg);
+                filter: blur(4px);
+                /* Reduced blur for performance */
             }
 
             /* 唯一的頂點：完成過衝 */
             35% {
                 opacity: 1;
-                transform: perspective(1000px) translateY(-4px) scale(1.005) rotateX(2deg);
+                transform: translateY(-4px) scale(1.005) rotateX(2deg);
                 filter: blur(0);
             }
 
             /* 直接進入最終穩定態，無二次震盪 */
             100% {
                 opacity: 1;
-                transform: perspective(1000px) translateY(0) scale(1) rotateX(0);
+                transform: translateY(0) scale(1) rotateX(0);
                 filter: blur(0);
             }
         }

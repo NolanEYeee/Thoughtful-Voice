@@ -347,8 +347,9 @@
         requestAnimationFrame(() => {
           const maxToKeep = settings.maxRecordings || 10;
           loadMoreCount = Math.max(1, maxToKeep - 5);
-          const deferMethod = window.requestIdleCallback || ((cb) => setTimeout(cb, 150));
+          const deferMethod = window.requestIdleCallback || ((cb) => setTimeout(cb, 200));
           deferMethod(() => {
+            if (window.initSecondarySystems) window.initSecondarySystems();
             isLoading = true;
             const fillCount = Math.min(4, recordings.length - priorityCount);
             if (fillCount > 0) {
@@ -379,7 +380,11 @@
           const el = createRecordingElement(item, i, true);
           groupContainer.appendChild(el);
           if (startIndex === 0 && i === 0) {
-            el.classList.add("revealed");
+            requestAnimationFrame(() => {
+              setTimeout(() => {
+                el.classList.add("revealed");
+              }, 100);
+            });
           } else {
             revealObserver.observe(el);
           }
@@ -456,7 +461,7 @@
                     <span class="time-display duration">${rec.durationString || "00:00"}</span>
                 </div>
                 <div class="control-group">
-                    <a class="retro-btn" href="${mediaSrc}" download="video_${dateStr.replace("/", "")}_${timeStr.replace(":", "")}.webm" title="Download">
+                    <a class="retro-btn" href="${mediaSrc}" download="${rec.filename || `video_${Date.now()}.webm`}" title="Download">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/>
                         </svg>
@@ -498,7 +503,7 @@
                             <path d="M8 5v14l11-7z"/>
                         </svg>
                     </button>
-                    <a class="retro-btn" href="${rec.audioData}" download="audio_${dateStr.replace("/", "")}_${timeStr.replace(":", "")}.wav" title="Download">
+                    <a class="retro-btn" href="${rec.audioData}" download="${rec.filename || `audio_${Date.now()}.wav`}" title="Download">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/>
                         </svg>
@@ -613,12 +618,12 @@
         updateShiftKeyFeedback();
       }
       document.addEventListener("DOMContentLoaded", () => {
-        loadRecordings().then(() => {
+        loadRecordings();
+        window.initSecondarySystems = () => {
           const achievements = new AchievementSystem();
-          requestAnimationFrame(() => {
-            setupSettings();
-          });
-        });
+          setupSettings();
+          delete window.initSecondarySystems;
+        };
       });
       async function setupSettings() {
         const settingsBtn = document.getElementById("settings-btn");

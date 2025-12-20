@@ -1495,7 +1495,7 @@
           }
         }
         static async isExtensionRecording(filename) {
-          return filename.startsWith("audio_recording_");
+          return filename.startsWith("Thoughtful-Voice_") || filename.startsWith("audio_") || filename.startsWith("video_recording_");
         }
       };
     }
@@ -1550,7 +1550,7 @@
   });
 
   // src/utils/config.js
-  function generateAudioFilename() {
+  function generateFilename(type = "Audio", extension = "wav", platform = "") {
     const now = /* @__PURE__ */ new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, "0");
@@ -1558,7 +1558,15 @@
     const hours = String(now.getHours()).padStart(2, "0");
     const minutes = String(now.getMinutes()).padStart(2, "0");
     const seconds = String(now.getSeconds()).padStart(2, "0");
-    return `audio_${year}-${month}-${day}_${hours}-${minutes}-${seconds}.wav`;
+    const platformSuffix = platform ? `_${platform}` : "";
+    const dateStr = `${year}${month}${day}_${hours}${minutes}${seconds}`;
+    return `Thoughtful-Voice_${type}${platformSuffix}_${dateStr}.${extension}`;
+  }
+  function generateAudioFilename(platform = "") {
+    return generateFilename("Audio", "wav", platform);
+  }
+  function generateVideoFilename(format = "webm", platform = "") {
+    return generateFilename("Video", format, platform);
   }
   var DEFAULT_PROMPT_TEXT;
   var init_config = __esm({
@@ -2317,7 +2325,7 @@
             url: recordingUrl,
             durationString: `${m}:${s}`,
             durationMs: duration,
-            filename: generateAudioFilename()
+            filename: generateAudioFilename(strategy.name)
           }, blob);
           startUrlWatcher(timestamp);
           injector.audioRecordingStartUrl = null;
@@ -2336,7 +2344,7 @@
             url: recordingUrl,
             durationString: `${m}:${s}`,
             durationMs: result.duration,
-            filename: `video_recording_${Date.now()}.webm`,
+            filename: generateVideoFilename(result.format, strategy.name),
             format: result.format
           }, result.blob);
           console.log(`Screen recording uploaded: ${m}:${s} (${result.format.toUpperCase()})`);

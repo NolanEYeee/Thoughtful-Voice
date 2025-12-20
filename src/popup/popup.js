@@ -164,8 +164,13 @@ async function loadRecordings() {
         const maxToKeep = settings.maxRecordings || 10;
         loadMoreCount = Math.max(1, maxToKeep - 5);
 
-        const deferMethod = window.requestIdleCallback || ((cb) => setTimeout(cb, 150));
+        // Defer Achievement System and Settings to keep main thread clear during first animation
+        const deferMethod = window.requestIdleCallback || ((cb) => setTimeout(cb, 200));
+
         deferMethod(() => {
+            // Initialize secondary systems here
+            if (window.initSecondarySystems) window.initSecondarySystems();
+
             isLoading = true;
             const fillCount = Math.min(4, recordings.length - priorityCount);
             if (fillCount > 0) {
@@ -206,7 +211,13 @@ async function renderBatch(startIndex, count, customDelay = 30) {
 
         // 2. Immediate Reveal Logic
         if (startIndex === 0 && i === 0) {
-            el.classList.add('revealed');
+            // Critical fix: Give the browser a tiny moment to stabilize layout
+            // before starting the first animation, avoiding frame drops on popup opening.
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    el.classList.add('revealed');
+                }, 100); // 100ms is the "sweet spot" for popup stabilization
+            });
         } else {
             revealObserver.observe(el);
         }
@@ -533,15 +544,15 @@ function attachListeners(recordings) {
 
 document.addEventListener('DOMContentLoaded', () => {
     // Stage 1: Absolute Priority - Load data and show first item
-    loadRecordings().then(() => {
+    loadRecordings();
+
+    // Define secondary systems initialization to be called when main thread is ready
+    window.initSecondarySystems = () => {
         // Initialize achievements
         const achievements = new AchievementSystem();
-
-        // Stage 2: Secondary Priority - Init settings and listeners in next frame
-        requestAnimationFrame(() => {
-            setupSettings();
-        });
-    });
+        setupSettings();
+        delete window.initSecondarySystems;
+    };
 });
 
 // Settings Logic (Preserved but styled)
