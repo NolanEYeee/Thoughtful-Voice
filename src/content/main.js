@@ -11,7 +11,7 @@ import { Injector } from './injector.js';
 import { BubbleRenderer } from './bubble.js';
 import { StorageHelper } from './storage.js';
 import { getStrategyForHost } from './strategies/index.js';
-import { generateAudioFilename } from '../utils/config.js';
+import { generateAudioFilename, generateVideoFilename } from '../utils/config.js';
 
 console.log("Thoughtful Voice: Content script loaded");
 
@@ -102,7 +102,7 @@ async function init() {
             url: recordingUrl,
             durationString: `${m}:${s}`,
             durationMs: duration,
-            filename: generateAudioFilename()
+            filename: generateAudioFilename(strategy.name)
         }, blob);
 
         // Start watching for URL changes
@@ -135,7 +135,7 @@ async function init() {
             url: recordingUrl,
             durationString: `${m}:${s}`,
             durationMs: result.duration,
-            filename: `video_recording_${Date.now()}.webm`,
+            filename: generateVideoFilename(result.format, strategy.name),
             format: result.format
         }, result.blob);
 

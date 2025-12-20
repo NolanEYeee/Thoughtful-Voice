@@ -105,7 +105,10 @@ export class StorageHelper {
     }
 
     static async isExtensionRecording(filename) {
-        // Heuristic check
-        return filename.startsWith('audio_recording_');
+        // Heuristic check to see if this file was created by our extension
+        return filename.startsWith('Thoughtful-Voice_') ||
+            filename.startsWith('audio_') ||
+            filename.startsWith('video_recording_');
     }
+
 }

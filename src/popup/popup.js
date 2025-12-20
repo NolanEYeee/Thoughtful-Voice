@@ -323,7 +323,7 @@ function createRecordingElement(rec, index, lazyMedia = false) {
                     <span class="time-display duration">${rec.durationString || '00:00'}</span>
                 </div>
                 <div class="control-group">
-                    <a class="retro-btn" href="${mediaSrc}" download="video_${dateStr.replace('/', '')}_${timeStr.replace(':', '')}.webm" title="Download">
+                    <a class="retro-btn" href="${mediaSrc}" download="${rec.filename || `video_${Date.now()}.webm`}" title="Download">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/>
                         </svg>
@@ -368,7 +368,7 @@ function createRecordingElement(rec, index, lazyMedia = false) {
                             <path d="M8 5v14l11-7z"/>
                         </svg>
                     </button>
-                    <a class="retro-btn" href="${rec.audioData}" download="audio_${dateStr.replace('/', '')}_${timeStr.replace(':', '')}.wav" title="Download">
+                    <a class="retro-btn" href="${rec.audioData}" download="${rec.filename || `audio_${Date.now()}.wav`}" title="Download">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/>
                         </svg>
