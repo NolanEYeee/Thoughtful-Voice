@@ -1016,11 +1016,37 @@
               this.micGainNode = null;
               this.isMicMuted = false;
               this.isPaused = false;
+              const captureThumbnail = (blob) => {
+                return new Promise((resolve2) => {
+                  const url = URL.createObjectURL(blob);
+                  const video = document.createElement("video");
+                  video.src = url;
+                  video.crossOrigin = "anonymous";
+                  video.muted = true;
+                  video.onloadeddata = () => {
+                    video.currentTime = 0.5;
+                  };
+                  video.onseeked = () => {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = video.videoWidth / 4;
+                    canvas.height = video.videoHeight / 4;
+                    const ctx = canvas.getContext("2d");
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    const dataUrl = canvas.toDataURL("image/jpeg", 0.6);
+                    URL.revokeObjectURL(url);
+                    resolve2(dataUrl);
+                  };
+                  video.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    resolve2(null);
+                  };
+                  video.load();
+                });
+              };
               const rawBlob = new Blob(this.recordedChunks, { type: "video/webm" });
               const totalDuration = Date.now() - this.startTime;
               const actualDuration = totalDuration - (this.pausedDuration || 0);
               console.log(`Raw WebM size: ${(rawBlob.size / 1024 / 1024).toFixed(2)} MB`);
-              console.log(`Total time: ${Math.floor(totalDuration / 1e3)}s, Paused: ${Math.floor((this.pausedDuration || 0) / 1e3)}s, Actual: ${Math.floor(actualDuration / 1e3)}s`);
               let fixedBlob;
               try {
                 console.log("Fixing WebM duration metadata...");
@@ -1031,12 +1057,14 @@
                 fixedBlob = rawBlob;
               }
               console.log(`Final WebM size: ${(fixedBlob.size / 1024 / 1024).toFixed(2)} MB`);
+              const thumbnail = await captureThumbnail(fixedBlob);
               this.mediaRecorder = null;
               this.recordedChunks = [];
               this.pausedDuration = 0;
               this.pauseStartTime = 0;
               resolve({
                 blob: fixedBlob,
+                thumbnail,
                 duration: actualDuration,
                 format: "webm"
               });
@@ -2678,7 +2706,9 @@
             durationString: `${m}:${s}`,
             durationMs: result.duration,
             filename: generateVideoFilename(result.format, strategy.name),
-            format: result.format
+            format: result.format,
+            thumbnail: result.thumbnail
+            // Add the captured thumbnail
           }, result.blob);
           console.log(`Screen recording uploaded: ${m}:${s} (${result.format.toUpperCase()})`);
           startUrlWatcher(timestamp);

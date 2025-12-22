@@ -136,7 +136,8 @@ async function init() {
             durationString: `${m}:${s}`,
             durationMs: result.duration,
             filename: generateVideoFilename(result.format, strategy.name),
-            format: result.format
+            format: result.format,
+            thumbnail: result.thumbnail // Add the captured thumbnail
         }, result.blob);
 
         console.log(`Screen recording uploaded: ${m}:${s} (${result.format.toUpperCase()})`);

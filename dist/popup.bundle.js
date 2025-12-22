@@ -232,6 +232,25 @@
       var isLoading = false;
       var hasMoreToLoad = false;
       var modalTimeout = null;
+      var DEFAULT_SETTINGS = {
+        promptText: "Please answer based on this audio",
+        maxRecordings: 10,
+        uiStyle: "aesthetic",
+        autoUpdateCheck: false,
+        video: { codec: "vp9", resolution: "1080p", bitrate: 4e3, fps: 60, timeslice: 1e3, mutedByDefault: true },
+        audio: { sampleRate: 44100, bufferSize: 4096, systemAudioEnabled: true }
+      };
+      function getMergedSettings(stored) {
+        const settings2 = stored || {};
+        return {
+          promptText: settings2.promptText || DEFAULT_SETTINGS.promptText,
+          maxRecordings: settings2.maxRecordings || DEFAULT_SETTINGS.maxRecordings,
+          uiStyle: settings2.uiStyle || DEFAULT_SETTINGS.uiStyle,
+          autoUpdateCheck: settings2.autoUpdateCheck !== void 0 ? settings2.autoUpdateCheck : DEFAULT_SETTINGS.autoUpdateCheck,
+          video: { ...DEFAULT_SETTINGS.video, ...settings2.video || {} },
+          audio: { ...DEFAULT_SETTINGS.audio, ...settings2.audio || {} }
+        };
+      }
       var storageQueue = Promise.resolve();
       async function queueStorageOperation(operation) {
         storageQueue = storageQueue.then(async () => {
@@ -243,25 +262,45 @@
         });
         return storageQueue;
       }
-      var revealDelayCounter = 0;
-      var revealObserver = new IntersectionObserver((entries) => {
-        const sortedEntries = entries.filter((e) => e.isIntersecting).sort((a, b) => a.target.offsetTop - b.target.offsetTop);
-        if (sortedEntries.length > 0) {
-          requestAnimationFrame(() => {
-            sortedEntries.forEach((entry) => {
-              const delay = revealDelayCounter * 80 + 40;
-              revealDelayCounter++;
-              setTimeout(() => {
-                entry.target.classList.add("revealed");
-              }, delay);
-              revealObserver.unobserve(entry.target);
-            });
-            setTimeout(() => {
-              revealDelayCounter = 0;
-            }, 500);
-          });
+      var isProcessingReveal = false;
+      var processRevealTick = () => {
+        const pending = Array.from(document.querySelectorAll('.tape-card[data-ready="true"]:not(.revealed), .crt-card[data-ready="true"]:not(.revealed)'));
+        if (pending.length === 0) {
+          isProcessingReveal = false;
+          return;
         }
-      }, { threshold: 0.05, rootMargin: "0px 0px 50px 0px" });
+        isProcessingReveal = true;
+        pending.sort((a, b) => {
+          const position = a.compareDocumentPosition(b);
+          if (position & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+          if (position & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+          return 0;
+        });
+        const nextToReveal = pending[0];
+        requestAnimationFrame(() => {
+          if (nextToReveal) {
+            nextToReveal.classList.add("revealed");
+          }
+          setTimeout(processRevealTick, 60);
+        });
+      };
+      var revealObserver = new IntersectionObserver((entries) => {
+        let triggered = false;
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.dataset.ready = "true";
+            revealObserver.unobserve(entry.target);
+            triggered = true;
+          }
+        });
+        if (triggered && !isProcessingReveal) {
+          processRevealTick();
+        }
+      }, {
+        threshold: 0.01,
+        rootMargin: "0px 0px 300px 0px"
+        // Massive buffer to collect sorted items before they hit the eye
+      });
       function updateShiftKeyFeedback() {
         const deleteButtons = document.querySelectorAll(".retro-btn.delete");
         deleteButtons.forEach((btn) => {
@@ -356,15 +395,15 @@
         });
       }
       async function loadRecordings(dataOverride = null) {
-        let recordings, settings;
         if (dataOverride) {
           recordings = dataOverride.recordings || [];
-          settings = dataOverride.settings || { uiStyle: "aesthetic" };
+          settings = getMergedSettings(dataOverride.settings);
         } else {
           const result = await chrome.storage.local.get(["recordings", "settings"]);
           recordings = result.recordings || [];
-          settings = result.settings || { uiStyle: "aesthetic" };
+          settings = getMergedSettings(result.settings);
         }
+        window.settings = settings;
         document.body.classList.remove("ui-style-simple", "ui-style-aesthetic");
         document.body.classList.add(`ui-style-${settings.uiStyle || "aesthetic"}`);
         recordings.sort((a, b) => b.timestamp - a.timestamp);
@@ -474,9 +513,13 @@
               el.dataset.loading = "false";
             }
           };
-          el.addEventListener("mouseenter", injectData, { once: true });
-          const backgroundLoadDelay = 800 + i * 200;
-          setTimeout(injectData, backgroundLoadDelay);
+          el.injectMediaData = injectData;
+          if (item.type === "audio") {
+            el.addEventListener("mouseenter", injectData, { once: true });
+            const backgroundLoadDelay = 1e3 + i * 200;
+            setTimeout(injectData, backgroundLoadDelay);
+          } else {
+          }
           attachListenersToElement(el, allRecordings, injectData);
           displayedCount = i + 1;
           hasMoreToLoad = displayedCount < allRecordings.length;
@@ -531,7 +574,16 @@
             </div>
             <div class="crt-screen">
                 <div class="crt-overlay"></div>
-                <video controls src="${mediaSrc}" preload="metadata"></video>
+                <div class="crt-play-overlay">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="white" style="opacity: 0.8; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));">
+                        <path d="M8 5v14l11-7z"/>
+                    </svg>
+                </div>
+                <div class="crt-loader">
+                    <div class="spinner"></div>
+                    <span>Buffering Video...</span>
+                </div>
+                <video ${window.settings?.video?.mutedByDefault ? "muted" : ""} src="${mediaSrc}" poster="${rec.thumbnail || ""}" preload="metadata"></video>
             </div>
             <div class="crt-controls">
                 <div class="time-info">
@@ -597,7 +649,7 @@
         }
         return div;
       }
-      function attachListenersToElement(element, recordings, injectDataFallback) {
+      function attachListenersToElement(element, recordings2, injectDataFallback) {
         const deleteBtn = element.querySelector(".retro-btn.delete");
         if (deleteBtn) {
           deleteBtn.title = "Delete (Hold Shift for quick delete)";
@@ -679,6 +731,49 @@
             }
           };
         }
+        const videoElem = element.querySelector(".crt-card video");
+        if (videoElem) {
+          const playOverlay = element.querySelector(".crt-play-overlay");
+          let isDataTriggeredPlay = false;
+          const triggerLoadAndPlay = async () => {
+            if (element.dataset.mediaLoaded === "true" || element.dataset.loading === "true") return;
+            element.classList.add("loading-data");
+            if (playOverlay) playOverlay.style.display = "none";
+            try {
+              await injectDataFallback();
+              videoElem.controls = true;
+              isDataTriggeredPlay = true;
+              await videoElem.play();
+            } catch (err) {
+              console.warn("Playback after load failed:", err);
+            } finally {
+              element.classList.remove("loading-data");
+              isDataTriggeredPlay = false;
+            }
+          };
+          const handleCardClick = (e) => {
+            if (element.dataset.mediaLoaded === "true") {
+              return;
+            }
+            if (e.target.closest(".control-group") || e.target.closest(".viewfinder-label") || e.target.tagName === "A" || e.target.tagName === "BUTTON") {
+              return;
+            }
+            triggerLoadAndPlay();
+          };
+          element.addEventListener("click", handleCardClick);
+          videoElem.addEventListener("play", async (e) => {
+            if (element.dataset.mediaLoaded !== "true" && !isDataTriggeredPlay) {
+              videoElem.pause();
+              await triggerLoadAndPlay();
+            } else if (element.dataset.mediaLoaded === "true") {
+              if (playOverlay) playOverlay.style.display = "none";
+            }
+          });
+          if (element.dataset.mediaLoaded === "true") {
+            videoElem.controls = true;
+            if (playOverlay) playOverlay.style.display = "none";
+          }
+        }
         const playBtn = element.querySelector(".play-btn");
         if (playBtn) {
           playBtn.onclick = async (e) => {
@@ -714,11 +809,21 @@
             };
           };
         }
+        const downloadBtn = element.querySelector("a.retro-btn[download]");
+        if (downloadBtn) {
+          downloadBtn.onclick = async (e) => {
+            if (element.dataset.mediaLoaded !== "true") {
+              e.preventDefault();
+              await injectDataFallback();
+              downloadBtn.click();
+            }
+          };
+        }
         updateShiftKeyFeedback();
       }
-      async function migrateToSplitStorage(recordings) {
+      async function migrateToSplitStorage(recordings2) {
         console.log("Initiating background migration to split storage...");
-        const updatedRecordings = [...recordings];
+        const updatedRecordings = [...recordings2];
         let migratedAny = false;
         for (let i = 0; i < updatedRecordings.length; i++) {
           const rec = updatedRecordings[i];
@@ -772,6 +877,7 @@
         const audioBufferSize = document.getElementById("audio-buffer-size");
         const systemAudioEnabled = document.getElementById("system-audio-enabled");
         const autoUpdateCheck = document.getElementById("auto-update-check");
+        const videoMutedDefault = document.getElementById("video-muted-default");
         if (maxRecordingsInput) {
           maxRecordingsInput.oninput = () => {
             if (maxRecordingsInput.value > 25) {
@@ -783,23 +889,7 @@
         }
         async function loadSettings() {
           const result = await chrome.storage.local.get(["settings"]);
-          const settings = result.settings || {};
-          const defaults = {
-            promptText: "Please answer based on this audio",
-            maxRecordings: 10,
-            uiStyle: "aesthetic",
-            autoUpdateCheck: false,
-            video: { codec: "vp9", resolution: "1080p", bitrate: 4e3, fps: 60, timeslice: 1e3 },
-            audio: { sampleRate: 44100, bufferSize: 4096, systemAudioEnabled: true }
-          };
-          const merged = {
-            promptText: settings.promptText || defaults.promptText,
-            maxRecordings: settings.maxRecordings || defaults.maxRecordings,
-            uiStyle: settings.uiStyle || defaults.uiStyle,
-            autoUpdateCheck: settings.autoUpdateCheck !== void 0 ? settings.autoUpdateCheck : defaults.autoUpdateCheck,
-            video: { ...defaults.video, ...settings.video || {} },
-            audio: { ...defaults.audio, ...settings.audio || {} }
-          };
+          const merged = getMergedSettings(result.settings);
           if (promptInput) promptInput.value = merged.promptText;
           if (maxRecordingsInput) maxRecordingsInput.value = merged.maxRecordings;
           if (videoCodec) videoCodec.value = merged.video.codec;
@@ -816,11 +906,13 @@
           if (audioBufferSize) audioBufferSize.value = merged.audio.bufferSize;
           if (systemAudioEnabled) systemAudioEnabled.checked = merged.audio.systemAudioEnabled !== false;
           if (autoUpdateCheck) autoUpdateCheck.checked = merged.autoUpdateCheck === true;
+          if (videoMutedDefault) videoMutedDefault.checked = merged.video.mutedByDefault !== false;
+          window.settings = merged;
         }
         async function saveSettings() {
           let maxVal = parseInt(maxRecordingsInput?.value) || 10;
           if (maxVal > 25) maxVal = 25;
-          const settings = {
+          const settings2 = {
             promptText: promptInput.value,
             maxRecordings: maxVal,
             uiStyle: uiStyleSelect?.value || "aesthetic",
@@ -830,7 +922,8 @@
               resolution: videoResolution.value,
               bitrate: parseInt(videoBitrate.value),
               fps: parseInt(videoFps.value),
-              timeslice: parseInt(videoTimeslice.value)
+              timeslice: parseInt(videoTimeslice.value),
+              mutedByDefault: !!videoMutedDefault?.checked
             },
             audio: {
               sampleRate: parseInt(audioSampleRate.value),
@@ -838,14 +931,20 @@
               systemAudioEnabled: systemAudioEnabled?.checked !== false
             }
           };
-          loadMoreCount = Math.max(1, settings.maxRecordings - 1);
+          loadMoreCount = Math.max(1, settings2.maxRecordings - 1);
+          window.settings = settings2;
+          document.querySelectorAll(".crt-card video").forEach((v) => {
+            v.muted = settings2.video.mutedByDefault;
+          });
+          document.body.classList.remove("ui-style-simple", "ui-style-aesthetic");
+          document.body.classList.add(`ui-style-${settings2.uiStyle || "aesthetic"}`);
           await queueStorageOperation(async () => {
-            await chrome.storage.local.set({ settings });
+            await chrome.storage.local.set({ settings: settings2 });
             const result = await chrome.storage.local.get(["recordings"]);
-            const recordings = result.recordings || [];
-            if (recordings.length > maxVal) {
-              const toRemove = recordings.slice(maxVal);
-              const trimmedRecordings = recordings.slice(0, maxVal);
+            const recordings2 = result.recordings || [];
+            if (recordings2.length > maxVal) {
+              const toRemove = recordings2.slice(maxVal);
+              const trimmedRecordings = recordings2.slice(0, maxVal);
               const removeKeys = toRemove.map((r) => `rec_data_${r.timestamp}`);
               await chrome.storage.local.remove(removeKeys);
               await chrome.storage.local.set({ recordings: trimmedRecordings });

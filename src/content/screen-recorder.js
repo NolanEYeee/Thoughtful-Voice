@@ -387,15 +387,48 @@ export class ScreenRecorder {
                 this.isMicMuted = false;
                 this.isPaused = false;
 
+                // --- THUMBNAIL GENERATION ---
+                const captureThumbnail = (blob) => {
+                    return new Promise((resolve) => {
+                        const url = URL.createObjectURL(blob);
+                        const video = document.createElement('video');
+                        video.src = url;
+                        video.crossOrigin = "anonymous";
+                        video.muted = true;
+
+                        video.onloadeddata = () => {
+                            // Seek to 0.5s to avoid black start frame
+                            video.currentTime = 0.5;
+                        };
+
+                        video.onseeked = () => {
+                            const canvas = document.createElement('canvas');
+                            canvas.width = video.videoWidth / 4; // Low res thumbnail
+                            canvas.height = video.videoHeight / 4;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                            const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+                            URL.revokeObjectURL(url);
+                            resolve(dataUrl);
+                        };
+
+                        video.onerror = () => {
+                            URL.revokeObjectURL(url);
+                            resolve(null);
+                        };
+
+                        video.load();
+                    });
+                };
+
                 // Create blob from recorded chunks
                 const rawBlob = new Blob(this.recordedChunks, { type: 'video/webm' });
                 const totalDuration = Date.now() - this.startTime;
                 const actualDuration = totalDuration - (this.pausedDuration || 0);
 
                 console.log(`Raw WebM size: ${(rawBlob.size / 1024 / 1024).toFixed(2)} MB`);
-                console.log(`Total time: ${Math.floor(totalDuration / 1000)}s, Paused: ${Math.floor((this.pausedDuration || 0) / 1000)}s, Actual: ${Math.floor(actualDuration / 1000)}s`);
 
-                // Fix WebM duration metadata for Gemini compatibility
+                // Fix WebM duration metadata
                 let fixedBlob;
                 try {
                     console.log("Fixing WebM duration metadata...");
@@ -408,6 +441,8 @@ export class ScreenRecorder {
 
                 console.log(`Final WebM size: ${(fixedBlob.size / 1024 / 1024).toFixed(2)} MB`);
 
+                const thumbnail = await captureThumbnail(fixedBlob);
+
                 this.mediaRecorder = null;
                 this.recordedChunks = [];
                 this.pausedDuration = 0;
@@ -415,6 +450,7 @@ export class ScreenRecorder {
 
                 resolve({
                     blob: fixedBlob,
+                    thumbnail: thumbnail,
                     duration: actualDuration,
                     format: 'webm'
                 });

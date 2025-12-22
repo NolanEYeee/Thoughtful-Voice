@@ -15,6 +15,27 @@ let isLoading = false;           // Prevent multiple simultaneous loads
 let hasMoreToLoad = false;       // Track if there are more recordings to load
 let modalTimeout = null;         // Track confirmation modal close timeout to prevent flicker
 
+const DEFAULT_SETTINGS = {
+    promptText: "Please answer based on this audio",
+    maxRecordings: 10,
+    uiStyle: 'aesthetic',
+    autoUpdateCheck: false,
+    video: { codec: 'vp9', resolution: '1080p', bitrate: 4000, fps: 60, timeslice: 1000, mutedByDefault: true },
+    audio: { sampleRate: 44100, bufferSize: 4096, systemAudioEnabled: true }
+};
+
+function getMergedSettings(stored) {
+    const settings = stored || {};
+    return {
+        promptText: settings.promptText || DEFAULT_SETTINGS.promptText,
+        maxRecordings: settings.maxRecordings || DEFAULT_SETTINGS.maxRecordings,
+        uiStyle: settings.uiStyle || DEFAULT_SETTINGS.uiStyle,
+        autoUpdateCheck: settings.autoUpdateCheck !== undefined ? settings.autoUpdateCheck : DEFAULT_SETTINGS.autoUpdateCheck,
+        video: { ...DEFAULT_SETTINGS.video, ...(settings.video || {}) },
+        audio: { ...DEFAULT_SETTINGS.audio, ...(settings.audio || {}) }
+    };
+}
+
 // Storage Operation Queue - Prevents race conditions during rapid deletions/updates
 let storageQueue = Promise.resolve();
 async function queueStorageOperation(operation) {
@@ -205,16 +226,17 @@ function showConfirmModal(message, onConfirm, onCancel) {
 
 async function loadRecordings(dataOverride = null) {
     // Stage 1: Absolute Priority - Data acquisition and first item
-    let recordings, settings;
-
     if (dataOverride) {
         recordings = dataOverride.recordings || [];
-        settings = dataOverride.settings || { uiStyle: 'aesthetic' };
+        settings = getMergedSettings(dataOverride.settings);
     } else {
         const result = await chrome.storage.local.get(['recordings', 'settings']);
         recordings = result.recordings || [];
-        settings = result.settings || { uiStyle: 'aesthetic' };
+        settings = getMergedSettings(result.settings);
     }
+
+    // Critical: Expose settings globally so sync UI creation (createRecordingElement) can use them
+    window.settings = settings;
 
     // Apply UI Style class to body for CSS targeting
     document.body.classList.remove('ui-style-simple', 'ui-style-aesthetic');
@@ -325,7 +347,6 @@ async function renderBatch(startIndex, count, customDelay = 30) {
         revealObserver.observe(el);
 
         // 3. Hyper-Lazy Content Injection
-        // We delay the heavy string manipulation until the user actually needs it
         const mediaElem = el.querySelector('audio, video');
         const downloadBtn = el.querySelector('a.retro-btn[download]');
 
@@ -336,28 +357,24 @@ async function renderBatch(startIndex, count, customDelay = 30) {
             try {
                 let finalData = item.audioData;
 
-                // If audioData is missing (new split storage strategy), fetch it now
                 if (!finalData) {
                     const dataResult = await chrome.storage.local.get(`rec_data_${item.timestamp}`);
                     finalData = dataResult[`rec_data_${item.timestamp}`];
                 }
 
                 if (finalData) {
-                    // Optimized: Use ObjectURL instead of long Base64 string for better memory/perf
                     const blob = base64ToBlob(finalData, item.type === 'video' ? 'video/webm' : 'audio/wav');
                     const objectUrl = URL.createObjectURL(blob);
                     objectUrls.add(objectUrl);
 
                     if (mediaElem) {
                         mediaElem.src = objectUrl;
-                        mediaElem.dataset.originalBase64 = 'true'; // mark as loaded
+                        mediaElem.dataset.originalBase64 = 'true';
                     }
                     if (downloadBtn) {
                         downloadBtn.href = objectUrl;
                     }
                     el.dataset.mediaLoaded = 'true';
-
-                    // Trigger metadata load immediately
                     if (mediaElem) mediaElem.load();
                 }
             } catch (err) {
@@ -367,14 +384,22 @@ async function renderBatch(startIndex, count, customDelay = 30) {
             }
         };
 
-        // Trigger on hover OR automatically after a generous "settle" time
-        el.addEventListener('mouseenter', injectData, { once: true });
+        // EXPOSE for manual trigger
+        el.injectMediaData = injectData;
 
-        // Spread background loading to avoid CPU spikes (longer delay for better waterfall)
-        const backgroundLoadDelay = 800 + (i * 200);
-        setTimeout(injectData, backgroundLoadDelay);
+        // --- PERFORMANCE STRATEGY ---
+        // 1. Audio: Keep hover/delayed auto-load because they are small
+        if (item.type === 'audio') {
+            el.addEventListener('mouseenter', injectData, { once: true });
+            const backgroundLoadDelay = 1000 + (i * 200);
+            setTimeout(injectData, backgroundLoadDelay);
+        } else {
+            // 2. Video: NO auto-load. NO hover-load. ONLY Play-to-load.
+            // This saves massive CPU/Memory for multiple long recordings.
+            // (Download button still triggers it via listener)
+        }
 
-        // 4. Attach interaction listeners (including a safety trigger for play)
+        // 4. Attach interaction listeners
         attachListenersToElement(el, allRecordings, injectData);
 
         displayedCount = i + 1;
@@ -459,7 +484,16 @@ function createRecordingElement(rec, index, lazyMedia = false) {
             </div>
             <div class="crt-screen">
                 <div class="crt-overlay"></div>
-                <video controls src="${mediaSrc}" preload="metadata"></video>
+                <div class="crt-play-overlay">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="white" style="opacity: 0.8; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));">
+                        <path d="M8 5v14l11-7z"/>
+                    </svg>
+                </div>
+                <div class="crt-loader">
+                    <div class="spinner"></div>
+                    <span>Buffering Video...</span>
+                </div>
+                <video ${window.settings?.video?.mutedByDefault ? 'muted' : ''} src="${mediaSrc}" poster="${rec.thumbnail || ''}" preload="metadata"></video>
             </div>
             <div class="crt-controls">
                 <div class="time-info">
@@ -649,6 +683,67 @@ function attachListenersToElement(element, recordings, injectDataFallback) {
         };
     }
 
+    // Video Loading Handler (Robust Play-on-Load)
+    const videoElem = element.querySelector('.crt-card video');
+    if (videoElem) {
+        const playOverlay = element.querySelector('.crt-play-overlay');
+        let isDataTriggeredPlay = false;
+
+        const triggerLoadAndPlay = async () => {
+            if (element.dataset.mediaLoaded === 'true' || element.dataset.loading === 'true') return;
+
+            element.classList.add('loading-data');
+            if (playOverlay) playOverlay.style.display = 'none';
+
+            try {
+                await injectDataFallback();
+
+                // Now that data is loaded, show the native controls
+                videoElem.controls = true;
+
+                isDataTriggeredPlay = true;
+                await videoElem.play();
+            } catch (err) {
+                console.warn("Playback after load failed:", err);
+            } finally {
+                element.classList.remove('loading-data');
+                isDataTriggeredPlay = false;
+            }
+        };
+
+        // 1. Click on the CRT TV body (Screen area) starts the engine
+        const handleCardClick = (e) => {
+            // If already loaded, STOP INTERFERING and let native controls work
+            if (element.dataset.mediaLoaded === 'true') {
+                return;
+            }
+
+            if (e.target.closest('.control-group') || e.target.closest('.viewfinder-label') || e.target.tagName === 'A' || e.target.tagName === 'BUTTON') {
+                return;
+            }
+
+            triggerLoadAndPlay();
+        };
+
+        element.addEventListener('click', handleCardClick);
+
+        // 2. Handle the native 'play' button (if it somehow gets clicked/triggered)
+        videoElem.addEventListener('play', async (e) => {
+            if (element.dataset.mediaLoaded !== 'true' && !isDataTriggeredPlay) {
+                videoElem.pause();
+                await triggerLoadAndPlay();
+            } else if (element.dataset.mediaLoaded === 'true') {
+                if (playOverlay) playOverlay.style.display = 'none';
+            }
+        });
+
+        // 3. If already loaded (e.g. re-render or legacy), show controls immediately
+        if (element.dataset.mediaLoaded === 'true') {
+            videoElem.controls = true;
+            if (playOverlay) playOverlay.style.display = 'none';
+        }
+    }
+
     // Audio Play Handler
     const playBtn = element.querySelector('.play-btn');
     if (playBtn) {
@@ -689,6 +784,19 @@ function attachListenersToElement(element, recordings, injectDataFallback) {
                 tapeWindow.classList.remove('playing');
                 playBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
             };
+        };
+    }
+
+    // Download Handler (Load data before downloading if needed)
+    const downloadBtn = element.querySelector('a.retro-btn[download]');
+    if (downloadBtn) {
+        downloadBtn.onclick = async (e) => {
+            if (element.dataset.mediaLoaded !== 'true') {
+                e.preventDefault();
+                await injectDataFallback();
+                // After loading, the original href is now valid (Blob URL)
+                downloadBtn.click();
+            }
         };
     }
 
@@ -774,6 +882,7 @@ async function setupSettings() {
     const audioBufferSize = document.getElementById('audio-buffer-size');
     const systemAudioEnabled = document.getElementById('system-audio-enabled');
     const autoUpdateCheck = document.getElementById('auto-update-check');
+    const videoMutedDefault = document.getElementById('video-muted-default');
 
     // Real-time validation for max recordings (forced limit: 25)
     if (maxRecordingsInput) {
@@ -788,23 +897,8 @@ async function setupSettings() {
 
     async function loadSettings() {
         const result = await chrome.storage.local.get(['settings']);
-        const settings = result.settings || {};
-        const defaults = {
-            promptText: "Please answer based on this audio",
-            maxRecordings: 10,
-            uiStyle: 'aesthetic',
-            autoUpdateCheck: false,
-            video: { codec: 'vp9', resolution: '1080p', bitrate: 4000, fps: 60, timeslice: 1000 },
-            audio: { sampleRate: 44100, bufferSize: 4096, systemAudioEnabled: true }
-        };
-        const merged = {
-            promptText: settings.promptText || defaults.promptText,
-            maxRecordings: settings.maxRecordings || defaults.maxRecordings,
-            uiStyle: settings.uiStyle || defaults.uiStyle,
-            autoUpdateCheck: settings.autoUpdateCheck !== undefined ? settings.autoUpdateCheck : defaults.autoUpdateCheck,
-            video: { ...defaults.video, ...(settings.video || {}) },
-            audio: { ...defaults.audio, ...(settings.audio || {}) }
-        };
+        const merged = getMergedSettings(result.settings);
+
 
         if (promptInput) promptInput.value = merged.promptText;
         if (maxRecordingsInput) maxRecordingsInput.value = merged.maxRecordings;
@@ -824,6 +918,10 @@ async function setupSettings() {
         if (audioBufferSize) audioBufferSize.value = merged.audio.bufferSize;
         if (systemAudioEnabled) systemAudioEnabled.checked = merged.audio.systemAudioEnabled !== false;
         if (autoUpdateCheck) autoUpdateCheck.checked = merged.autoUpdateCheck === true;
+        if (videoMutedDefault) videoMutedDefault.checked = merged.video.mutedByDefault !== false;
+
+        // Expose settings for other functions
+        window.settings = merged;
     }
 
     async function saveSettings() {
@@ -841,7 +939,8 @@ async function setupSettings() {
                 resolution: videoResolution.value,
                 bitrate: parseInt(videoBitrate.value),
                 fps: parseInt(videoFps.value),
-                timeslice: parseInt(videoTimeslice.value)
+                timeslice: parseInt(videoTimeslice.value),
+                mutedByDefault: !!videoMutedDefault?.checked
             },
             audio: {
                 sampleRate: parseInt(audioSampleRate.value),
@@ -852,6 +951,18 @@ async function setupSettings() {
 
         // Sync with UI scale
         loadMoreCount = Math.max(1, settings.maxRecordings - 1); // INITIAL_LOAD is 5 now, but loadMore needs room
+
+        // Update global settings immediately for consistency
+        window.settings = settings;
+
+        // 1. Immediately update all existing video elements' muted state
+        document.querySelectorAll('.crt-card video').forEach(v => {
+            v.muted = settings.video.mutedByDefault;
+        });
+
+        // 2. Immediately update UI Style if it was changed
+        document.body.classList.remove('ui-style-simple', 'ui-style-aesthetic');
+        document.body.classList.add(`ui-style-${settings.uiStyle || 'aesthetic'}`);
 
         await queueStorageOperation(async () => {
             await chrome.storage.local.set({ settings });
