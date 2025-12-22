@@ -28,32 +28,65 @@ async function queueStorageOperation(operation) {
     return storageQueue;
 }
 
-// Intersection Observer for scroll-reveal animations - optimized with rAF
-let revealDelayCounter = 0;
-const revealObserver = new IntersectionObserver((entries) => {
-    // Sort entries by their vertical position in the DOM to ensure top-to-bottom reveal
-    const sortedEntries = entries
-        .filter(e => e.isIntersecting)
-        .sort((a, b) => a.target.offsetTop - b.target.offsetTop);
+// --- STUNNING WATERFALL REVEAL SYSTEM (ULTIMATE STATE-BASED EDITION) ---
+// This system replaces the fragile queue array with a "State Scan" model.
+// It scans the DOM in real-time to find the rightful next element to reveal, 
+// ensuring perfect order regardless of scroll speed or browser reporting delay.
 
-    if (sortedEntries.length > 0) {
-        requestAnimationFrame(() => {
-            sortedEntries.forEach((entry) => {
-                // Add a floor of 40ms to the first batch to let the popup window stabilize
-                const delay = (revealDelayCounter * 80) + 40;
-                revealDelayCounter++;
+let isProcessingReveal = false;
 
-                setTimeout(() => {
-                    entry.target.classList.add('revealed');
-                }, delay);
-                revealObserver.unobserve(entry.target);
-            });
+const processRevealTick = () => {
+    // 1. Find ALL elements that are in view (data-ready) but not yet revealed
+    const pending = Array.from(document.querySelectorAll('.tape-card[data-ready="true"]:not(.revealed), .crt-card[data-ready="true"]:not(.revealed)'));
 
-            // Reset counter after this batch is scheduled
-            setTimeout(() => { revealDelayCounter = 0; }, 500);
-        });
+    if (pending.length === 0) {
+        isProcessingReveal = false;
+        return;
     }
-}, { threshold: 0.05, rootMargin: '0px 0px 50px 0px' });
+
+    isProcessingReveal = true;
+
+    // 2. Sort by strict DOM position to find the ABSOLUTE top-most candidate
+    pending.sort((a, b) => {
+        const position = a.compareDocumentPosition(b);
+        if (position & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+        if (position & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+        return 0;
+    });
+
+    // 3. Reveal ONLY the single top-most candidate
+    const nextToReveal = pending[0];
+
+    requestAnimationFrame(() => {
+        if (nextToReveal) {
+            nextToReveal.classList.add('revealed');
+        }
+
+        // 4. Stagger: Continue the tick until everything is processed
+        setTimeout(processRevealTick, 60); // Faster stagger (60ms) for smoother high-speed support
+    });
+};
+
+const revealObserver = new IntersectionObserver((entries) => {
+    let triggered = false;
+
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            // Mark as ready, but don't force it to reveal yet
+            entry.target.dataset.ready = "true";
+            revealObserver.unobserve(entry.target);
+            triggered = true;
+        }
+    });
+
+    // If new items ready, wake up the processor
+    if (triggered && !isProcessingReveal) {
+        processRevealTick();
+    }
+}, {
+    threshold: 0.01,
+    rootMargin: '0px 0px 300px 0px' // Massive buffer to collect sorted items before they hit the eye
+});
 
 
 // Update Shift key visual feedback on delete buttons
