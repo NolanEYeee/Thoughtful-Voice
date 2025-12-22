@@ -13,21 +13,46 @@ const INITIAL_LOAD = 1;          // Initial Priority Batch (First card)
 let loadMoreCount = 7;           // Subsequent batch size (calculated from settings)
 let isLoading = false;           // Prevent multiple simultaneous loads
 let hasMoreToLoad = false;       // Track if there are more recordings to load
+let modalTimeout = null;         // Track confirmation modal close timeout to prevent flicker
+
+// Storage Operation Queue - Prevents race conditions during rapid deletions/updates
+let storageQueue = Promise.resolve();
+async function queueStorageOperation(operation) {
+    storageQueue = storageQueue.then(async () => {
+        try {
+            await operation();
+        } catch (err) {
+            console.error('Storage operation failed:', err);
+        }
+    });
+    return storageQueue;
+}
 
 // Intersection Observer for scroll-reveal animations - optimized with rAF
+let revealDelayCounter = 0;
 const revealObserver = new IntersectionObserver((entries) => {
-    requestAnimationFrame(() => {
-        entries.forEach((entry, index) => {
-            if (entry.isIntersecting) {
-                // Progressive reveal delay - optimized for a "waterfall" feel
-                // index here is the element index in the current intersection batch
+    // Sort entries by their vertical position in the DOM to ensure top-to-bottom reveal
+    const sortedEntries = entries
+        .filter(e => e.isIntersecting)
+        .sort((a, b) => a.target.offsetTop - b.target.offsetTop);
+
+    if (sortedEntries.length > 0) {
+        requestAnimationFrame(() => {
+            sortedEntries.forEach((entry) => {
+                // Add a floor of 40ms to the first batch to let the popup window stabilize
+                const delay = (revealDelayCounter * 80) + 40;
+                revealDelayCounter++;
+
                 setTimeout(() => {
                     entry.target.classList.add('revealed');
-                }, index * 80);
+                }, delay);
                 revealObserver.unobserve(entry.target);
-            }
+            });
+
+            // Reset counter after this batch is scheduled
+            setTimeout(() => { revealDelayCounter = 0; }, 500);
         });
-    });
+    }
 }, { threshold: 0.05, rootMargin: '0px 0px 50px 0px' });
 
 
@@ -112,12 +137,20 @@ function showConfirmModal(message, onConfirm, onCancel) {
     cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
 
     const closeModal = () => {
+        if (modalTimeout) clearTimeout(modalTimeout);
         modal.classList.add('hiding');
-        setTimeout(() => {
+        modalTimeout = setTimeout(() => {
             modal.classList.remove('active');
             modal.classList.remove('hiding');
+            modalTimeout = null;
         }, 300);
     };
+
+    // If modal is currently in a closing state (hiding), stop it immediately
+    if (modalTimeout) {
+        clearTimeout(modalTimeout);
+        modalTimeout = null;
+    }
 
     newConfirmBtn.addEventListener('click', () => {
         closeModal();
@@ -137,11 +170,18 @@ function showConfirmModal(message, onConfirm, onCancel) {
     });
 }
 
-async function loadRecordings() {
+async function loadRecordings(dataOverride = null) {
     // Stage 1: Absolute Priority - Data acquisition and first item
-    const result = await initialDataPromise;
-    const recordings = result.recordings || [];
-    const settings = result.settings || { uiStyle: 'aesthetic' };
+    let recordings, settings;
+
+    if (dataOverride) {
+        recordings = dataOverride.recordings || [];
+        settings = dataOverride.settings || { uiStyle: 'aesthetic' };
+    } else {
+        const result = await chrome.storage.local.get(['recordings', 'settings']);
+        recordings = result.recordings || [];
+        settings = result.settings || { uiStyle: 'aesthetic' };
+    }
 
     // Apply UI Style class to body for CSS targeting
     document.body.classList.remove('ui-style-simple', 'ui-style-aesthetic');
@@ -154,9 +194,9 @@ async function loadRecordings() {
     const list = document.getElementById('list');
     list.innerHTML = '';
 
-    const priorityCount = Math.min(1, recordings.length);
+    const priorityCount = Math.min(5, recordings.length);
     if (priorityCount > 0) {
-        // Immediate render of the first item to fill the shell
+        // Immediate render of the first few items to fill the view-port shell
         await renderBatch(0, priorityCount, 0);
     } else {
         list.innerHTML = getEmptyStateHTML();
@@ -171,6 +211,11 @@ async function loadRecordings() {
         const deferMethod = window.requestIdleCallback || ((cb) => setTimeout(cb, 200));
 
         deferMethod(() => {
+            // Background Migration Check (Convert old unified storage to new split storage)
+            if (recordings.some(r => r.audioData)) {
+                migrateToSplitStorage(recordings);
+            }
+
             // Initialize secondary systems here
             if (typeof window.initSecondarySystems === 'function') {
                 try {
@@ -183,7 +228,8 @@ async function loadRecordings() {
             isLoading = true;
             const fillCount = Math.max(0, recordings.length - priorityCount);
             if (fillCount > 0) {
-                renderBatch(priorityCount, Math.min(fillCount, 4), 120).then(() => {
+                // Reduced internal delay (30ms vs 120ms) to let the CSS/Observer drive the rhythm
+                renderBatch(priorityCount, Math.min(fillCount, 10), 30).then(() => {
                     isLoading = false;
                 }).catch(err => {
                     console.error('Batch render error:', err);
@@ -197,6 +243,27 @@ async function loadRecordings() {
         setupScrollListener();
     });
 }
+
+// Utility to convert Base64 to Blob
+function base64ToBlob(base64, type) {
+    const parts = base64.split(';base64,');
+    const contentType = parts[0].split(':')[1];
+    const raw = window.atob(parts[1]);
+    const rawLength = raw.length;
+    const uInt8Array = new Uint8Array(rawLength);
+    for (let i = 0; i < rawLength; ++i) {
+        uInt8Array[i] = raw.charCodeAt(i);
+    }
+    return new Blob([uInt8Array], { type: contentType || type });
+}
+
+// Global store for object URLs to revoke them later
+const objectUrls = new Set();
+function cleanupObjectUrls() {
+    objectUrls.forEach(url => URL.revokeObjectURL(url));
+    objectUrls.clear();
+}
+window.addEventListener('unload', cleanupObjectUrls);
 
 async function renderBatch(startIndex, count, customDelay = 30) {
     const list = document.getElementById('list');
@@ -221,36 +288,57 @@ async function renderBatch(startIndex, count, customDelay = 30) {
         const el = createRecordingElement(item, i, true); // lazyMedia = true
         groupContainer.appendChild(el);
 
-        // 2. Immediate Reveal Logic
-        if (startIndex === 0 && i === 0) {
-            // Critical fix: Give the browser a tiny moment to stabilize layout
-            // before starting the first animation, avoiding frame drops on popup opening.
-            requestAnimationFrame(() => {
-                setTimeout(() => {
-                    el.classList.add('revealed');
-                }, 100); // 100ms is the "sweet spot" for popup stabilization
-            });
-        } else {
-            revealObserver.observe(el);
-        }
+        // 2. Immediate Reveal Logic - Unified
+        revealObserver.observe(el);
 
         // 3. Hyper-Lazy Content Injection
         // We delay the heavy string manipulation until the user actually needs it
         const mediaElem = el.querySelector('audio, video');
         const downloadBtn = el.querySelector('a.retro-btn[download]');
 
-        const injectData = () => {
-            if (el.dataset.mediaLoaded === 'true') return;
-            if (mediaElem) mediaElem.src = item.audioData;
-            if (downloadBtn) downloadBtn.href = item.audioData;
-            el.dataset.mediaLoaded = 'true';
+        const injectData = async () => {
+            if (el.dataset.mediaLoaded === 'true' || el.dataset.loading === 'true') return;
+            el.dataset.loading = 'true';
+
+            try {
+                let finalData = item.audioData;
+
+                // If audioData is missing (new split storage strategy), fetch it now
+                if (!finalData) {
+                    const dataResult = await chrome.storage.local.get(`rec_data_${item.timestamp}`);
+                    finalData = dataResult[`rec_data_${item.timestamp}`];
+                }
+
+                if (finalData) {
+                    // Optimized: Use ObjectURL instead of long Base64 string for better memory/perf
+                    const blob = base64ToBlob(finalData, item.type === 'video' ? 'video/webm' : 'audio/wav');
+                    const objectUrl = URL.createObjectURL(blob);
+                    objectUrls.add(objectUrl);
+
+                    if (mediaElem) {
+                        mediaElem.src = objectUrl;
+                        mediaElem.dataset.originalBase64 = 'true'; // mark as loaded
+                    }
+                    if (downloadBtn) {
+                        downloadBtn.href = objectUrl;
+                    }
+                    el.dataset.mediaLoaded = 'true';
+
+                    // Trigger metadata load immediately
+                    if (mediaElem) mediaElem.load();
+                }
+            } catch (err) {
+                console.error('Failed to inject media data:', err);
+            } finally {
+                el.dataset.loading = 'false';
+            }
         };
 
         // Trigger on hover OR automatically after a generous "settle" time
         el.addEventListener('mouseenter', injectData, { once: true });
 
-        // Spread background loading to avoid CPU spikes (reduced delay by half)
-        const backgroundLoadDelay = 500 + (i * 150);
+        // Spread background loading to avoid CPU spikes (longer delay for better waterfall)
+        const backgroundLoadDelay = 800 + (i * 200);
         setTimeout(injectData, backgroundLoadDelay);
 
         // 4. Attach interaction listeners (including a safety trigger for play)
@@ -422,11 +510,36 @@ function attachListenersToElement(element, recordings, injectDataFallback) {
                 const isVideoCard = card?.classList.contains('crt-card');
                 const group = card?.parentElement;
 
-                // Check if this is the last card in the group
+                // 1. Critical: Trigger storage deletion IMMEDIATELY
+                // We don't await the queue here because we want the animation to start in parallel,
+                // but by calling this now, we ensure the browser receives the storage command 
+                // BEFORE the popup has a chance to close during the 650ms animation.
+                const storagePromise = timestamp ? queueStorageOperation(async () => {
+                    const result = await chrome.storage.local.get(['recordings', 'stats']);
+                    const currentRecordings = result.recordings || [];
+                    const foundIndex = currentRecordings.findIndex(r => r.timestamp === timestamp);
+
+                    if (foundIndex !== -1) {
+                        currentRecordings.splice(foundIndex, 1);
+                        const stats = result.stats || {};
+                        if (stats.totalRecordings > 0) stats.totalRecordings -= 1;
+
+                        const removePayload = [`rec_data_${timestamp}`];
+                        await chrome.storage.local.remove(removePayload);
+                        await chrome.storage.local.set({ recordings: currentRecordings, stats });
+                        allRecordings = currentRecordings;
+
+                        // Sync display stats inside the queue to avoid race conditions
+                        displayedCount = Math.max(0, displayedCount - 1);
+                        hasMoreToLoad = displayedCount < allRecordings.length;
+                    }
+                }) : Promise.resolve();
+
+                // Check if this is the last card in the group for transition purposes
                 const isLastInGroup = group && group.querySelectorAll('.tape-card, .crt-card').length === 1;
 
                 if (card) {
-                    // 1. Capture exact current height to prevent jump
+                    // 2. Capture exact current height to prevent jump
                     const height = card.offsetHeight;
                     card.style.maxHeight = height + 'px';
                     card.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
@@ -438,12 +551,10 @@ function attachListenersToElement(element, recordings, injectDataFallback) {
                     // Force reflow
                     void card.offsetHeight;
 
-                    // 2. Trigger visual theme animation (Slide or CRT Off)
+                    // 3. Trigger visual theme animation (Slide or CRT Off)
                     card.classList.add('recording-deleting');
 
-                    // 3. Smoothly collapse the physical space
-                    // We trigger this immediately so the cards below start moving up
-                    // in sync with the vanishing effect for a more "liquid" feel.
+                    // 4. Smoothly collapse the physical space
                     card.style.maxHeight = '0px';
                     card.style.marginBottom = '0px';
                     card.style.marginTop = '0px';
@@ -456,16 +567,13 @@ function attachListenersToElement(element, recordings, injectDataFallback) {
                     }
 
                     // Wait for the animation to finish (matching the 0.6s CSS duration)
-                    await new Promise(resolve => setTimeout(resolve, 650));
-                }
-
-                // Remove from local array and storage using timestamp
-                if (timestamp) {
-                    const foundIndex = allRecordings.findIndex(r => r.timestamp === timestamp);
-                    if (foundIndex !== -1) {
-                        allRecordings.splice(foundIndex, 1);
-                        await chrome.storage.local.set({ recordings: allRecordings });
-                    }
+                    // We also ensure storage is done just in case, though it's optional at this point
+                    await Promise.all([
+                        new Promise(resolve => setTimeout(resolve, 650)),
+                        storagePromise
+                    ]);
+                } else {
+                    await storagePromise;
                 }
 
                 if (card) {
@@ -477,14 +585,20 @@ function attachListenersToElement(element, recordings, injectDataFallback) {
                     }
                 }
 
-                // Update counts for pagination logic
-                displayedCount = Math.max(0, displayedCount - 1);
-                hasMoreToLoad = displayedCount < allRecordings.length;
 
                 // Show empty message if nothing left
                 const list = document.getElementById('list');
                 if (allRecordings.length === 0 && list) {
-                    list.innerHTML = getEmptyStateHTML();
+                    // Soft transition to empty state
+                    list.style.transition = 'opacity 0.3s ease-out';
+                    list.style.opacity = '0';
+
+                    setTimeout(() => {
+                        list.innerHTML = getEmptyStateHTML();
+                        requestAnimationFrame(() => {
+                            list.style.opacity = '1';
+                        });
+                    }, 350);
                 } else if (hasMoreToLoad) {
                     // Critical Bug Fix: After deletion, check if we need to load more 
                     // to fill the gap left by the deleted card
@@ -505,9 +619,11 @@ function attachListenersToElement(element, recordings, injectDataFallback) {
     // Audio Play Handler
     const playBtn = element.querySelector('.play-btn');
     if (playBtn) {
-        playBtn.onclick = (e) => {
+        playBtn.onclick = async (e) => {
             // Ensure data is loaded if user clicks before hover/timeout
-            if (injectDataFallback) injectDataFallback();
+            if (injectDataFallback && element.dataset.mediaLoaded !== 'true') {
+                await injectDataFallback();
+            }
 
             const audioId = playBtn.dataset.id;
             const winId = playBtn.dataset.win;
@@ -547,6 +663,37 @@ function attachListenersToElement(element, recordings, injectDataFallback) {
     updateShiftKeyFeedback();
 }
 
+// Background storage migration helper
+async function migrateToSplitStorage(recordings) {
+    console.log('Initiating background migration to split storage...');
+    const updatedRecordings = [...recordings];
+    let migratedAny = false;
+
+    // Migrate in small chunks to avoid blocking
+    for (let i = 0; i < updatedRecordings.length; i++) {
+        const rec = updatedRecordings[i];
+        if (rec.audioData) {
+            const dataKey = `rec_data_${rec.timestamp}`;
+            const payload = { [dataKey]: rec.audioData };
+
+            try {
+                await chrome.storage.local.set(payload);
+                delete rec.audioData;
+                migratedAny = true;
+                console.log(`Migrated recording ${rec.timestamp} to separate key.`);
+            } catch (err) {
+                console.error('Migration failed for item:', rec.timestamp, err);
+            }
+        }
+    }
+
+    if (migratedAny) {
+        await chrome.storage.local.set({ recordings: updatedRecordings });
+        allRecordings = updatedRecordings;
+        console.log('Split storage migration complete.');
+    }
+}
+
 function attachListeners(recordings) {
     // Legacy support or fallback
     document.querySelectorAll('.tape-card, .crt-card').forEach(el => {
@@ -558,8 +705,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Define secondary systems initialization BEFORE loadRecordings to be absolutely safe
     window.initSecondarySystems = () => {
         try {
-            // Initialize achievements
-            new AchievementSystem();
+            // Initialize achievements and store reference for updates
+            window.achievementSystem = new AchievementSystem();
             setupSettings();
         } catch (err) {
             console.error('Secondary systems init error:', err);
@@ -593,6 +740,7 @@ async function setupSettings() {
     const videoTimeslice = document.getElementById('video-timeslice');
     const audioBufferSize = document.getElementById('audio-buffer-size');
     const systemAudioEnabled = document.getElementById('system-audio-enabled');
+    const autoUpdateCheck = document.getElementById('auto-update-check');
 
     // Real-time validation for max recordings (forced limit: 25)
     if (maxRecordingsInput) {
@@ -612,6 +760,7 @@ async function setupSettings() {
             promptText: "Please answer based on this audio",
             maxRecordings: 10,
             uiStyle: 'aesthetic',
+            autoUpdateCheck: false,
             video: { codec: 'vp9', resolution: '1080p', bitrate: 4000, fps: 60, timeslice: 1000 },
             audio: { sampleRate: 44100, bufferSize: 4096, systemAudioEnabled: true }
         };
@@ -619,6 +768,7 @@ async function setupSettings() {
             promptText: settings.promptText || defaults.promptText,
             maxRecordings: settings.maxRecordings || defaults.maxRecordings,
             uiStyle: settings.uiStyle || defaults.uiStyle,
+            autoUpdateCheck: settings.autoUpdateCheck !== undefined ? settings.autoUpdateCheck : defaults.autoUpdateCheck,
             video: { ...defaults.video, ...(settings.video || {}) },
             audio: { ...defaults.audio, ...(settings.audio || {}) }
         };
@@ -640,6 +790,7 @@ async function setupSettings() {
         if (videoTimeslice) videoTimeslice.value = merged.video.timeslice;
         if (audioBufferSize) audioBufferSize.value = merged.audio.bufferSize;
         if (systemAudioEnabled) systemAudioEnabled.checked = merged.audio.systemAudioEnabled !== false;
+        if (autoUpdateCheck) autoUpdateCheck.checked = merged.autoUpdateCheck === true;
     }
 
     async function saveSettings() {
@@ -651,6 +802,7 @@ async function setupSettings() {
             promptText: promptInput.value,
             maxRecordings: maxVal,
             uiStyle: uiStyleSelect?.value || 'aesthetic',
+            autoUpdateCheck: !!autoUpdateCheck?.checked,
             video: {
                 codec: videoCodec.value,
                 resolution: videoResolution.value,
@@ -666,31 +818,33 @@ async function setupSettings() {
         };
 
         // Sync with UI scale
-        loadMoreCount = Math.max(1, settings.maxRecordings - INITIAL_LOAD);
+        loadMoreCount = Math.max(1, settings.maxRecordings - 1); // INITIAL_LOAD is 5 now, but loadMore needs room
 
-        await chrome.storage.local.set({ settings });
+        await queueStorageOperation(async () => {
+            await chrome.storage.local.set({ settings });
 
-        // Apply max recordings limit immediately
-        await applyMaxRecordingsLimit(settings.maxRecordings);
+            // Apply max recordings limit immediately within the queue
+            const result = await chrome.storage.local.get(['recordings']);
+            const recordings = result.recordings || [];
+
+            if (recordings.length > maxVal) {
+                const toRemove = recordings.slice(maxVal);
+                const trimmedRecordings = recordings.slice(0, maxVal);
+
+                // Cleanup associated data keys for removed recordings
+                const removeKeys = toRemove.map(r => `rec_data_${r.timestamp}`);
+                await chrome.storage.local.remove(removeKeys);
+
+                await chrome.storage.local.set({ recordings: trimmedRecordings });
+                allRecordings = trimmedRecordings;
+
+                // Re-render can happen after the queue operation
+                setTimeout(() => loadRecordings(true), 10);
+            }
+        });
     }
 
-    async function applyMaxRecordingsLimit(maxRecordings) {
-        const result = await chrome.storage.local.get(['recordings']);
-        const recordings = result.recordings || [];
-
-        if (recordings.length > maxRecordings) {
-            // Keep only the newest recordings
-            const trimmedRecordings = recordings.slice(0, maxRecordings);
-            await chrome.storage.local.set({ recordings: trimmedRecordings });
-
-            // If we are currently viewing the list, update it gracefully
-            allRecordings = trimmedRecordings;
-            // To keep it simple but smooth, we only re-render if the popup is actually open 
-            // and we need to show changes. Since this is in settings, we can just 
-            // trigger a reload but after the modal closes or just refresh now.
-            loadRecordings();
-        }
-    }
+    // Removed standalone applyMaxRecordingsLimit as it is now inside saveSettings queue
 
 
     // Helper functions for modal animation (Class-based for CSS Keyframes)
@@ -710,6 +864,18 @@ async function setupSettings() {
     if (settingsBtn) {
         settingsBtn.addEventListener('click', async () => {
             await loadSettings();
+
+            // Check if there are recordings to delete
+            if (clearAllBtn) {
+                if (allRecordings.length === 0) {
+                    clearAllBtn.classList.add('disabled');
+                    clearAllBtn.innerText = 'NO RECORDS TO PURGE';
+                } else {
+                    clearAllBtn.classList.remove('disabled');
+                    clearAllBtn.innerText = 'PURGE ALL STORAGE';
+                }
+            }
+
             openModal(modal);
         });
     }
@@ -741,24 +907,61 @@ async function setupSettings() {
                 showConfirmModal('Are you absolutely sure? All recordings will be permanently deleted!', async () => {
                     const list = document.getElementById('list');
                     if (list) {
-                        list.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+                        list.style.transition = 'opacity 0.4s ease-out, transform 0.4s ease-out';
                         list.style.opacity = '0';
-                        list.style.transform = 'translateY(20px)';
-                        await new Promise(r => setTimeout(r, 500));
+                        list.style.transform = 'translateY(15px)';
                     }
-                    await chrome.storage.local.set({ recordings: [] });
-                    allRecordings = [];
-                    displayedCount = 0;
-                    hasMoreToLoad = false;
+
+                    await queueStorageOperation(async () => {
+                        // 1. Explicitly REMOVE the keys first to wipe data
+                        // We also need to find and remove all rec_data_* keys
+                        const allKeysResult = await chrome.storage.local.get(null);
+                        const allKeys = Object.keys(allKeysResult);
+                        const keysToRemove = allKeys.filter(k => k.startsWith('rec_data_') || k === 'recordings' || k === 'stats');
+
+                        await chrome.storage.local.remove(keysToRemove);
+
+                        // 2. Initialize with clean empty defaults
+                        const emptyStats = { totalRecordings: 0, lifetimeAudioMs: 0, lifetimeVideoMs: 0 };
+                        await chrome.storage.local.set({
+                            recordings: [],
+                            stats: emptyStats
+                        });
+
+                        // 3. Update memory state
+                        allRecordings = [];
+                        displayedCount = 0;
+                        hasMoreToLoad = false;
+
+                        console.log("Storage purged successfully - Absolute Wipe");
+
+                        // 4. Force reload achievement system state if it exists
+                        if (window.achievementSystem) {
+                            await window.achievementSystem.loadStats();
+                            window.achievementSystem.updateBadge();
+                            window.achievementSystem.updateModalContent?.();
+                        }
+                    });
+
+                    // Update UI after storage is cleared
                     if (list) {
-                        list.innerHTML = getEmptyStateHTML();
-                        list.style.opacity = '1';
-                        list.style.transform = 'translateY(0)';
+                        setTimeout(() => {
+                            list.innerHTML = getEmptyStateHTML();
+                            list.style.opacity = '1';
+                            list.style.transform = 'translateY(0)';
+                        }, 400);
                     }
+
                     closeModal(modal);
                 });
             });
         });
+    }
+
+    // Trigger update check if enabled
+    const resultCheck = await chrome.storage.local.get(['settings']);
+    if (resultCheck.settings?.autoUpdateCheck === true) {
+        checkForUpdates();
     }
 
     modal.addEventListener('click', (e) => {
@@ -766,9 +969,82 @@ async function setupSettings() {
     });
 }
 
+/**
+ * Checks for updates from GitHub Releases
+ */
+async function checkForUpdates() {
+    try {
+        const response = await fetch('https://api.github.com/repos/NolanEYeee/Thoughtful-Voice/releases/latest');
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const latestVersion = data.tag_name.replace('v', '');
+        const currentVersion = chrome.runtime.getManifest().version;
+
+        if (compareVersions(latestVersion, currentVersion) > 0) {
+            showUpdateBanner(data.tag_name, data.html_url);
+        }
+    } catch (err) {
+        console.error('Update check failed:', err);
+    }
+}
+
+/**
+ * SemVer comparison
+ */
+function compareVersions(v1, v2) {
+    const parts1 = v1.split('.').map(Number);
+    const parts2 = v2.split('.').map(Number);
+    for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+        const p1 = parts1[i] || 0;
+        const p2 = parts2[i] || 0;
+        if (p1 > p2) return 1;
+        if (p1 < p2) return -1;
+    }
+    return 0;
+}
+
+/**
+ * Displays the update notification banner
+ */
+function showUpdateBanner(tagName, url) {
+    const container = document.getElementById('update-notification');
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="settings-card" style="border: 1px solid var(--walkman-accent); background: rgba(255,107,0,0.1); position: relative; overflow: hidden; animation: contentPopIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;">
+            <div style="position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: var(--walkman-accent);"></div>
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                <div style="flex: 1;">
+                    <div style="font-size: 11px; font-weight: bold; color: var(--walkman-accent); margin-bottom: 2px;">NEW RELEASE: ${tagName}</div>
+                    <div style="font-size: 10px; color: #888; font-family: 'Arial Narrow', sans-serif;">A newer version of Thoughtful Voice is ready.</div>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <a href="${url}" target="_blank" class="retro-btn primary" style="height: 28px; min-width: 50px; font-size: 9px;">GET</a>
+                    <button id="close-update-banner" class="retro-btn" style="height: 28px; width: 28px; padding: 0; font-size: 14px;">×</button>
+                </div>
+            </div>
+        </div>
+    `;
+    container.style.display = 'block';
+
+    const closeBtn = document.getElementById('close-update-banner');
+    if (closeBtn) {
+        closeBtn.onclick = () => {
+            container.style.animation = 'contentPopOut 0.2s ease-in forwards';
+            setTimeout(() => { container.style.display = 'none'; }, 200);
+        };
+    }
+}
+
 function getEmptyStateHTML() {
     return `
-        <div class="empty-deck">
+        <div class="empty-deck" style="opacity: 0; transform: scale(0.98); transition: all 0.6s cubic-bezier(0.2, 0, 0.2, 1); animation: emptyFadeIn 0.8s forwards;">
+            <style>
+                @keyframes emptyFadeIn {
+                    to { opacity: 1; transform: scale(1); }
+                }
+            </style>
             <!-- Subtle Grid Background -->
             <div class="bg-grid"></div>
 

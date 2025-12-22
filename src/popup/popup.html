@@ -628,6 +628,15 @@
             box-shadow: 0 0 0 #4a0000;
         }
 
+        .retro-btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            filter: grayscale(1);
+            pointer-events: none;
+            box-shadow: none;
+            transform: none !important;
+        }
+
         /* Shift-key quick delete visual feedback */
         .retro-btn.delete.shift-ready {
             background: linear-gradient(to bottom, #ff4444, #cc0000);
@@ -1177,6 +1186,9 @@
         <div class="main-stage">
             <!-- Content Area -->
             <div class="content-scroll" id="content-scroll">
+                <div id="update-notification" style="display: none; margin-bottom: 20px;">
+                    <!-- Update Banner Injected Here -->
+                </div>
                 <div id="list">
                     <!-- Cards Injected Here -->
                 </div>
@@ -1336,6 +1348,24 @@
                             </select>
                         </div>
                     </div>
+                </div>
+
+                <!-- System Updates -->
+                <div class="settings-card">
+                    <label class="settings-label">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.41-3.59-8-8-8zm-7.25 2.14L3.29 4.67C2.46 5.97 2 7.43 2 9c0 4.41 3.59 8 8 8v3l4-4-4-4v3c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8z" />
+                        </svg>
+                        System Updates
+                    </label>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 4px; border: 1px solid #333;">
+                        <span style="font-size: 11px; color: #ddd;">Auto-check for updates</span>
+                        <input type="checkbox" id="auto-update-check"
+                            style="accent-color: var(--walkman-accent); transform: scale(1.1);">
+                    </div>
+                    <span class="input-hint">Checks GitHub for the latest release on startup</span>
                 </div>
 
                 <!-- Actions -->
