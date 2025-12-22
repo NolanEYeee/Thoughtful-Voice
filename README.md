@@ -194,9 +194,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## 🗺️ Roadmap
 
 - [ ] Chrome Web Store publication
-- [ ] Support for more AI platforms (Claude, Poe, etc.)
-- [ ] Keyboard shortcuts
-- [ ] Multiple language support
+- [ ] Support for more AI platforms (Poe, Qwen, etc.)
 
 ## 📄 License
 
