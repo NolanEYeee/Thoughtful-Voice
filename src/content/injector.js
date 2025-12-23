@@ -28,6 +28,8 @@ export class Injector {
 
         // Waveform animation interval
         this.waveformInterval = null;
+        this.notificationTimeout = null;
+        this.notificationClosingTimeout = null;
 
         // Icons - Apple Style SVGs
         this.icons = {
@@ -384,6 +386,7 @@ export class Injector {
         if (result) {
             console.log("Audio recorded:", result);
             await this.handleUpload(result.blob, result.duration);
+            this.showNotification('audio');
         }
     }
 
@@ -434,6 +437,7 @@ export class Injector {
             if (result) {
                 console.log("Screen recording completed via external stop:", result);
                 await this.handleVideoUpload(result);
+                this.showNotification('video');
             }
         };
 
@@ -572,6 +576,7 @@ export class Injector {
         if (result) {
             console.log("Screen recording completed:", result);
             await this.handleVideoUpload(result);
+            this.showNotification('video');
         }
     }
 
@@ -706,6 +711,96 @@ export class Injector {
                 bar.style.background = '#555';
             });
         }
+    }
+
+    // ========== Notification ==========
+
+    showNotification(type) {
+        // Force cleanup any existing notification containers to avoid "overlap"
+        const existingNotifs = document.querySelectorAll('.thoughtful-notification');
+        existingNotifs.forEach(el => el.remove());
+
+        // Clear ALL existing animation timeouts
+        if (this.notificationTimeout) {
+            clearTimeout(this.notificationTimeout);
+            this.notificationTimeout = null;
+        }
+        if (this.notificationClosingTimeout) {
+            clearTimeout(this.notificationClosingTimeout);
+            this.notificationClosingTimeout = null;
+        }
+
+        // Create fresh element
+        const notif = document.createElement('div');
+        notif.id = 'thoughtful-notification';
+        notif.className = 'thoughtful-notification';
+        document.body.appendChild(notif);
+
+        const icon = type === 'audio' ? this.icons.mic : this.icons.screen;
+        const systemLabel = type === 'audio' ? 'AUDIO' : 'VIDEO';
+        const title = type === 'audio' ? 'RECORDING COMPLETE' : 'CAPTURE COMPLETE';
+        const message = type === 'audio'
+            ? 'Audio signal processed and securely stored.'
+            : 'Video stream captured and indexed successfully.';
+
+        const serial = `SN-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+
+        notif.innerHTML = `
+            <div class="notif-header">
+                <div class="notif-header-dot active"></div>
+                <div class="notif-header-title">SYS STATUS: ${systemLabel}</div>
+            </div>
+            <div class="notif-body">
+                <div class="notif-screw-tl"></div>
+                <div class="notif-screw-br"></div>
+                <div class="notif-icon">${icon}</div>
+                <div class="notif-content">
+                    <p class="notif-title">${title}</p>
+                    <p class="notif-message">${message}</p>
+                </div>
+            </div>
+            <div class="notif-footer">
+                <span>INTEL_PROC: ACTIVE</span>
+                <span class="notif-footer-tag">${serial}</span>
+            </div>
+        `;
+
+        // Click to close immediately with CRT animation
+        notif.onclick = (e) => {
+            e.stopPropagation();
+            if (notif.classList.contains('closing')) return;
+
+            if (this.notificationTimeout) {
+                clearTimeout(this.notificationTimeout);
+                this.notificationTimeout = null;
+            }
+
+            notif.classList.remove('visible');
+            notif.classList.add('closing');
+
+            this.notificationClosingTimeout = setTimeout(() => {
+                notif.remove();
+                this.notificationClosingTimeout = null;
+            }, 600);
+        };
+
+        // Trigger entrance animation
+        setTimeout(() => notif.classList.add('visible'), 10);
+
+        // Set sequence for auto-hide
+        this.notificationTimeout = setTimeout(() => {
+            if (!notif.parentNode || notif.classList.contains('closing')) return;
+
+            notif.classList.remove('visible');
+            notif.classList.add('closing');
+
+            this.notificationClosingTimeout = setTimeout(() => {
+                if (notif.parentNode) notif.remove();
+                this.notificationClosingTimeout = null;
+            }, 600);
+
+            this.notificationTimeout = null;
+        }, 5000);
     }
 
     // ========== Injection ==========

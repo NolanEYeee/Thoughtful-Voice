@@ -1128,6 +1128,8 @@
           this.audioRecordingStartUrl = null;
           this.videoRecordingStartUrl = null;
           this.waveformInterval = null;
+          this.notificationTimeout = null;
+          this.notificationClosingTimeout = null;
           this.icons = {
             mic: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`,
             micMuted: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 10v2a3 3 0 0 0 3 3v0"></path><path d="M15 10.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`,
@@ -1418,6 +1420,7 @@
           if (result) {
             console.log("Audio recorded:", result);
             await this.handleUpload(result.blob, result.duration);
+            this.showNotification("audio");
           }
         }
         // ========== Screen Recording ==========
@@ -1453,6 +1456,7 @@
             if (result) {
               console.log("Screen recording completed via external stop:", result);
               await this.handleVideoUpload(result);
+              this.showNotification("video");
             }
           };
           const started = await this.screenRecorder.start(
@@ -1559,6 +1563,7 @@
           if (result) {
             console.log("Screen recording completed:", result);
             await this.handleVideoUpload(result);
+            this.showNotification("video");
           }
         }
         // ========== Pause Button Control ==========
@@ -1668,6 +1673,72 @@
               bar.style.background = "#555";
             });
           }
+        }
+        // ========== Notification ==========
+        showNotification(type) {
+          const existingNotifs = document.querySelectorAll(".thoughtful-notification");
+          existingNotifs.forEach((el) => el.remove());
+          if (this.notificationTimeout) {
+            clearTimeout(this.notificationTimeout);
+            this.notificationTimeout = null;
+          }
+          if (this.notificationClosingTimeout) {
+            clearTimeout(this.notificationClosingTimeout);
+            this.notificationClosingTimeout = null;
+          }
+          const notif = document.createElement("div");
+          notif.id = "thoughtful-notification";
+          notif.className = "thoughtful-notification";
+          document.body.appendChild(notif);
+          const icon = type === "audio" ? this.icons.mic : this.icons.screen;
+          const systemLabel = type === "audio" ? "AUDIO" : "VIDEO";
+          const title = type === "audio" ? "RECORDING COMPLETE" : "CAPTURE COMPLETE";
+          const message = type === "audio" ? "Audio signal processed and securely stored." : "Video stream captured and indexed successfully.";
+          const serial = `SN-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+          notif.innerHTML = `
+            <div class="notif-header">
+                <div class="notif-header-dot active"></div>
+                <div class="notif-header-title">SYS STATUS: ${systemLabel}</div>
+            </div>
+            <div class="notif-body">
+                <div class="notif-screw-tl"></div>
+                <div class="notif-screw-br"></div>
+                <div class="notif-icon">${icon}</div>
+                <div class="notif-content">
+                    <p class="notif-title">${title}</p>
+                    <p class="notif-message">${message}</p>
+                </div>
+            </div>
+            <div class="notif-footer">
+                <span>INTEL_PROC: ACTIVE</span>
+                <span class="notif-footer-tag">${serial}</span>
+            </div>
+        `;
+          notif.onclick = (e) => {
+            e.stopPropagation();
+            if (notif.classList.contains("closing")) return;
+            if (this.notificationTimeout) {
+              clearTimeout(this.notificationTimeout);
+              this.notificationTimeout = null;
+            }
+            notif.classList.remove("visible");
+            notif.classList.add("closing");
+            this.notificationClosingTimeout = setTimeout(() => {
+              notif.remove();
+              this.notificationClosingTimeout = null;
+            }, 600);
+          };
+          setTimeout(() => notif.classList.add("visible"), 10);
+          this.notificationTimeout = setTimeout(() => {
+            if (!notif.parentNode || notif.classList.contains("closing")) return;
+            notif.classList.remove("visible");
+            notif.classList.add("closing");
+            this.notificationClosingTimeout = setTimeout(() => {
+              if (notif.parentNode) notif.remove();
+              this.notificationClosingTimeout = null;
+            }, 600);
+            this.notificationTimeout = null;
+          }, 5e3);
         }
         // ========== Injection ==========
         async inject(targetSpec) {
