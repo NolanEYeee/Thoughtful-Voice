@@ -4,8 +4,6 @@
     "version": "1.0",
     "description": "Record and drop audio/video directly to Gemini and ChatGPT.",
     "permissions": [
-        "activeTab",
-        "scripting",
         "storage",
         "unlimitedStorage"
     ],

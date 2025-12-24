@@ -43,8 +43,6 @@ When you use the Extension to upload a recording, the data is sent directly to t
 
 ## 5. Permissions Justification
 
-*   **`activeTab`:** Used to inject the recording UI and capture the current conversation URL for your history.
-*   **`scripting`:** Used to facilitate the technical transfer of media to the AI chat interface.
 *   **`storage` / `unlimitedStorage`:** Used to save your recording history and settings locally without size restrictions.
 *   **`Host Permissions`:** Required to provide integrated recording buttons specifically on supported AI domains.
 
