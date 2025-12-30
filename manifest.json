@@ -30,7 +30,8 @@
             ],
             "css": [
                 "src/styles/main.css",
-                "src/styles/aesthetic-buttons.css"
+                "src/styles/aesthetic-buttons.css",
+                "src/styles/upload-notification.css"
             ]
         }
     ],

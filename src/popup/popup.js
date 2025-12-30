@@ -226,6 +226,29 @@ function showConfirmModal(message, onConfirm, onCancel) {
 
 async function loadRecordings(dataOverride = null) {
     // Stage 1: Absolute Priority - Data acquisition and first item
+
+    // Detect current tab to show/hide insert button
+    let isOnSupportedSite = false;
+    try {
+        const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        const currentUrl = activeTab?.url || '';
+        const supportedSites = [
+            'gemini.google.com',
+            'chatgpt.com',
+            'chat.openai.com',
+            'aistudio.google.com',
+            'perplexity.ai',
+            'www.perplexity.ai'
+        ];
+        isOnSupportedSite = supportedSites.some(site => currentUrl.includes(site));
+        console.log('Current tab supported for insertion:', isOnSupportedSite, currentUrl);
+    } catch (error) {
+        console.warn('Failed to detect current tab:', error);
+    }
+
+    // Expose globally for createRecordingElement to use
+    window.isOnSupportedSite = isOnSupportedSite;
+
     if (dataOverride) {
         recordings = dataOverride.recordings || [];
         settings = getMergedSettings(dataOverride.settings);
@@ -390,7 +413,7 @@ async function renderBatch(startIndex, count, customDelay = 30) {
         // --- PERFORMANCE STRATEGY ---
         // 1. Audio: Keep hover/delayed auto-load because they are small
         if (item.type === 'audio') {
-            el.addEventListener('mouseenter', injectData, { once: true });
+            // Background load only, removed hover-load to prevent accidental massive fetches
             const backgroundLoadDelay = 1000 + (i * 200);
             setTimeout(injectData, backgroundLoadDelay);
         } else {
@@ -506,6 +529,11 @@ function createRecordingElement(rec, index, lazyMedia = false) {
                             <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/>
                         </svg>
                     </a>
+                    ${window.isOnSupportedSite ? `<button class="retro-btn insert" data-id="${rec.timestamp}" title="Insert to current AI chat page">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
+                        </svg>
+                    </button>` : ''}
                     <button class="retro-btn delete" data-id="${rec.timestamp}" title="Delete">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
@@ -551,6 +579,11 @@ function createRecordingElement(rec, index, lazyMedia = false) {
                             <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/>
                         </svg>
                     </a>
+                    ${window.isOnSupportedSite ? `<button class="retro-btn insert" data-id="${rec.timestamp}" title="Insert to current AI chat page">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
+                        </svg>
+                    </button>` : ''}
                     <button class="retro-btn delete" data-id="${rec.timestamp}" title="Delete">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
@@ -796,6 +829,99 @@ function attachListenersToElement(element, recordings, injectDataFallback) {
                 await injectDataFallback();
                 // After loading, the original href is now valid (Blob URL)
                 downloadBtn.click();
+            }
+        };
+    }
+
+    // Insert to Page Handler (Send file to content script on current AI page)
+    const insertBtn = element.querySelector('.retro-btn.insert');
+    if (insertBtn) {
+        insertBtn.onclick = async (e) => {
+            e.preventDefault();
+
+            const timestamp = parseInt(insertBtn.dataset.id);
+            const recording = recordings.find(r => r.timestamp === timestamp);
+            if (!recording) {
+                console.error('Recording not found:', timestamp);
+                return;
+            }
+
+            // 1. Ensure data is loaded first
+            if (element.dataset.mediaLoaded !== 'true') {
+                insertBtn.classList.add('loading');
+                insertBtn.disabled = true;
+                try {
+                    await injectDataFallback();
+                } catch (err) {
+                    console.error('Failed to load media data:', err);
+                    insertBtn.classList.remove('loading');
+                    insertBtn.classList.add('error');
+                    insertBtn.disabled = false;
+                    setTimeout(() => insertBtn.classList.remove('error'), 2000);
+                    return;
+                }
+            }
+
+            // 2. Get the file data
+            let fileData = null;
+            const mediaElem = element.querySelector('audio, video');
+            if (mediaElem && mediaElem.src && mediaElem.src.startsWith('blob:')) {
+                // Convert blob URL back to base64
+                try {
+                    const response = await fetch(mediaElem.src);
+                    const blob = await response.blob();
+                    fileData = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(blob);
+                    });
+                } catch (err) {
+                    console.error('Failed to read blob data:', err);
+                }
+            }
+
+            if (!fileData) {
+                console.error('No file data available for insertion');
+                insertBtn.classList.add('error');
+                setTimeout(() => insertBtn.classList.remove('error'), 2000);
+                return;
+            }
+
+            // 3. Send message to content script
+            insertBtn.classList.add('loading');
+            insertBtn.disabled = true;
+
+            try {
+                const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+                const response = await chrome.tabs.sendMessage(activeTab.id, {
+                    action: 'insertFile',
+                    fileData: fileData,
+                    fileType: recording.type === 'video' ? 'video/webm' : 'audio/wav',
+                    filename: recording.filename || `recording_${timestamp}.${recording.type === 'video' ? 'webm' : 'wav'}`
+                });
+
+                if (response && response.success) {
+                    // Success feedback
+                    insertBtn.classList.remove('loading');
+                    insertBtn.classList.add('success');
+                    insertBtn.disabled = false;
+                    setTimeout(() => insertBtn.classList.remove('success'), 2000);
+                } else {
+                    // Failure feedback
+                    insertBtn.classList.remove('loading');
+                    insertBtn.classList.add('error');
+                    insertBtn.disabled = false;
+                    setTimeout(() => insertBtn.classList.remove('error'), 2000);
+                    console.error('Insert failed:', response?.error || 'Unknown error');
+                }
+            } catch (err) {
+                console.error('Failed to send insert message:', err);
+                insertBtn.classList.remove('loading');
+                insertBtn.classList.add('error');
+                insertBtn.disabled = false;
+                setTimeout(() => insertBtn.classList.remove('error'), 2000);
             }
         };
     }

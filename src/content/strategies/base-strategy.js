@@ -179,6 +179,15 @@ export class BaseStrategy {
     // ========== Private Helper Methods ==========
 
     /**
+     * Public wrapper for uploading files from external callers (e.g., popup insertion)
+     * @param {File} file - The file to upload
+     * @returns {Promise<boolean>} - Whether upload succeeded
+     */
+    async uploadFile(file) {
+        return await this._executeUploadStrategies(file);
+    }
+
+    /**
      * Execute upload strategies in order until one succeeds
      * @param {File} file - The file to upload
      * @returns {Promise<boolean>} - Whether any strategy succeeded

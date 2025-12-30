@@ -1420,7 +1420,6 @@
           if (result) {
             console.log("Audio recorded:", result);
             await this.handleUpload(result.blob, result.duration);
-            this.showNotification("audio");
           }
         }
         // ========== Screen Recording ==========
@@ -1456,7 +1455,6 @@
             if (result) {
               console.log("Screen recording completed via external stop:", result);
               await this.handleVideoUpload(result);
-              this.showNotification("video");
             }
           };
           const started = await this.screenRecorder.start(
@@ -1563,7 +1561,6 @@
           if (result) {
             console.log("Screen recording completed:", result);
             await this.handleVideoUpload(result);
-            this.showNotification("video");
           }
         }
         // ========== Pause Button Control ==========
@@ -1673,72 +1670,6 @@
               bar.style.background = "#555";
             });
           }
-        }
-        // ========== Notification ==========
-        showNotification(type) {
-          const existingNotifs = document.querySelectorAll(".thoughtful-notification");
-          existingNotifs.forEach((el) => el.remove());
-          if (this.notificationTimeout) {
-            clearTimeout(this.notificationTimeout);
-            this.notificationTimeout = null;
-          }
-          if (this.notificationClosingTimeout) {
-            clearTimeout(this.notificationClosingTimeout);
-            this.notificationClosingTimeout = null;
-          }
-          const notif = document.createElement("div");
-          notif.id = "thoughtful-notification";
-          notif.className = "thoughtful-notification";
-          document.body.appendChild(notif);
-          const icon = type === "audio" ? this.icons.mic : this.icons.screen;
-          const systemLabel = type === "audio" ? "AUDIO" : "VIDEO";
-          const title = type === "audio" ? "RECORDING COMPLETE" : "CAPTURE COMPLETE";
-          const message = type === "audio" ? "Audio signal processed and securely stored." : "Video stream captured and indexed successfully.";
-          const serial = `SN-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-          notif.innerHTML = `
-            <div class="notif-header">
-                <div class="notif-header-dot active"></div>
-                <div class="notif-header-title">SYS STATUS: ${systemLabel}</div>
-            </div>
-            <div class="notif-body">
-                <div class="notif-screw-tl"></div>
-                <div class="notif-screw-br"></div>
-                <div class="notif-icon">${icon}</div>
-                <div class="notif-content">
-                    <p class="notif-title">${title}</p>
-                    <p class="notif-message">${message}</p>
-                </div>
-            </div>
-            <div class="notif-footer">
-                <span>INTEL_PROC: ACTIVE</span>
-                <span class="notif-footer-tag">${serial}</span>
-            </div>
-        `;
-          notif.onclick = (e) => {
-            e.stopPropagation();
-            if (notif.classList.contains("closing")) return;
-            if (this.notificationTimeout) {
-              clearTimeout(this.notificationTimeout);
-              this.notificationTimeout = null;
-            }
-            notif.classList.remove("visible");
-            notif.classList.add("closing");
-            this.notificationClosingTimeout = setTimeout(() => {
-              notif.remove();
-              this.notificationClosingTimeout = null;
-            }, 600);
-          };
-          setTimeout(() => notif.classList.add("visible"), 10);
-          this.notificationTimeout = setTimeout(() => {
-            if (!notif.parentNode || notif.classList.contains("closing")) return;
-            notif.classList.remove("visible");
-            notif.classList.add("closing");
-            this.notificationClosingTimeout = setTimeout(() => {
-              if (notif.parentNode) notif.remove();
-              this.notificationClosingTimeout = null;
-            }, 600);
-            this.notificationTimeout = null;
-          }, 5e3);
         }
         // ========== Injection ==========
         async inject(targetSpec) {
@@ -2131,6 +2062,14 @@
           }
         }
         // ========== Private Helper Methods ==========
+        /**
+         * Public wrapper for uploading files from external callers (e.g., popup insertion)
+         * @param {File} file - The file to upload
+         * @returns {Promise<boolean>} - Whether upload succeeded
+         */
+        async uploadFile(file) {
+          return await this._executeUploadStrategies(file);
+        }
         /**
          * Execute upload strategies in order until one succeeds
          * @param {File} file - The file to upload
@@ -2695,6 +2634,120 @@
     }
   });
 
+  // src/content/upload-notification.js
+  var UploadNotification;
+  var init_upload_notification = __esm({
+    "src/content/upload-notification.js"() {
+      UploadNotification = class {
+        constructor() {
+          this.notification = null;
+          this.hideTimeout = null;
+        }
+        /**
+         * Show upload notification
+         */
+        show(status = "uploading") {
+          this.hide(true);
+          this.notification = document.createElement("div");
+          this.notification.id = "thoughtful-upload-notification";
+          this.notification.className = status;
+          this.notification.innerHTML = status === "uploading" ? this._createUploadingContent() : this._createCompleteContent();
+          document.body.appendChild(this.notification);
+          this.notification.onclick = () => this.hide();
+          void this.notification.offsetHeight;
+          this.notification.classList.add("visible");
+          if (status === "complete") {
+            this.hideTimeout = setTimeout(() => this.hide(), 3e3);
+          }
+        }
+        /**
+         * Transition to complete
+         */
+        showComplete() {
+          if (this.hideTimeout) {
+            clearTimeout(this.hideTimeout);
+            this.hideTimeout = null;
+          }
+          if (this.notification) {
+            this.notification.classList.remove("uploading");
+            this.notification.classList.add("complete", "pulse");
+            this.notification.innerHTML = this._createCompleteContent();
+            setTimeout(() => {
+              if (this.notification) {
+                this.notification.classList.remove("pulse");
+              }
+            }, 200);
+            this.hideTimeout = setTimeout(() => this.hide(), 3e3);
+          } else {
+            this.show("complete");
+          }
+        }
+        /**
+         * Hide notification
+         */
+        hide(immediate = false) {
+          if (this.hideTimeout) {
+            clearTimeout(this.hideTimeout);
+            this.hideTimeout = null;
+          }
+          if (this.notification) {
+            if (immediate) {
+              this.notification.remove();
+              this.notification = null;
+            } else {
+              this.notification.classList.remove("visible");
+              this.notification.classList.add("hiding");
+              setTimeout(() => {
+                if (this.notification) {
+                  this.notification.remove();
+                  this.notification = null;
+                }
+              }, 250);
+            }
+          }
+        }
+        _createUploadingContent() {
+          return `
+            <div class="notif-header">
+                <div class="notif-led"></div>
+                <span class="notif-label">SYS STATUS</span>
+            </div>
+            <div class="notif-content">
+                <div class="notif-icon-wrap">
+                    <div class="notif-spinner"></div>
+                </div>
+                <div class="notif-text">
+                    <span class="notif-title">Uploading</span>
+                    <span class="notif-desc">Processing file...</span>
+                </div>
+            </div>
+        `;
+        }
+        _createCompleteContent() {
+          return `
+            <div class="notif-header">
+                <div class="notif-led"></div>
+                <span class="notif-label">SYS STATUS</span>
+            </div>
+            <div class="notif-content">
+                <div class="notif-icon-wrap">
+                    <div class="notif-check">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="notif-text">
+                    <span class="notif-title">Complete</span>
+                    <span class="notif-desc">File sent to chat</span>
+                </div>
+            </div>
+        `;
+        }
+      };
+    }
+  });
+
   // src/content/main.js
   var require_main = __commonJS({
     "src/content/main.js"() {
@@ -2705,6 +2758,7 @@
       init_storage();
       init_strategies();
       init_config();
+      init_upload_notification();
       console.log("Thoughtful Voice: Content script loaded");
       async function init() {
         const host = window.location.hostname;
@@ -2717,6 +2771,7 @@
         await strategy.waitForDOM();
         const bubbleRenderer = new BubbleRenderer();
         bubbleRenderer.init();
+        const uploadNotification = new UploadNotification();
         const recorder = new Recorder();
         const screenRecorder = new ScreenRecorder(strategy.name.toLowerCase());
         let urlUpdateWatcher = null;
@@ -2745,7 +2800,9 @@
         let injector = null;
         const handleAudioUpload = async (blob, duration) => {
           const recordingUrl = injector.audioRecordingStartUrl || window.location.href;
+          uploadNotification.show("uploading");
           await strategy.handleUpload(blob, duration);
+          uploadNotification.showComplete();
           const seconds = Math.floor(duration / 1e3);
           const m = Math.floor(seconds / 60).toString().padStart(2, "0");
           const s = (seconds % 60).toString().padStart(2, "0");
@@ -2764,7 +2821,9 @@
         };
         const handleVideoUpload = async (result) => {
           const recordingUrl = injector.videoRecordingStartUrl || window.location.href;
+          uploadNotification.show("uploading");
           await strategy.handleVideoUpload(result);
+          uploadNotification.showComplete();
           const seconds = Math.floor(result.duration / 1e3);
           const m = Math.floor(seconds / 60).toString().padStart(2, "0");
           const s = (seconds % 60).toString().padStart(2, "0");
@@ -2788,6 +2847,42 @@
         injector = new Injector(recorder, screenRecorder, handleAudioUpload, handleVideoUpload);
         const target = strategy.getInjectionTarget();
         injector.inject(target);
+        chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+          if (request.action === "insertFile") {
+            (async () => {
+              try {
+                const { fileData, fileType, filename } = request;
+                console.log(`Thoughtful Voice: Inserting file ${filename}`);
+                uploadNotification.show("uploading");
+                const parts = fileData.split(";base64,");
+                const raw = window.atob(parts[1]);
+                const rawLength = raw.length;
+                const uInt8Array = new Uint8Array(rawLength);
+                for (let i = 0; i < rawLength; ++i) {
+                  uInt8Array[i] = raw.charCodeAt(i);
+                }
+                const blob = new Blob([uInt8Array], { type: fileType });
+                const file = new File([blob], filename, { type: fileType });
+                const success = await strategy._executeUploadStrategies(file);
+                if (success) {
+                  await strategy.insertText();
+                  uploadNotification.showComplete();
+                  console.log("Thoughtful Voice: File inserted successfully");
+                  sendResponse({ success: true });
+                } else {
+                  uploadNotification.hide();
+                  console.error("Thoughtful Voice: Upload failed");
+                  sendResponse({ success: false, error: "Upload failed" });
+                }
+              } catch (error) {
+                uploadNotification.hide();
+                console.error("Thoughtful Voice: Insert error:", error);
+                sendResponse({ success: false, error: error.message });
+              }
+            })();
+            return true;
+          }
+        });
         const observer = new MutationObserver(() => {
           const newTarget = strategy.getInjectionTarget();
           const existingButton = document.getElementById("thoughtful-voice-btn");

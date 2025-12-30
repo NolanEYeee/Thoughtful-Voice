@@ -395,6 +395,24 @@
         });
       }
       async function loadRecordings(dataOverride = null) {
+        let isOnSupportedSite = false;
+        try {
+          const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+          const currentUrl = activeTab?.url || "";
+          const supportedSites = [
+            "gemini.google.com",
+            "chatgpt.com",
+            "chat.openai.com",
+            "aistudio.google.com",
+            "perplexity.ai",
+            "www.perplexity.ai"
+          ];
+          isOnSupportedSite = supportedSites.some((site) => currentUrl.includes(site));
+          console.log("Current tab supported for insertion:", isOnSupportedSite, currentUrl);
+        } catch (error) {
+          console.warn("Failed to detect current tab:", error);
+        }
+        window.isOnSupportedSite = isOnSupportedSite;
         if (dataOverride) {
           recordings = dataOverride.recordings || [];
           settings = getMergedSettings(dataOverride.settings);
@@ -515,7 +533,6 @@
           };
           el.injectMediaData = injectData;
           if (item.type === "audio") {
-            el.addEventListener("mouseenter", injectData, { once: true });
             const backgroundLoadDelay = 1e3 + i * 200;
             setTimeout(injectData, backgroundLoadDelay);
           } else {
@@ -596,6 +613,11 @@
                             <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/>
                         </svg>
                     </a>
+                    ${window.isOnSupportedSite ? `<button class="retro-btn insert" data-id="${rec.timestamp}" title="Insert to current AI chat page">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
+                        </svg>
+                    </button>` : ""}
                     <button class="retro-btn delete" data-id="${rec.timestamp}" title="Delete">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
@@ -638,6 +660,11 @@
                             <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/>
                         </svg>
                     </a>
+                    ${window.isOnSupportedSite ? `<button class="retro-btn insert" data-id="${rec.timestamp}" title="Insert to current AI chat page">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
+                        </svg>
+                    </button>` : ""}
                     <button class="retro-btn delete" data-id="${rec.timestamp}" title="Delete">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
@@ -816,6 +843,83 @@
               e.preventDefault();
               await injectDataFallback();
               downloadBtn.click();
+            }
+          };
+        }
+        const insertBtn = element.querySelector(".retro-btn.insert");
+        if (insertBtn) {
+          insertBtn.onclick = async (e) => {
+            e.preventDefault();
+            const timestamp = parseInt(insertBtn.dataset.id);
+            const recording = recordings2.find((r) => r.timestamp === timestamp);
+            if (!recording) {
+              console.error("Recording not found:", timestamp);
+              return;
+            }
+            if (element.dataset.mediaLoaded !== "true") {
+              insertBtn.classList.add("loading");
+              insertBtn.disabled = true;
+              try {
+                await injectDataFallback();
+              } catch (err) {
+                console.error("Failed to load media data:", err);
+                insertBtn.classList.remove("loading");
+                insertBtn.classList.add("error");
+                insertBtn.disabled = false;
+                setTimeout(() => insertBtn.classList.remove("error"), 2e3);
+                return;
+              }
+            }
+            let fileData = null;
+            const mediaElem = element.querySelector("audio, video");
+            if (mediaElem && mediaElem.src && mediaElem.src.startsWith("blob:")) {
+              try {
+                const response = await fetch(mediaElem.src);
+                const blob = await response.blob();
+                fileData = await new Promise((resolve, reject) => {
+                  const reader = new FileReader();
+                  reader.onloadend = () => resolve(reader.result);
+                  reader.onerror = reject;
+                  reader.readAsDataURL(blob);
+                });
+              } catch (err) {
+                console.error("Failed to read blob data:", err);
+              }
+            }
+            if (!fileData) {
+              console.error("No file data available for insertion");
+              insertBtn.classList.add("error");
+              setTimeout(() => insertBtn.classList.remove("error"), 2e3);
+              return;
+            }
+            insertBtn.classList.add("loading");
+            insertBtn.disabled = true;
+            try {
+              const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+              const response = await chrome.tabs.sendMessage(activeTab.id, {
+                action: "insertFile",
+                fileData,
+                fileType: recording.type === "video" ? "video/webm" : "audio/wav",
+                filename: recording.filename || `recording_${timestamp}.${recording.type === "video" ? "webm" : "wav"}`
+              });
+              if (response && response.success) {
+                insertBtn.classList.remove("loading");
+                insertBtn.classList.add("success");
+                insertBtn.disabled = false;
+                setTimeout(() => insertBtn.classList.remove("success"), 2e3);
+              } else {
+                insertBtn.classList.remove("loading");
+                insertBtn.classList.add("error");
+                insertBtn.disabled = false;
+                setTimeout(() => insertBtn.classList.remove("error"), 2e3);
+                console.error("Insert failed:", response?.error || "Unknown error");
+              }
+            } catch (err) {
+              console.error("Failed to send insert message:", err);
+              insertBtn.classList.remove("loading");
+              insertBtn.classList.add("error");
+              insertBtn.disabled = false;
+              setTimeout(() => insertBtn.classList.remove("error"), 2e3);
             }
           };
         }

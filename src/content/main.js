@@ -12,6 +12,7 @@ import { BubbleRenderer } from './bubble.js';
 import { StorageHelper } from './storage.js';
 import { getStrategyForHost } from './strategies/index.js';
 import { generateAudioFilename, generateVideoFilename } from '../utils/config.js';
+import { UploadNotification } from './upload-notification.js';
 
 console.log("Thoughtful Voice: Content script loaded");
 
@@ -34,6 +35,9 @@ async function init() {
     // Initialize Bubble Renderer
     const bubbleRenderer = new BubbleRenderer();
     bubbleRenderer.init();
+
+    // Initialize Upload Notification
+    const uploadNotification = new UploadNotification();
 
     // Initialize recorders
     const recorder = new Recorder();
@@ -86,8 +90,14 @@ async function init() {
         // Get URL from when recording started
         const recordingUrl = injector.audioRecordingStartUrl || window.location.href;
 
+        // Show upload notification
+        uploadNotification.show('uploading');
+
         // 1. Upload to Platform (using strategy)
         await strategy.handleUpload(blob, duration);
+
+        // Show complete notification
+        uploadNotification.showComplete();
 
         // 2. Save to History
         const seconds = Math.floor(duration / 1000);
@@ -119,8 +129,14 @@ async function init() {
         // Get URL from when recording started
         const recordingUrl = injector.videoRecordingStartUrl || window.location.href;
 
+        // Show upload notification
+        uploadNotification.show('uploading');
+
         // 1. Upload video to Platform (using strategy)
         await strategy.handleVideoUpload(result);
+
+        // Show complete notification
+        uploadNotification.showComplete();
 
         // 2. Save to History
         const seconds = Math.floor(result.duration / 1000);
@@ -155,6 +171,52 @@ async function init() {
     // Initial injection
     const target = strategy.getInjectionTarget();
     injector.inject(target);
+
+    // Message handler for inserting existing files from popup
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+        if (request.action === 'insertFile') {
+            (async () => {
+                try {
+                    const { fileData, fileType, filename } = request;
+
+                    console.log(`Thoughtful Voice: Inserting file ${filename}`);
+
+                    // Show upload notification
+                    uploadNotification.show('uploading');
+
+                    // Convert base64 back to Blob
+                    const parts = fileData.split(';base64,');
+                    const raw = window.atob(parts[1]);
+                    const rawLength = raw.length;
+                    const uInt8Array = new Uint8Array(rawLength);
+                    for (let i = 0; i < rawLength; ++i) {
+                        uInt8Array[i] = raw.charCodeAt(i);
+                    }
+                    const blob = new Blob([uInt8Array], { type: fileType });
+                    const file = new File([blob], filename, { type: fileType });
+
+                    // Use existing upload strategy
+                    const success = await strategy._executeUploadStrategies(file);
+
+                    if (success) {
+                        await strategy.insertText();
+                        uploadNotification.showComplete();
+                        console.log('Thoughtful Voice: File inserted successfully');
+                        sendResponse({ success: true });
+                    } else {
+                        uploadNotification.hide();
+                        console.error('Thoughtful Voice: Upload failed');
+                        sendResponse({ success: false, error: 'Upload failed' });
+                    }
+                } catch (error) {
+                    uploadNotification.hide();
+                    console.error('Thoughtful Voice: Insert error:', error);
+                    sendResponse({ success: false, error: error.message });
+                }
+            })();
+            return true; // Keep message channel open for async response
+        }
+    });
 
     // Watch for page changes (SPA navigation) and re-position if needed
     const observer = new MutationObserver(() => {
