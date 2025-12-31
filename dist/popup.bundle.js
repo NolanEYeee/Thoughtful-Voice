@@ -280,6 +280,10 @@
         requestAnimationFrame(() => {
           if (nextToReveal) {
             nextToReveal.classList.add("revealed");
+            nextToReveal.addEventListener("animationend", () => {
+              nextToReveal.classList.remove("revealed");
+              nextToReveal.classList.add("revealed-complete");
+            }, { once: true });
           }
           setTimeout(processRevealTick, 60);
         });
@@ -613,11 +617,11 @@
                             <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/>
                         </svg>
                     </a>
-                    ${window.isOnSupportedSite ? `<button class="retro-btn insert" data-id="${rec.timestamp}" title="Insert to current AI chat page">
+                    <button class="retro-btn insert" data-id="${rec.timestamp}" title="${window.isOnSupportedSite ? "Insert to current AI chat page" : "Only available on AI websites (Gemini, ChatGPT, etc.)"}" ${!window.isOnSupportedSite ? "disabled" : ""}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
                         </svg>
-                    </button>` : ""}
+                    </button>
                     <button class="retro-btn delete" data-id="${rec.timestamp}" title="Delete">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
@@ -660,11 +664,11 @@
                             <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/>
                         </svg>
                     </a>
-                    ${window.isOnSupportedSite ? `<button class="retro-btn insert" data-id="${rec.timestamp}" title="Insert to current AI chat page">
+                    <button class="retro-btn insert" data-id="${rec.timestamp}" title="${window.isOnSupportedSite ? "Insert to current AI chat page" : "Only available on AI websites (Gemini, ChatGPT, etc.)"}" ${!window.isOnSupportedSite ? "disabled" : ""}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
                         </svg>
-                    </button>` : ""}
+                    </button>
                     <button class="retro-btn delete" data-id="${rec.timestamp}" title="Delete">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
@@ -778,16 +782,19 @@
               isDataTriggeredPlay = false;
             }
           };
-          const handleCardClick = (e) => {
+          const crtScreen = element.querySelector(".crt-screen");
+          const handleScreenClick = (e) => {
             if (element.dataset.mediaLoaded === "true") {
               return;
             }
-            if (e.target.closest(".control-group") || e.target.closest(".viewfinder-label") || e.target.tagName === "A" || e.target.tagName === "BUTTON") {
+            if (e.target.tagName === "VIDEO") {
               return;
             }
             triggerLoadAndPlay();
           };
-          element.addEventListener("click", handleCardClick);
+          if (crtScreen) {
+            crtScreen.addEventListener("click", handleScreenClick);
+          }
           videoElem.addEventListener("play", async (e) => {
             if (element.dataset.mediaLoaded !== "true" && !isDataTriggeredPlay) {
               videoElem.pause();

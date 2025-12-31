@@ -69,8 +69,8 @@ The extension offers **two UI styles**:
 
 | Feature | Description |
 |---------|-------------|
-| 🎤 Voice Recording | WAV format, adjustable bitrate, auto-upload, custom prompts |
-| 📹 Screen Recording | Up to 4K@120FPS, adjustable bitrate, auto-fix duration metadata |
+| 🎤 Voice Recording | WAV format, adjustable bitrate, download & save locally, auto-upload |
+| 📹 Screen Recording | Up to 4K@120FPS, adjustable bitrate, download & save locally, auto-fix duration metadata |
 | 🎨 Retro UI | 80s Walkman style, cassette/CRT design, browse by date & platform |
 | ⚙️ Customization | Video/audio quality settings, default prompts, auto-save preferences |
 | 🔍 Provenance | Auto-track recording origins; one-click jump back to specific AI chat windows |
