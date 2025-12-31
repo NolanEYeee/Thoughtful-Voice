@@ -81,6 +81,12 @@ const processRevealTick = () => {
     requestAnimationFrame(() => {
         if (nextToReveal) {
             nextToReveal.classList.add('revealed');
+
+            // 動畫結束後：移除 revealed (取消 animation 和 pointer-events)，添加 revealed-complete
+            nextToReveal.addEventListener('animationend', () => {
+                nextToReveal.classList.remove('revealed');
+                nextToReveal.classList.add('revealed-complete');
+            }, { once: true });
         }
 
         // 4. Stagger: Continue the tick until everything is processed
@@ -529,11 +535,11 @@ function createRecordingElement(rec, index, lazyMedia = false) {
                             <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/>
                         </svg>
                     </a>
-                    ${window.isOnSupportedSite ? `<button class="retro-btn insert" data-id="${rec.timestamp}" title="Insert to current AI chat page">
+                    <button class="retro-btn insert" data-id="${rec.timestamp}" title="${window.isOnSupportedSite ? 'Insert to current AI chat page' : 'Only available on AI websites (Gemini, ChatGPT, etc.)'}" ${!window.isOnSupportedSite ? 'disabled' : ''}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
                         </svg>
-                    </button>` : ''}
+                    </button>
                     <button class="retro-btn delete" data-id="${rec.timestamp}" title="Delete">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
@@ -579,11 +585,11 @@ function createRecordingElement(rec, index, lazyMedia = false) {
                             <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/>
                         </svg>
                     </a>
-                    ${window.isOnSupportedSite ? `<button class="retro-btn insert" data-id="${rec.timestamp}" title="Insert to current AI chat page">
+                    <button class="retro-btn insert" data-id="${rec.timestamp}" title="${window.isOnSupportedSite ? 'Insert to current AI chat page' : 'Only available on AI websites (Gemini, ChatGPT, etc.)'}" ${!window.isOnSupportedSite ? 'disabled' : ''}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
                         </svg>
-                    </button>` : ''}
+                    </button>
                     <button class="retro-btn delete" data-id="${rec.timestamp}" title="Delete">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
@@ -744,21 +750,26 @@ function attachListenersToElement(element, recordings, injectDataFallback) {
             }
         };
 
-        // 1. Click on the CRT TV body (Screen area) starts the engine
-        const handleCardClick = (e) => {
+        // 1. Click on the CRT Screen ONLY (not the entire card) starts the engine
+        const crtScreen = element.querySelector('.crt-screen');
+        const handleScreenClick = (e) => {
             // If already loaded, STOP INTERFERING and let native controls work
             if (element.dataset.mediaLoaded === 'true') {
                 return;
             }
 
-            if (e.target.closest('.control-group') || e.target.closest('.viewfinder-label') || e.target.tagName === 'A' || e.target.tagName === 'BUTTON') {
+            // Ignore clicks on the video element itself (if controls are shown)
+            if (e.target.tagName === 'VIDEO') {
                 return;
             }
 
+            // Only trigger on screen area (overlay, play button, or screen background)
             triggerLoadAndPlay();
         };
 
-        element.addEventListener('click', handleCardClick);
+        if (crtScreen) {
+            crtScreen.addEventListener('click', handleScreenClick);
+        }
 
         // 2. Handle the native 'play' button (if it somehow gets clicked/triggered)
         videoElem.addEventListener('play', async (e) => {

@@ -206,7 +206,8 @@
             background: var(--tape-body);
             color: #222;
             border-radius: 6px;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
+            /* 增加间距为光晕留出空间 */
             position: relative;
             box-shadow:
                 0 10px 25px rgba(0, 0, 0, 0.5),
@@ -214,29 +215,58 @@
                 inset 0 -1px 0 rgba(0, 0, 0, 0.2);
             font-family: 'Arial Narrow', sans-serif;
             overflow: hidden;
+            /* 恢复以保持圆角 */
             border: 1px solid #c0b8a0;
-            cursor: pointer;
 
-            /* Performance: GPU Promotion */
+            /* 初始 outline 状态，用于平滑过渡 */
+            outline: 0.5px solid transparent;
+            outline-offset: 0px;
+
+            /* Performance: GPU Promotion - 不使用 backface-visibility: hidden 因為它會導致 scale 時模糊 */
             will-change: transform, opacity;
-            backface-visibility: hidden;
 
-            /* Reveal State Initialization */
+            /* 正常显示状态（默认） */
+            opacity: 1;
+            transform: translateY(0) translateZ(0);
+            filter: none;
+
+            /* 平滑过渡效果 */
+            transition:
+                transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+                box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+                border-color 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+                outline 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+                filter 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+                opacity 0.4s ease-out;
+        }
+
+        /* 等待动画的初始状态（由 JS 在创建时添加，动画结束后移除） */
+        .tape-card:not(.revealed-complete):not(.revealed) {
             opacity: 0;
             transform: translateY(40px) translateZ(0);
-            /* Match 0% keyframe to prevent jump */
-            transition: opacity 0.4s ease-out;
         }
 
         .tape-card:hover {
-            transform: translateY(-2px) scale(1.003);
+            /* 细腻悬浮效果: 微微膨胀 + 柔和上浮 + 双层光晕 */
+            transform: translateY(-4px) scale(1.025) rotateX(1deg) translateZ(0);
+            border-color: rgba(255, 107, 0, 0.6);
+            /* 使用outline模拟边框加粗，避免重排 */
+            outline: 0.5px solid rgba(255, 107, 0, 0.4);
+            outline-offset: 0px;
+            /* 確保 filter 為 none，避免動畫殘留 */
+            filter: none;
             box-shadow:
-                0 6px 16px rgba(0, 0, 0, 0.5),
-                0 0 10px rgba(255, 107, 0, 0.25),
-                0 0 0 1px rgba(255, 107, 0, 0.3),
-                inset 0 1px 0 rgba(255, 255, 255, 0.5),
-                inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+                /* 主阴影加深 */
+                0 14px 32px rgba(0, 0, 0, 0.65),
+                /* 橙色外边框光晕 - 柔和双层 */
+                0 0 12px rgba(255, 107, 0, 0.35),
+                0 0 24px rgba(255, 107, 0, 0.18),
+                /* 内部高光 */
+                inset 0 1px 0 rgba(255, 255, 255, 0.6),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.35);
         }
+
+
 
 
 
@@ -461,28 +491,38 @@
             background: #2b2b2b;
             border-radius: 12px;
             padding: 15px;
-            /* Increased and balanced padding */
-            margin-bottom: 25px;
+            margin-bottom: 30px;
+            /* 增加间距为光晕留出空间 */
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
             border: 1px solid #3a3a3a;
-            cursor: pointer;
             min-height: 280px;
             contain: layout;
             width: 100%;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            /* Ensures label and controls are balanced around screen */
 
-            /* Performance: GPU Promotion */
+            /* Performance: GPU Promotion - 不使用 backface-visibility: hidden 因為它會導致 scale 時模糊 */
             will-change: transform, opacity;
-            backface-visibility: hidden;
 
-            /* Reveal State Initialization */
+            /* 正常显示状态（默认） */
+            opacity: 1;
+            transform: translateY(0) translateZ(0);
+            filter: none;
+
+            /* 平滑过渡效果 */
+            transition:
+                transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+                box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+                border-color 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+                filter 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+                opacity 0.4s ease-out;
+        }
+
+        /* 等待动画的初始状态 */
+        .crt-card:not(.revealed-complete):not(.revealed) {
             opacity: 0;
             transform: translateY(40px) translateZ(0);
-            /* Match 0% keyframe to prevent jump */
-            transition: opacity 0.4s ease-out;
         }
 
         @keyframes waterfallReveal {
@@ -490,36 +530,75 @@
                 opacity: 0;
                 transform: translateY(40px) scale(0.97) rotateX(-6deg);
                 filter: blur(4px);
-                /* Reduced blur for performance */
             }
 
             /* 唯一的頂點：完成過衝 */
             35% {
                 opacity: 1;
                 transform: translateY(-4px) scale(1.005) rotateX(2deg);
-                filter: blur(0);
+                filter: none;
+                /* 使用 none 而非 blur(0) */
             }
 
             /* 直接進入最終穩定態，無二次震盪 */
             100% {
                 opacity: 1;
                 transform: translateY(0) scale(1) rotateX(0);
-                filter: blur(0);
+                filter: none;
+                /* 使用 none 而非 blur(0) */
             }
         }
 
         .tape-card.revealed,
         .crt-card.revealed {
+            /* 使用 forwards 保持动画结束状态，JS 会在动画结束后移除此 class */
             animation: waterfallReveal 0.6s cubic-bezier(0.2, 1, 0.4, 1) forwards !important;
+            /* 动画期间禁用 hover 的 transition，避免冲突 */
+            pointer-events: none;
+        }
+
+        /* 动画结束后的最终状态，由 JS 移除 revealed 并添加此 class */
+        /* 只设置 opacity，不设置 transform，避免覆盖 :hover 的 transform */
+        .tape-card.revealed-complete,
+        .crt-card.revealed-complete {
+            opacity: 1;
+            filter: none;
         }
 
         .crt-card:hover {
-            transform: translateY(-2px) scale(1.003);
+            /* CRT 显示器悬浮效果: 微微膨胀 + 背后淡淡磷光绿光晕 */
+            transform: translateY(-4px) scale(1.025) rotateX(1deg) translateZ(0);
+            border-color: rgba(0, 255, 65, 0.2);
+            /* 確保 filter 為 none */
+            filter: none;
             box-shadow:
-                0 10px 20px rgba(0, 0, 0, 0.6),
-                0 0 10px rgba(74, 144, 226, 0.25),
-                0 0 0 1px rgba(74, 144, 226, 0.3),
-                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+                /* 主阴影加深 */
+                0 18px 36px rgba(0, 0, 0, 0.75),
+                /* 背后淡淡绿色光晕 - 不要边框圈 */
+                0 0 20px rgba(0, 255, 65, 0.2),
+                0 0 40px rgba(0, 255, 65, 0.1),
+                0 0 60px rgba(0, 255, 65, 0.05),
+                /* 内部高光 */
+                inset 0 1px 0 rgba(255, 255, 255, 0.18);
+        }
+
+        /* 电视机悬浮时扫描线增强效果 */
+        .crt-card:hover .crt-overlay {
+            background:
+                /* 水平扫描线 - 更密集更明显 */
+                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.45) 50%),
+                /* RGB 色彩分离 - 增强 */
+                linear-gradient(90deg, rgba(255, 0, 0, 0.1), rgba(0, 255, 0, 0.05), rgba(0, 0, 255, 0.1));
+            background-size: 100% 1.5px, 3px 100%;
+            opacity: 0.95;
+        }
+
+        /* 扫描线平滑过渡 */
+        .crt-overlay {
+            transition:
+                background 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                background-size 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .viewfinder-label {
@@ -552,6 +631,13 @@
             height: auto;
             flex-shrink: 0;
             margin: 0 auto;
+            cursor: pointer;
+            /* 視頻未加載時顯示可點擊 */
+        }
+
+        /* 視頻已加載後，移除 pointer cursor，讓原生 video controls 接管 */
+        [data-media-loaded="true"] .crt-screen {
+            cursor: default;
         }
 
         .crt-screen video {
@@ -582,12 +668,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(0, 0, 0, 0.5);
+            /* 增加不透明度代替 backdrop-filter */
             border-radius: 50%;
             width: 60px;
             height: 60px;
             border: 2px solid rgba(255, 255, 255, 0.4);
-            backdrop-filter: blur(2px);
+            /* 移除 backdrop-filter: blur(2px)，因為它會導致父元素 scale 時模糊 */
             animation: pulsePlay 2s infinite ease-in-out;
             transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
             pointer-events: none;
@@ -758,12 +845,16 @@
             box-shadow: 0 0 0 #4a0000;
         }
 
-        .retro-btn.disabled {
-            opacity: 0.4;
+        .retro-btn.disabled,
+        .retro-btn:disabled {
+            opacity: 0.5;
             cursor: not-allowed;
-            filter: grayscale(1);
+            filter: grayscale(0.8) brightness(0.7);
             pointer-events: none;
-            box-shadow: none;
+            /* 保留與正常按鈕相同深度的立體陰影 */
+            box-shadow:
+                0 3px 0 #111,
+                0 4px 4px rgba(0, 0, 0, 0.3) !important;
             transform: none !important;
         }
 
