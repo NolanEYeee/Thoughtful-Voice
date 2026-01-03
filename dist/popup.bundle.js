@@ -280,10 +280,15 @@
         requestAnimationFrame(() => {
           if (nextToReveal) {
             nextToReveal.classList.add("revealed");
-            nextToReveal.addEventListener("animationend", () => {
+            let hasCompleted = false;
+            const completeReveal = () => {
+              if (hasCompleted) return;
+              hasCompleted = true;
               nextToReveal.classList.remove("revealed");
               nextToReveal.classList.add("revealed-complete");
-            }, { once: true });
+            };
+            nextToReveal.addEventListener("animationend", completeReveal, { once: true });
+            setTimeout(completeReveal, 700);
           }
           setTimeout(processRevealTick, 60);
         });
@@ -762,7 +767,7 @@
             }
           };
         }
-        const videoElem = element.querySelector(".crt-card video");
+        const videoElem = element.querySelector("video");
         if (videoElem) {
           const playOverlay = element.querySelector(".crt-play-overlay");
           let isDataTriggeredPlay = false;
@@ -785,9 +790,6 @@
           const crtScreen = element.querySelector(".crt-screen");
           const handleScreenClick = (e) => {
             if (element.dataset.mediaLoaded === "true") {
-              return;
-            }
-            if (e.target.tagName === "VIDEO") {
               return;
             }
             triggerLoadAndPlay();
@@ -1151,6 +1153,46 @@
             });
           });
         }
+        const currentVersionEl = document.getElementById("current-version");
+        if (currentVersionEl) {
+          const version = chrome.runtime.getManifest().version;
+          currentVersionEl.textContent = `v${version}`;
+        }
+        const manualUpdateBtn = document.getElementById("manual-update-check");
+        if (manualUpdateBtn) {
+          manualUpdateBtn.addEventListener("click", async () => {
+            manualUpdateBtn.disabled = true;
+            manualUpdateBtn.textContent = "CHECKING...";
+            manualUpdateBtn.classList.add("loading");
+            try {
+              const hasUpdate = await checkForUpdatesManual();
+              if (!hasUpdate) {
+                manualUpdateBtn.textContent = "YOU'RE UP TO DATE!";
+                manualUpdateBtn.classList.remove("loading");
+                manualUpdateBtn.classList.add("success");
+                setTimeout(() => {
+                  manualUpdateBtn.textContent = "CHECK FOR UPDATES";
+                  manualUpdateBtn.classList.remove("success");
+                  manualUpdateBtn.disabled = false;
+                }, 2e3);
+              } else {
+                manualUpdateBtn.textContent = "UPDATE AVAILABLE!";
+                manualUpdateBtn.classList.remove("loading");
+                manualUpdateBtn.classList.add("primary");
+              }
+            } catch (err) {
+              console.error("Manual update check failed:", err);
+              manualUpdateBtn.textContent = "CHECK FAILED";
+              manualUpdateBtn.classList.remove("loading");
+              manualUpdateBtn.classList.add("error");
+              setTimeout(() => {
+                manualUpdateBtn.textContent = "CHECK FOR UPDATES";
+                manualUpdateBtn.classList.remove("error");
+                manualUpdateBtn.disabled = false;
+              }, 2e3);
+            }
+          });
+        }
         const resultCheck = await chrome.storage.local.get(["settings"]);
         if (resultCheck.settings?.autoUpdateCheck === true) {
           checkForUpdates();
@@ -1172,6 +1214,18 @@
         } catch (err) {
           console.error("Update check failed:", err);
         }
+      }
+      async function checkForUpdatesManual() {
+        const response = await fetch("https://api.github.com/repos/NolanEYeee/Thoughtful-Voice/releases/latest");
+        if (!response.ok) throw new Error("Failed to fetch releases");
+        const data = await response.json();
+        const latestVersion = data.tag_name.replace("v", "");
+        const currentVersion = chrome.runtime.getManifest().version;
+        if (compareVersions(latestVersion, currentVersion) > 0) {
+          showUpdateBanner(data.tag_name, data.html_url);
+          return true;
+        }
+        return false;
       }
       function compareVersions(v1, v2) {
         const parts1 = v1.split(".").map(Number);

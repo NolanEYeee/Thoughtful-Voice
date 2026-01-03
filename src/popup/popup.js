@@ -83,10 +83,20 @@ const processRevealTick = () => {
             nextToReveal.classList.add('revealed');
 
             // 動畫結束後：移除 revealed (取消 animation 和 pointer-events)，添加 revealed-complete
-            nextToReveal.addEventListener('animationend', () => {
+            let hasCompleted = false;
+            const completeReveal = () => {
+                if (hasCompleted) return;
+                hasCompleted = true;
                 nextToReveal.classList.remove('revealed');
                 nextToReveal.classList.add('revealed-complete');
-            }, { once: true });
+            };
+
+            nextToReveal.addEventListener('animationend', completeReveal, { once: true });
+
+            // CRITICAL: Fallback timeout in case animationend doesn't fire
+            // (can happen if animation is interrupted, element not visible, or browser quirks)
+            // Animation is 600ms, so 700ms provides sufficient buffer
+            setTimeout(completeReveal, 700);
         }
 
         // 4. Stagger: Continue the tick until everything is processed
@@ -723,7 +733,8 @@ function attachListenersToElement(element, recordings, injectDataFallback) {
     }
 
     // Video Loading Handler (Robust Play-on-Load)
-    const videoElem = element.querySelector('.crt-card video');
+    const videoElem = element.querySelector('video');
+
     if (videoElem) {
         const playOverlay = element.querySelector('.crt-play-overlay');
         let isDataTriggeredPlay = false;
@@ -752,18 +763,15 @@ function attachListenersToElement(element, recordings, injectDataFallback) {
 
         // 1. Click on the CRT Screen ONLY (not the entire card) starts the engine
         const crtScreen = element.querySelector('.crt-screen');
+
         const handleScreenClick = (e) => {
-            // If already loaded, STOP INTERFERING and let native controls work
+            // If already loaded, let native video controls handle everything
             if (element.dataset.mediaLoaded === 'true') {
                 return;
             }
 
-            // Ignore clicks on the video element itself (if controls are shown)
-            if (e.target.tagName === 'VIDEO') {
-                return;
-            }
-
-            // Only trigger on screen area (overlay, play button, or screen background)
+            // Data NOT loaded yet - trigger load and play
+            // (Click might be on video, overlay, or screen - doesn't matter, we always load)
             triggerLoadAndPlay();
         };
 
@@ -1239,6 +1247,51 @@ async function setupSettings() {
         });
     }
 
+    // Display current version
+    const currentVersionEl = document.getElementById('current-version');
+    if (currentVersionEl) {
+        const version = chrome.runtime.getManifest().version;
+        currentVersionEl.textContent = `v${version}`;
+    }
+
+    // Manual update check button
+    const manualUpdateBtn = document.getElementById('manual-update-check');
+    if (manualUpdateBtn) {
+        manualUpdateBtn.addEventListener('click', async () => {
+            manualUpdateBtn.disabled = true;
+            manualUpdateBtn.textContent = 'CHECKING...';
+            manualUpdateBtn.classList.add('loading');
+
+            try {
+                const hasUpdate = await checkForUpdatesManual();
+                if (!hasUpdate) {
+                    manualUpdateBtn.textContent = 'YOU\'RE UP TO DATE!';
+                    manualUpdateBtn.classList.remove('loading');
+                    manualUpdateBtn.classList.add('success');
+                    setTimeout(() => {
+                        manualUpdateBtn.textContent = 'CHECK FOR UPDATES';
+                        manualUpdateBtn.classList.remove('success');
+                        manualUpdateBtn.disabled = false;
+                    }, 2000);
+                } else {
+                    manualUpdateBtn.textContent = 'UPDATE AVAILABLE!';
+                    manualUpdateBtn.classList.remove('loading');
+                    manualUpdateBtn.classList.add('primary');
+                }
+            } catch (err) {
+                console.error('Manual update check failed:', err);
+                manualUpdateBtn.textContent = 'CHECK FAILED';
+                manualUpdateBtn.classList.remove('loading');
+                manualUpdateBtn.classList.add('error');
+                setTimeout(() => {
+                    manualUpdateBtn.textContent = 'CHECK FOR UPDATES';
+                    manualUpdateBtn.classList.remove('error');
+                    manualUpdateBtn.disabled = false;
+                }, 2000);
+            }
+        });
+    }
+
     // Trigger update check if enabled
     const resultCheck = await chrome.storage.local.get(['settings']);
     if (resultCheck.settings?.autoUpdateCheck === true) {
@@ -1268,6 +1321,24 @@ async function checkForUpdates() {
     } catch (err) {
         console.error('Update check failed:', err);
     }
+}
+
+/**
+ * Manual update check - returns true if update is available
+ */
+async function checkForUpdatesManual() {
+    const response = await fetch('https://api.github.com/repos/NolanEYeee/Thoughtful-Voice/releases/latest');
+    if (!response.ok) throw new Error('Failed to fetch releases');
+
+    const data = await response.json();
+    const latestVersion = data.tag_name.replace('v', '');
+    const currentVersion = chrome.runtime.getManifest().version;
+
+    if (compareVersions(latestVersion, currentVersion) > 0) {
+        showUpdateBanner(data.tag_name, data.html_url);
+        return true;
+    }
+    return false;
 }
 
 /**
