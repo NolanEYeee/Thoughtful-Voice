@@ -8,7 +8,7 @@
 
 录制口述錄音或屏幕內容，直接提交给 AI - 不会识别错误，不会被打断。
 
-[![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://github.com/NolanEYeee/Thoughtful-Voice)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/jpcnegghcigeekjdaiakedigfdhkmpdl)
 [![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg?style=for-the-badge)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-1.0-blue.svg?style=for-the-badge)](https://github.com/NolanEYeee/Thoughtful-Voice/releases)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/nolaneyeee)
@@ -92,7 +92,18 @@ AI 語音輸入和實時屏幕共享都有局限性：
 
 ## 🚀 安装指南
 
-### 方式一：从 Releases 下载（推荐）🎯
+### 方式一：从 Chrome 应用商店安装（推荐）🎯
+
+[![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/jpcnegghcigeekjdaiakedigfdhkmpdl)
+
+1. **访问 Chrome 应用商店**
+   - 点击访问 [Chrome 应用商店链接](https://chromewebstore.google.com/detail/jpcnegghcigeekjdaiakedigfdhkmpdl)
+   - 点击「添加至 Chrome」按钮
+   - 确认安装，扩展图标将出现在工具栏中！
+
+**优势**：自动更新、安全可靠、一键安装
+
+### 方式二：从 Releases 下载
 
 1. **下载最新版本**
    - 访问 [Releases 页面](https://github.com/NolanEYeee/Thoughtful-Voice/releases)
@@ -105,9 +116,6 @@ AI 語音輸入和實時屏幕共享都有局限性：
    - 点击**加载已解压的扩展程序**
    - 选择解压后的文件夹
    - 扩展图标应该会出现在工具栏中！
-
-### 方式二：Chrome 应用商店安装（即将推出）
-*扩展目前正在申请中！*
 
 ### 方式三：从源码构建
 
@@ -196,7 +204,7 @@ node build.js
 
 ## 🗺️ 发展路线图
 
-- [ ] 发布到 Chrome 应用商店
+- [x] 发布到 Chrome 应用商店 ✅
 - [ ] 支持更多 AI 平台（Poe、Qwen 等）
 
 ## 📄 许可证

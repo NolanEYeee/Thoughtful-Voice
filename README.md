@@ -8,7 +8,7 @@
 
 Record your voice or screen and submit directly to AI - no transcription errors, no interruptions.
 
-[![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://github.com/NolanEYeee/Thoughtful-Voice)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/jpcnegghcigeekjdaiakedigfdhkmpdl)
 [![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg?style=for-the-badge)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-1.0-blue.svg?style=for-the-badge)](https://github.com/NolanEYeee/Thoughtful-Voice/releases)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/nolaneyeee)
@@ -91,7 +91,18 @@ The extension offers **two UI styles**:
 
 ## 🚀 Installation
 
-### Option 1: Download from Releases (Recommended) 🎯
+### Option 1: Install from Chrome Web Store (Recommended) 🎯
+
+[![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/jpcnegghcigeekjdaiakedigfdhkmpdl)
+
+1. **Visit Chrome Web Store**
+   - Click to visit the [Chrome Web Store link](https://chromewebstore.google.com/detail/jpcnegghcigeekjdaiakedigfdhkmpdl)
+   - Click "Add to Chrome" button
+   - Confirm installation, and the extension icon will appear in your toolbar!
+
+**Benefits**: Auto-updates, secure & trusted, one-click installation
+
+### Option 2: Download from Releases
 
 1. **Download the Latest Release**
    - Visit [Releases](https://github.com/NolanEYeee/Thoughtful-Voice/releases)
@@ -104,9 +115,6 @@ The extension offers **two UI styles**:
    - Click **Load unpacked**
    - Select the extracted folder
    - The extension icon should appear in your toolbar!
-
-### Option 2: Install from Chrome Web Store (Coming Soon)
-*Extension is currently in apply. Stay tuned!*
 
 ### Option 3: Build from Source
 
@@ -193,7 +201,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 🗺️ Roadmap
 
-- [ ] Chrome Web Store publication
+- [x] Chrome Web Store publication ✅
 - [ ] Support for more AI platforms (Poe, Qwen, etc.)
 
 ## 📄 License
