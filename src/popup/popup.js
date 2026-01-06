@@ -57,8 +57,12 @@ async function queueStorageOperation(operation) {
 let isProcessingReveal = false;
 
 const processRevealTick = () => {
-    // 1. Find ALL elements that are in view (data-ready) but not yet revealed
-    const pending = Array.from(document.querySelectorAll('.tape-card[data-ready="true"]:not(.revealed), .crt-card[data-ready="true"]:not(.revealed)'));
+    // 1. Find ALL elements that are in view (data-ready) but not yet revealed or completed
+    // CRITICAL FIX: Also exclude .revealed-complete to prevent infinite re-triggering
+    const pending = Array.from(document.querySelectorAll(
+        '.tape-card[data-ready="true"]:not(.revealed):not(.revealed-complete), ' +
+        '.crt-card[data-ready="true"]:not(.revealed):not(.revealed-complete)'
+    ));
 
     if (pending.length === 0) {
         isProcessingReveal = false;
@@ -77,6 +81,10 @@ const processRevealTick = () => {
 
     // 3. Reveal ONLY the single top-most candidate
     const nextToReveal = pending[0];
+
+    // CRITICAL FIX: Immediately remove data-ready to prevent re-selection in next tick
+    // This ensures the element cannot be picked up again during the animation
+    delete nextToReveal.dataset.ready;
 
     requestAnimationFrame(() => {
         if (nextToReveal) {

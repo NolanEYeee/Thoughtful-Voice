@@ -264,7 +264,9 @@
       }
       var isProcessingReveal = false;
       var processRevealTick = () => {
-        const pending = Array.from(document.querySelectorAll('.tape-card[data-ready="true"]:not(.revealed), .crt-card[data-ready="true"]:not(.revealed)'));
+        const pending = Array.from(document.querySelectorAll(
+          '.tape-card[data-ready="true"]:not(.revealed):not(.revealed-complete), .crt-card[data-ready="true"]:not(.revealed):not(.revealed-complete)'
+        ));
         if (pending.length === 0) {
           isProcessingReveal = false;
           return;
@@ -277,6 +279,7 @@
           return 0;
         });
         const nextToReveal = pending[0];
+        delete nextToReveal.dataset.ready;
         requestAnimationFrame(() => {
           if (nextToReveal) {
             nextToReveal.classList.add("revealed");
