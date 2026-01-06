@@ -724,12 +724,12 @@ export class Injector {
         }
 
         // Apply UI style class to body
-        document.body.classList.remove('ui-style-simple', 'ui-style-aesthetic');
+        document.body.classList.remove('ui-style-simple', 'ui-style-aesthetic', 'ui-style-aesthetic-old');
         document.body.classList.add(`ui-style-${this.uiStyle}`);
 
         // Apply site-specific class for targeted CSS rules
         const hostname = window.location.hostname;
-        document.body.classList.remove('site-chatgpt', 'site-gemini', 'site-aistudio', 'site-perplexity');
+        document.body.classList.remove('site-chatgpt', 'site-gemini', 'site-aistudio', 'site-perplexity', 'site-poe');
         if (hostname.includes('chatgpt.com') || hostname.includes('chat.openai.com')) {
             document.body.classList.add('site-chatgpt');
         } else if (hostname.includes('aistudio.google.com')) {
@@ -738,6 +738,8 @@ export class Injector {
             document.body.classList.add('site-gemini');
         } else if (hostname.includes('perplexity.ai')) {
             document.body.classList.add('site-perplexity');
+        } else if (hostname.includes('poe.com')) {
+            document.body.classList.add('site-poe');
         }
 
         // Always create both UIs (CSS will control visibility)

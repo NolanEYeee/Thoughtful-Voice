@@ -1681,10 +1681,10 @@
             console.warn("Failed to load UI style setting, using default:", e);
             this.uiStyle = "aesthetic";
           }
-          document.body.classList.remove("ui-style-simple", "ui-style-aesthetic");
+          document.body.classList.remove("ui-style-simple", "ui-style-aesthetic", "ui-style-aesthetic-old");
           document.body.classList.add(`ui-style-${this.uiStyle}`);
           const hostname = window.location.hostname;
-          document.body.classList.remove("site-chatgpt", "site-gemini", "site-aistudio", "site-perplexity");
+          document.body.classList.remove("site-chatgpt", "site-gemini", "site-aistudio", "site-perplexity", "site-poe");
           if (hostname.includes("chatgpt.com") || hostname.includes("chat.openai.com")) {
             document.body.classList.add("site-chatgpt");
           } else if (hostname.includes("aistudio.google.com")) {
@@ -1693,6 +1693,8 @@
             document.body.classList.add("site-gemini");
           } else if (hostname.includes("perplexity.ai")) {
             document.body.classList.add("site-perplexity");
+          } else if (hostname.includes("poe.com")) {
+            document.body.classList.add("site-poe");
           }
           if (!this.button) this.createButton();
           if (!this.screenButton) this.createScreenRecordButton();
@@ -2574,6 +2576,189 @@
     }
   });
 
+  // src/content/strategies/poe.js
+  var PoeStrategy;
+  var init_poe = __esm({
+    "src/content/strategies/poe.js"() {
+      init_base_strategy();
+      PoeStrategy = class extends BaseStrategy {
+        constructor() {
+          super("Poe");
+        }
+        // ========== Required Implementations ==========
+        async waitForDOM() {
+          return new Promise((resolve) => {
+            const check = () => {
+              const textarea = document.querySelector('textarea[class*="ChatMessageInputContainer"], textarea[class*="GrowingTextArea"], textarea[placeholder]');
+              const footer = document.querySelector('[class*="ChatMessageInputFooter"], [class*="InputFooter"]');
+              const actionButtons = document.querySelectorAll('button[aria-label*="Attach"], button[aria-label*="Mention"], button[aria-label*="attachment"]');
+              if (textarea && (footer || actionButtons.length > 0)) {
+                console.log("Thoughtful Voice: Poe DOM ready (found textarea and footer/buttons)");
+                resolve();
+              } else if (document.readyState === "complete") {
+                setTimeout(() => {
+                  const retryTextarea = document.querySelector("textarea");
+                  if (retryTextarea) {
+                    console.log("Thoughtful Voice: Poe DOM ready (fallback - found basic textarea)");
+                    resolve();
+                  } else {
+                    setTimeout(check, 500);
+                  }
+                }, 1e3);
+              } else {
+                setTimeout(check, 500);
+              }
+            };
+            check();
+          });
+        }
+        getInjectionTarget() {
+          console.log("Thoughtful Voice: Looking for Poe injection target...");
+          const leftButtonsContainer = document.querySelector('[class*="leftButtons"], [class*="LeftButtons"]');
+          if (leftButtonsContainer) {
+            console.log("Thoughtful Voice: Found Poe leftButtons container directly");
+            let wrapper = leftButtonsContainer.querySelector("#thoughtful-voice-poe-wrapper");
+            if (!wrapper) {
+              wrapper = document.createElement("div");
+              wrapper.id = "thoughtful-voice-poe-wrapper";
+              wrapper.className = "thoughtful-voice-poe-container";
+              wrapper.style.cssText = "display: contents;";
+              leftButtonsContainer.appendChild(wrapper);
+            }
+            return {
+              container: wrapper,
+              insertBefore: null
+            };
+          }
+          const mentionBtn = document.querySelector('button[aria-label*="Mention"], button[aria-label*="mention"]');
+          const attachBtn = document.querySelector('button[aria-label*="Attach"], button[aria-label*="attach"], button[aria-label*="attachment"]');
+          const referenceBtn = mentionBtn || attachBtn;
+          if (referenceBtn) {
+            console.log("Thoughtful Voice: Found reference button, injecting in same container");
+            const btnContainer = referenceBtn.parentElement;
+            if (btnContainer) {
+              const style = window.getComputedStyle(btnContainer);
+              const isFlexContainer = style.display === "flex" || style.display === "inline-flex";
+              if (isFlexContainer) {
+                console.log("Thoughtful Voice: Parent is flex container, injecting inside");
+                let wrapper = btnContainer.querySelector("#thoughtful-voice-poe-wrapper");
+                if (!wrapper) {
+                  wrapper = document.createElement("div");
+                  wrapper.id = "thoughtful-voice-poe-wrapper";
+                  wrapper.className = "thoughtful-voice-poe-container";
+                  wrapper.style.cssText = "display: contents;";
+                  btnContainer.appendChild(wrapper);
+                }
+                return {
+                  container: wrapper,
+                  insertBefore: null
+                };
+              } else {
+                const grandParent = btnContainer.parentElement;
+                if (grandParent) {
+                  const gpStyle = window.getComputedStyle(grandParent);
+                  if (gpStyle.display === "flex" || gpStyle.display === "inline-flex") {
+                    let wrapper = grandParent.querySelector("#thoughtful-voice-poe-wrapper");
+                    if (!wrapper) {
+                      wrapper = document.createElement("div");
+                      wrapper.id = "thoughtful-voice-poe-wrapper";
+                      wrapper.className = "thoughtful-voice-poe-container";
+                      wrapper.style.cssText = "display: contents;";
+                      grandParent.appendChild(wrapper);
+                    }
+                    return {
+                      container: wrapper,
+                      insertBefore: null
+                    };
+                  }
+                }
+              }
+            }
+          }
+          const footer = document.querySelector('[class*="ChatMessageInputFooter"], [class*="InputFooter"], [class*="footer"]');
+          if (footer) {
+            console.log("Thoughtful Voice: Found Poe footer, looking for button group");
+            const leftButtonGroup = this._findLeftButtonGroup(footer);
+            if (leftButtonGroup) {
+              let wrapper = leftButtonGroup.querySelector("#thoughtful-voice-poe-wrapper");
+              if (!wrapper) {
+                wrapper = document.createElement("div");
+                wrapper.id = "thoughtful-voice-poe-wrapper";
+                wrapper.className = "thoughtful-voice-poe-container";
+                wrapper.style.cssText = "display: contents;";
+                leftButtonGroup.appendChild(wrapper);
+              }
+              return {
+                container: wrapper,
+                insertBefore: null
+              };
+            }
+          }
+          const textarea = this.getInputElement();
+          if (textarea) {
+            const inputContainer = textarea.closest('[class*="ChatMessageInput"], [class*="InputContainer"], form');
+            if (inputContainer) {
+              console.log("Thoughtful Voice: Using input container fallback for Poe");
+              const flexContainers = inputContainer.querySelectorAll("div");
+              for (const container of flexContainers) {
+                const style = window.getComputedStyle(container);
+                if ((style.display === "flex" || style.display === "inline-flex") && container.querySelectorAll("button").length >= 2) {
+                  let wrapper = container.querySelector("#thoughtful-voice-poe-wrapper");
+                  if (!wrapper) {
+                    wrapper = document.createElement("div");
+                    wrapper.id = "thoughtful-voice-poe-wrapper";
+                    wrapper.className = "thoughtful-voice-poe-container";
+                    wrapper.style.cssText = "display: contents;";
+                    container.appendChild(wrapper);
+                  }
+                  return {
+                    container: wrapper,
+                    insertBefore: null
+                  };
+                }
+              }
+            }
+          }
+          console.warn("Thoughtful Voice: No injection target found for Poe");
+          return null;
+        }
+        /**
+         * Find the left button group by looking for containers with multiple buttons
+         */
+        _findLeftButtonGroup(footer) {
+          const divs = footer.querySelectorAll("div");
+          for (const div of divs) {
+            const buttons = div.querySelectorAll("button");
+            if (buttons.length >= 2 && buttons.length <= 5) {
+              const style = window.getComputedStyle(div);
+              if (style.display === "flex" || style.display === "inline-flex") {
+                return div;
+              }
+            }
+          }
+          return null;
+        }
+        getInputElement() {
+          return document.querySelector('textarea[class*="ChatMessageInputContainer"]') || document.querySelector('textarea[class*="GrowingTextArea"]') || document.querySelector('textarea[placeholder*="Message"]') || document.querySelector('textarea[placeholder*="chat"]') || document.querySelector('[class*="ChatMessageInput"] textarea') || document.querySelector("textarea");
+        }
+        // ========== Optional Overrides ==========
+        getUploadStrategies() {
+          return ["paste", "dragAndDrop", "fileInput"];
+        }
+        getDropZone() {
+          const textarea = this.getInputElement();
+          if (textarea) {
+            return textarea.closest('[class*="ChatMessageInput"], [class*="InputContainer"], form') || textarea;
+          }
+          return document.body;
+        }
+        getFileInputElement() {
+          return document.querySelector('input[type="file"][accept*="image"]') || document.querySelector('input[type="file"]');
+        }
+      };
+    }
+  });
+
   // src/content/strategies/index.js
   function getStrategyForHost(hostname) {
     for (const { pattern, Strategy, name } of STRATEGIES) {
@@ -2592,6 +2777,7 @@
       init_chatgpt();
       init_ai_studio();
       init_perplexity();
+      init_poe();
       STRATEGIES = [
         {
           pattern: /gemini\.google\.com/,
@@ -2612,6 +2798,11 @@
           pattern: /perplexity\.ai/,
           Strategy: PerplexityStrategy,
           name: "Perplexity"
+        },
+        {
+          pattern: /poe\.com/,
+          Strategy: PoeStrategy,
+          name: "Poe"
         }
         // ========== Add new platforms below ==========
         // Example:

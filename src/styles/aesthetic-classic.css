@@ -1,0 +1,181 @@
+/* ==========================================================================
+   AESTHETIC OLD - Original Tape Reel Design
+   Active when body has class 'ui-style-aesthetic-old'
+   ========================================================================== */
+
+/* ===== Hide simple buttons when aesthetic-old mode is active ===== */
+.ui-style-aesthetic-old .ai-voice-btn {
+    display: none !important;
+}
+
+/* ===== Show aesthetic modules in old mode ===== */
+.ui-style-aesthetic-old .aesthetic-module {
+    display: flex !important;
+}
+
+/* ===== AUDIO MODULE - Classic Tape Reel Design ===== */
+.ui-style-aesthetic-old .audio-module {
+    height: 40px !important;
+    overflow: visible;
+    align-self: center;
+}
+
+.ui-style-aesthetic-old .audio-module .audio-main {
+    width: 40px !important;
+    height: 40px !important;
+    position: relative;
+    z-index: 20;
+    cursor: pointer;
+}
+
+/* Override the MIC chassis back to circular tape reel */
+.ui-style-aesthetic-old .reel-chassis {
+    position: absolute;
+    inset: 0;
+    border-radius: 50% !important;
+    background: #FDFDFD !important;
+    background-image: linear-gradient(135deg, #FFFFFF 0%, #F5F5F7 100%) !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), inset 0 2px 5px #FFF !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: row !important;
+    border: 1px solid rgba(255, 255, 255, 0.8) !important;
+    overflow: visible !important;
+    animation: none !important;
+}
+
+/* Hide the MIC pseudo elements (mesh and LED bar) */
+.ui-style-aesthetic-old .reel-chassis::before,
+.ui-style-aesthetic-old .reel-chassis::after {
+    display: none !important;
+    content: none !important;
+}
+
+/* Restore reel housing to circular design */
+.ui-style-aesthetic-old .reel-housing {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    background: conic-gradient(#BCBCC2 0deg, #FDFDFD 90deg, #BCBCC2 180deg, #FDFDFD 270deg, #BCBCC2 360deg) !important;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0 !important;
+}
+
+/* Hide MIC text */
+.ui-style-aesthetic-old .reel-housing::before {
+    display: none !important;
+    content: none !important;
+}
+
+/* CRITICAL: Restore tape mechanism visibility */
+.ui-style-aesthetic-old .tape-mechanism {
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 50% !important;
+    position: relative !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    background: radial-gradient(circle at center, #333 10%, transparent 11%),
+        conic-gradient(from 0deg, transparent 0deg 40deg, #888 40deg, #FFF 50deg, #888 60deg, transparent 60deg 120deg, #888 120deg, #FFF 130deg, #888 140deg, transparent 140deg 240deg, #888 240deg, #FFF 250deg, #888 260deg, transparent 260deg) !important;
+    background-color: #222 !important;
+}
+
+/* Restore bearing ruby to center circle */
+.ui-style-aesthetic-old .bearing-ruby {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    bottom: auto !important;
+    width: 5px !important;
+    height: 5px !important;
+    border-radius: 50% !important;
+    background: radial-gradient(circle at 30% 30%, #FF8A80, #D32F2F) !important;
+    transition: all 0.3s ease;
+    animation: none !important;
+}
+
+/* ===== Classic Audio Sidecar ===== */
+.ui-style-aesthetic-old .audio-sidecar {
+    left: 22px !important;
+    height: 32px !important;
+    border-radius: 16px 6px 6px 16px !important;
+    border: 1px solid #FFF !important;
+    box-shadow: 3px 4px 10px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* ===== Classic State Classes ===== */
+/* Idle: slow spin animation */
+.ui-style-aesthetic-old .audio-module.idle .tape-mechanism {
+    animation: superSlowSpin 40s linear infinite !important;
+}
+
+.ui-style-aesthetic-old .audio-module.idle .bearing-ruby {
+    animation: none !important;
+    background: radial-gradient(circle at 30% 30%, #FF8A80, #D32F2F) !important;
+    box-shadow: none !important;
+}
+
+.ui-style-aesthetic-old .audio-module.idle .reel-chassis {
+    animation: none !important;
+}
+
+.ui-style-aesthetic-old .audio-module.idle .reel-housing::before {
+    display: none !important;
+}
+
+/* Recording: fast spin animation */
+.ui-style-aesthetic-old .audio-module.recording .tape-mechanism {
+    animation: turboSpin 0.8s linear infinite !important;
+}
+
+.ui-style-aesthetic-old .audio-module.recording .bearing-ruby {
+    background: var(--active-orange) !important;
+    box-shadow: 0 0 10px var(--active-orange) !important;
+    animation: none !important;
+}
+
+.ui-style-aesthetic-old .audio-module.recording .reel-chassis {
+    animation: none !important;
+}
+
+/* Paused: freeze animation */
+.ui-style-aesthetic-old .audio-module.paused .tape-mechanism {
+    animation-play-state: paused !important;
+}
+
+/* ===== Site-specific overrides for old mode ===== */
+.ui-style-aesthetic-old.site-aistudio .audio-module .audio-sidecar,
+.ui-style-aesthetic-old.site-chatgpt .audio-module .audio-sidecar,
+.ui-style-aesthetic-old.site-perplexity .audio-module .audio-sidecar {
+    left: auto !important;
+    right: 22px !important;
+    padding-left: 12px !important;
+    padding-right: 44px !important;
+    border-radius: 6px 16px 16px 6px !important;
+    height: 32px !important;
+}
+
+/* ===== Dark Mode Support for Old Style ===== */
+@media (prefers-color-scheme: dark) {
+    .ui-style-aesthetic-old .reel-chassis {
+        background: #2D2D2D !important;
+        background-image: linear-gradient(135deg, #3A3A3A 0%, #252525 100%) !important;
+        border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .ui-style-aesthetic-old .audio-sidecar {
+        background: #2A2A2A !important;
+        border-color: #444 !important;
+    }
+
+    .ui-style-aesthetic-old .led-timer {
+        background: #1A1A1A !important;
+        color: #76ff03 !important;
+        text-shadow: 0 0 4px rgba(118, 255, 3, 0.5) !important;
+    }
+}

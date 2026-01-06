@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Thoughtful Voice",
-    "version": "1.1",
+    "version": "1.2",
     "description": "Record and drop audio/video directly to Gemini and ChatGPT.",
     "permissions": [
         "storage",
@@ -13,7 +13,9 @@
         "https://gemini.google.com/*",
         "https://aistudio.google.com/*",
         "https://www.perplexity.ai/*",
-        "https://perplexity.ai/*"
+        "https://perplexity.ai/*",
+        "https://poe.com/*",
+        "https://www.poe.com/*"
     ],
     "content_scripts": [
         {
@@ -23,7 +25,9 @@
                 "https://gemini.google.com/*",
                 "https://aistudio.google.com/*",
                 "https://www.perplexity.ai/*",
-                "https://perplexity.ai/*"
+                "https://perplexity.ai/*",
+                "https://poe.com/*",
+                "https://www.poe.com/*"
             ],
             "js": [
                 "dist/content.bundle.js"
@@ -31,6 +35,7 @@
             "css": [
                 "src/styles/main.css",
                 "src/styles/aesthetic-buttons.css",
+                "src/styles/aesthetic-classic.css",
                 "src/styles/upload-notification.css"
             ]
         }

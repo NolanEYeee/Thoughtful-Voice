@@ -71,6 +71,7 @@ The extension offers **two UI styles**:
 |---------|-------------|
 | 🎤 Voice Recording | WAV format, adjustable bitrate, download & save locally, auto-upload |
 | 📹 Screen Recording | Up to 4K@120FPS, adjustable bitrate, download & save locally, auto-fix duration metadata |
+| 🔄 History Insert | Re-upload saved recordings from history to current AI page, no need to re-record |
 | 🎨 Retro UI | 80s Walkman style, cassette/CRT design, browse by date & platform |
 | ⚙️ Customization | Video/audio quality settings, default prompts, auto-save preferences |
 | 🔍 Provenance | Auto-track recording origins; one-click jump back to specific AI chat windows |
@@ -81,8 +82,9 @@ The extension offers **two UI styles**:
 |----------|--------|--------|
 | Gemini ⭐ | gemini.google.com | ✅ Supported (Recommended) |
 | AI Studio ⭐ | aistudio.google.com | ✅ Supported (Recommended) |
+| Poe | poe.com | ✅ Supported |
 | ChatGPT | chatgpt.com, chat.openai.com | ✅ Supported |
-| Perplexity | perplexity.ai | ⚠️ UI Only (Site Issuem, not my problem huh) |
+| Perplexity | perplexity.ai | ⚠️ UI Only (Site Issue, not my problem huh) |
 | Perplexity Comet | - | ❌ Unsupported (Home page immutable) |
 | Claude | claude.ai | ❌ Unsupported (No audio/video upload) |
 | Grok | x.com/i/grok grok.com | ❌ Unsupported (No audio/video upload) |
@@ -202,7 +204,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## 🗺️ Roadmap
 
 - [x] Chrome Web Store publication ✅
-- [ ] Support for more AI platforms (Poe, Qwen, etc.)
+- [x] Poe support ✅
+- [ ] Support for more AI platforms (Qwen, etc.)
 
 ## 📄 License
 

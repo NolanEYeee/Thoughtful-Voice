@@ -417,7 +417,9 @@
             "chat.openai.com",
             "aistudio.google.com",
             "perplexity.ai",
-            "www.perplexity.ai"
+            "www.perplexity.ai",
+            "poe.com",
+            "www.poe.com"
           ];
           isOnSupportedSite = supportedSites.some((site) => currentUrl.includes(site));
           console.log("Current tab supported for insertion:", isOnSupportedSite, currentUrl);
@@ -434,7 +436,7 @@
           settings = getMergedSettings(result.settings);
         }
         window.settings = settings;
-        document.body.classList.remove("ui-style-simple", "ui-style-aesthetic");
+        document.body.classList.remove("ui-style-simple", "ui-style-aesthetic", "ui-style-aesthetic-old");
         document.body.classList.add(`ui-style-${settings.uiStyle || "aesthetic"}`);
         recordings.sort((a, b) => b.timestamp - a.timestamp);
         allRecordings = recordings;
@@ -1052,7 +1054,7 @@
           document.querySelectorAll(".crt-card video").forEach((v) => {
             v.muted = settings2.video.mutedByDefault;
           });
-          document.body.classList.remove("ui-style-simple", "ui-style-aesthetic");
+          document.body.classList.remove("ui-style-simple", "ui-style-aesthetic", "ui-style-aesthetic-old");
           document.body.classList.add(`ui-style-${settings2.uiStyle || "aesthetic"}`);
           await queueStorageOperation(async () => {
             await chrome.storage.local.set({ settings: settings2 });
@@ -1352,6 +1354,7 @@
                     <a href="https://aistudio.google.com/" target="_blank" class="platform-pill">AI Studio</a>
                     <a href="https://chatgpt.com/" target="_blank" class="platform-pill">ChatGPT</a>
                     <a href="https://www.perplexity.ai/" target="_blank" class="platform-pill">Perplexity</a>
+                    <a href="https://poe.com/" target="_blank" class="platform-pill">Poe</a>
                 </div>
             </div>
 

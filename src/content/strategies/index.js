@@ -13,6 +13,7 @@ import { GeminiStrategy } from './gemini.js';
 import { ChatGPTStrategy } from './chatgpt.js';
 import { AIStudioStrategy } from './ai-studio.js';
 import { PerplexityStrategy } from './perplexity.js';
+import { PoeStrategy } from './poe.js';
 
 /**
  * Strategy configuration array
@@ -41,6 +42,11 @@ const STRATEGIES = [
         pattern: /perplexity\.ai/,
         Strategy: PerplexityStrategy,
         name: 'Perplexity'
+    },
+    {
+        pattern: /poe\.com/,
+        Strategy: PoeStrategy,
+        name: 'Poe'
     },
     // ========== Add new platforms below ==========
     // Example:

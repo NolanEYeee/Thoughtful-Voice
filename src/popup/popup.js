@@ -262,7 +262,9 @@ async function loadRecordings(dataOverride = null) {
             'chat.openai.com',
             'aistudio.google.com',
             'perplexity.ai',
-            'www.perplexity.ai'
+            'www.perplexity.ai',
+            'poe.com',
+            'www.poe.com'
         ];
         isOnSupportedSite = supportedSites.some(site => currentUrl.includes(site));
         console.log('Current tab supported for insertion:', isOnSupportedSite, currentUrl);
@@ -286,7 +288,7 @@ async function loadRecordings(dataOverride = null) {
     window.settings = settings;
 
     // Apply UI Style class to body for CSS targeting
-    document.body.classList.remove('ui-style-simple', 'ui-style-aesthetic');
+    document.body.classList.remove('ui-style-simple', 'ui-style-aesthetic', 'ui-style-aesthetic-old');
     document.body.classList.add(`ui-style-${settings.uiStyle || 'aesthetic'}`);
 
     recordings.sort((a, b) => b.timestamp - a.timestamp);
@@ -1114,7 +1116,7 @@ async function setupSettings() {
         });
 
         // 2. Immediately update UI Style if it was changed
-        document.body.classList.remove('ui-style-simple', 'ui-style-aesthetic');
+        document.body.classList.remove('ui-style-simple', 'ui-style-aesthetic', 'ui-style-aesthetic-old');
         document.body.classList.add(`ui-style-${settings.uiStyle || 'aesthetic'}`);
 
         await queueStorageOperation(async () => {
@@ -1479,6 +1481,7 @@ function getEmptyStateHTML() {
                     <a href="https://aistudio.google.com/" target="_blank" class="platform-pill">AI Studio</a>
                     <a href="https://chatgpt.com/" target="_blank" class="platform-pill">ChatGPT</a>
                     <a href="https://www.perplexity.ai/" target="_blank" class="platform-pill">Perplexity</a>
+                    <a href="https://poe.com/" target="_blank" class="platform-pill">Poe</a>
                 </div>
             </div>
 
