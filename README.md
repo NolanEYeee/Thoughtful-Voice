@@ -15,7 +15,7 @@ Record your voice or screen and submit directly to AI - no transcription errors,
 
 [Features](#-features) • [Platforms](#-platform-support) • [Installation](#-installation) • [Use Cases](#-use-cases) • [Development](#-development)
 
-English | [简体中文](README_CN.md)
+English | [简体中文](README_CN.md) | [繁體中文](README_TC.md)
 
 </div>
 

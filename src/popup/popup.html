@@ -645,9 +645,8 @@
             height: 100%;
             display: block;
             object-fit: cover;
-            /* Fills the frame perfectly, ensuring rounded corners are visible */
-            border-radius: 4px;
-            /* Safety inner radius */
+            /* Fills the frame perfectly, no inner radius needed as parent handles overflow */
+            border-radius: 0;
         }
 
         .crt-overlay {
